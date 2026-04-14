@@ -1,0 +1,153 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
+import { prisma } from "@/lib/prisma";
+import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
+import { formatCurrency, formatDate, titleizeEnum } from "@/lib/format";
+import { LeadManagementForm } from "@/components/client-forms";
+import { buttonStyles, Card, SectionHeading, StatusBadge } from "@/components/ui";
+
+export default async function LeadDetailPage({
+  params,
+}: {
+  params: Promise<{ leadId: string }>;
+}) {
+  const { leadId } = await params;
+
+  const [lead, helpers] = await Promise.all([
+    prisma.lead.findUnique({
+      where: { id: leadId },
+      include: {
+        user: true,
+        selectedHelper: true,
+        assignedHelper: true,
+      },
+    }),
+    prisma.helper.findMany({
+      orderBy: { displayOrder: "asc" },
+    }),
+  ]);
+
+  if (!lead) {
+    notFound();
+  }
+
+  const whatsappUrl = buildWhatsappUrl(
+    buildWhatsappMessage({
+      category: getCategoryLabel(lead.category),
+      taskType: getTaskTypeLabel(lead.taskType),
+      urgency: titleizeEnum(lead.urgency),
+      deadline: lead.deadline,
+      budget: lead.budget,
+      helperName: lead.selectedHelper?.name ?? "No preference",
+      description: lead.description,
+    }),
+  );
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Link href="/admin/leads" className={buttonStyles({ tone: "yellow", size: "sm" })}>
+          Back to Leads
+        </Link>
+        <StatusBadge status={lead.status} />
+        {lead.dealClosed ? (
+          <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+            Closed Deal
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-5">
+        <SectionHeading
+          eyebrow="Lead Detail"
+          title={`Lead ${lead.id.slice(0, 8)}`}
+          description="This page keeps the full brief, WhatsApp follow-up, admin assignment, closure, and revenue in one place."
+        />
+      </div>
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-6">
+          <Card className="bg-white">
+            <div className="display-font text-2xl font-black">Lead summary</div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Detail label="Student" value={lead.user?.name ?? "Guest lead"} />
+              <Detail label="Email" value={lead.user?.email ?? "Not logged in"} />
+              <Detail label="Category" value={getCategoryLabel(lead.category)} />
+              <Detail label="Task Type" value={getTaskTypeLabel(lead.taskType)} />
+              <Detail label="Urgency" value={titleizeEnum(lead.urgency)} />
+              <Detail label="Deadline" value={formatDate(lead.deadline)} />
+              <Detail label="Budget" value={formatCurrency(lead.budget)} />
+              <Detail label="Lead Score" value={`${lead.leadScore} · ${lead.leadTemperature}`} />
+              <Detail label="Preferred Helper" value={lead.selectedHelper?.name ?? "-"} />
+              <Detail label="Assigned Helper" value={lead.assignedHelper?.name ?? "-"} />
+              <Detail label="Deal Value" value={formatCurrency(lead.dealValue)} />
+              <Detail label="Created" value={formatDate(lead.createdAt)} />
+            </div>
+          </Card>
+
+          <Card className="bg-white">
+            <div className="display-font text-2xl font-black">Pipeline trace</div>
+            <div className="mt-5 grid gap-3">
+              <TraceRow label="User selected a helper" value={lead.selectedHelper ? lead.selectedHelper.name : "No"} />
+              <TraceRow label="Admin assigned a helper" value={lead.assignedHelper ? lead.assignedHelper.name : "Not yet"} />
+              <TraceRow label="Deal closed" value={lead.dealClosed ? "Yes" : "No"} />
+              <TraceRow label="Revenue captured" value={lead.dealValue ? formatCurrency(lead.dealValue) : "Not yet"} />
+              <TraceRow label="WhatsApp clicked" value={lead.whatsappClicked ? "Yes" : "No"} />
+            </div>
+          </Card>
+
+          <Card className="bg-white">
+            <div className="display-font text-2xl font-black">Assignment details</div>
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{lead.description}</p>
+          </Card>
+
+          <Card className="bg-blue text-white">
+            <div className="display-font text-2xl font-black">Admin WhatsApp Launch</div>
+            <p className="mt-3 text-sm leading-7 text-white/80">
+              Uses the stored lead data, so admin always follows up with the same brief the student submitted.
+            </p>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={`mt-5 ${buttonStyles({ tone: "yellow", size: "md" })}`}
+            >
+              Open WhatsApp
+            </a>
+          </Card>
+        </div>
+
+        <LeadManagementForm
+          lead={{
+            id: lead.id,
+            status: lead.status,
+            assignedHelperId: lead.assignedHelperId,
+            dealClosed: lead.dealClosed,
+            dealValue: lead.dealValue,
+            notes: lead.notes,
+          }}
+          helpers={helpers.map((helper) => ({ id: helper.id, name: helper.name }))}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[20px] border-[3px] border-line bg-cream p-4">
+      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">{label}</div>
+      <div className="mt-2 text-sm font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function TraceRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col justify-between gap-1 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 md:flex-row md:items-center">
+      <span className="text-xs font-black uppercase tracking-[0.16em] text-muted">{label}</span>
+      <span className="text-sm font-semibold">{value}</span>
+    </div>
+  );
+}

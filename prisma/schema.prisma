@@ -1,0 +1,141 @@
+// CritStudio is configured for PostgreSQL-backed deployments.
+// The relational model stays unchanged across local, preview, and production
+// environments so Prisma migrations and seeded app flows remain consistent.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum HelperCategory {
+  INTERIOR_DESIGN
+  ARCHITECTURE
+  FINANCE
+  BUSINESS
+  ECONOMICS
+  INVESTMENT
+  CORPORATE_GOVERNANCE
+  ETHICS
+  MARKETING
+}
+
+enum LeadTaskType {
+  RENDERING
+  LAYOUT
+  PORTFOLIO
+  PRESENTATION_BOARD
+  REPORT
+  CASE_STUDY
+  FINANCIAL_ANALYSIS
+  CALCULATION_MODEL
+  PRESENTATION_SLIDES
+  ESSAY
+  RESEARCH_ANALYSIS
+  OTHERS
+}
+
+enum LeadUrgency {
+  RELAXED
+  NORMAL
+  ASAP
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  ASSIGNED
+  COMPLETED
+}
+
+enum LeadTemperature {
+  COLD
+  WARM
+  HOT
+}
+
+enum LeadLifecycleStage {
+  VISITOR
+  LEAD
+  CONTACTED
+  ASSIGNED
+  COMPLETED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(STUDENT)
+  createdAt    DateTime @default(now())
+  leads        Lead[]
+  leadDrafts   LeadDraft[]
+}
+
+model Helper {
+  id               String         @id @default(cuid())
+  name             String
+  category         HelperCategory
+  specialties      Json
+  shortBio         String
+  displayOrder     Int            @default(0)
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  selectedForLeads Lead[]         @relation("SelectedHelper")
+  assignedLeads    Lead[]         @relation("AssignedHelper")
+}
+
+model Lead {
+  id               String             @id @default(cuid())
+  clientRequestKey String?            @unique
+  userId           String?
+  category         HelperCategory
+  taskType         LeadTaskType
+  urgency          LeadUrgency
+  deadline         DateTime
+  budget           Int?
+  description      String
+  selectedHelperId String?
+  assignedHelperId String?
+  leadScore        Int
+  leadTemperature  LeadTemperature
+  lifecycleStage   LeadLifecycleStage @default(LEAD)
+  whatsappClicked  Boolean            @default(false)
+  status           LeadStatus         @default(NEW)
+  dealClosed       Boolean            @default(false)
+  notes            String             @default("")
+  dealValue        Int?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  selectedHelper   Helper?            @relation("SelectedHelper", fields: [selectedHelperId], references: [id], onDelete: SetNull)
+  assignedHelper   Helper?            @relation("AssignedHelper", fields: [assignedHelperId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([category, taskType])
+}
+
+model LeadDraft {
+  id          String         @id @default(cuid())
+  userId      String?
+  category    HelperCategory
+  taskType    LeadTaskType
+  urgency     LeadUrgency
+  deadline    DateTime
+  budget      Int?
+  description String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
