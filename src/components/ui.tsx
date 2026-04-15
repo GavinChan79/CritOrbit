@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { ReactNode } from "react";
 import { LeadStatus } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
+import { LogoutButton } from "@/components/logout-button";
 import { SiteHeaderClient } from "@/components/site-header-client";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export async function SiteHeader() {
           <Link href="/#faqs">FAQs</Link>
           {showAdminDashboard ? <Link href="/admin">Dashboard</Link> : null}
           {!session?.user ? <Link href="/login">Login</Link> : null}
+          {session?.user ? <LogoutButton callbackUrl="/" label="Logout" tone="ink" size="sm" /> : null}
         </nav>
         <div className="hidden md:block">
           <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "sm" })}>

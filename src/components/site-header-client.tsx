@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { LogoutButton } from "@/components/logout-button";
 
 type SiteHeaderClientProps = {
   isAuthenticated: boolean;
@@ -23,7 +24,20 @@ export function SiteHeaderClient({
   return (
     <div className="md:hidden">
       <div className="flex items-center gap-3">
-        {!isAuthenticated || showAdminDashboard ? (
+        {showAdminDashboard ? (
+          <Link href={authHref} className="text-sm font-semibold" onClick={closeMenu}>
+            {authLabel}
+          </Link>
+        ) : null}
+        {isAuthenticated ? (
+          <LogoutButton
+            label="Logout"
+            callbackUrl="/"
+            tone="ink"
+            size="sm"
+            className="px-3 py-2 text-sm"
+          />
+        ) : !showAdminDashboard ? (
           <Link href={authHref} className="text-sm font-semibold" onClick={closeMenu}>
             {authLabel}
           </Link>
@@ -55,6 +69,20 @@ export function SiteHeaderClient({
             <Link href="/#faqs" className="text-sm font-semibold" onClick={closeMenu}>
               FAQs
             </Link>
+            {showAdminDashboard ? (
+              <Link href="/admin" className="text-sm font-semibold" onClick={closeMenu}>
+                Dashboard
+              </Link>
+            ) : null}
+            {isAuthenticated ? (
+              <LogoutButton
+                label="Logout"
+                callbackUrl="/"
+                tone="ink"
+                size="md"
+                className="w-full"
+              />
+            ) : null}
             <Link
               href="/requirements"
               className="display-font inline-flex w-full items-center justify-center rounded-[18px] border-[3px] border-line bg-[#7a5af8] px-4 py-2 text-sm font-black text-white shadow-[5px_5px_0_var(--line)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none [text-shadow:0_1px_0_rgba(0,0,0,0.12)]"

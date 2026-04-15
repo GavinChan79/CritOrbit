@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/components/logout-button";
 import { APP_NAME, adminSidebarLinks } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -9,15 +10,18 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b-[3px] border-line bg-paper px-4 py-5 lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r-[3px] lg:px-5">
+    <aside className="w-full overflow-visible border-b-[3px] border-line bg-paper px-4 py-5 lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r-[3px] lg:px-6">
       <div className="display-font text-2xl font-black uppercase">{APP_NAME}</div>
       <p className="mt-2 text-sm text-muted">Admin workspace for lead routing and helper tracking.</p>
-      <Link
-        href="/"
-        className="mt-4 inline-flex rounded-[18px] border-[3px] border-line bg-yellow px-4 py-2 text-sm font-black uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--line)] transition hover:bg-pink"
-      >
-        Back to Public Site
-      </Link>
+      <div className="mt-5 flex flex-col gap-3">
+        <Link
+          href="/"
+          className="inline-flex w-full items-center justify-center rounded-[18px] border-[3px] border-line bg-yellow px-4 py-2 text-sm font-black uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--line)] transition hover:bg-pink"
+        >
+          Back to Home
+        </Link>
+        <LogoutButton callbackUrl="/" label="Logout" tone="ink" size="sm" className="w-full" />
+      </div>
       <nav className="mt-8 space-y-3">
         {adminSidebarLinks.map((link) => {
           const active =

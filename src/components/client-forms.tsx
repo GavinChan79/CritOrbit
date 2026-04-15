@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -646,7 +647,12 @@ export function HelperSelectionClient({
                       {helper.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="display-font text-2xl font-black">{helper.name}</h3>
+                      <Link
+                        href={`/helpers/${helper.id}?draftId=${request.draftId}`}
+                        className="display-font text-2xl font-black underline-offset-4 hover:underline"
+                      >
+                        {helper.name}
+                      </Link>
                       <p className="text-sm font-semibold text-muted">
                         {getCategoryLabel(helper.category)}
                       </p>
@@ -687,6 +693,14 @@ export function HelperSelectionClient({
                             />
                           </a>
                         ))}
+                      </div>
+                      <div className="mt-3">
+                        <Link
+                          href={`/helpers/${helper.id}?draftId=${request.draftId}`}
+                          className={buttonStyles({ tone: "yellow", size: "sm" })}
+                        >
+                          View Full Portfolio
+                        </Link>
                       </div>
                     </div>
                   ) : null}

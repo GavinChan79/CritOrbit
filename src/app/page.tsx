@@ -209,7 +209,9 @@ export default async function HomePage() {
             {helpers.map((helper, index) => (
               <Card key={helper.id} className={index === 1 ? "bg-yellow" : "bg-white"}>
                 <div className="flex items-center justify-between">
-                  <div className="display-font text-2xl font-black">{helper.name}</div>
+                  <Link href={`/helpers/${helper.id}`} className="display-font text-2xl font-black underline-offset-4 hover:underline">
+                    {helper.name}
+                  </Link>
                   <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
                     {getCategoryLabel(helper.category)}
                   </span>
@@ -243,6 +245,11 @@ export default async function HomePage() {
                     </div>
                   </div>
                 ) : null}
+                <div className="mt-5">
+                  <Link href={`/helpers/${helper.id}`} className={buttonStyles({ tone: "yellow", size: "sm" })}>
+                    View Portfolio
+                  </Link>
+                </div>
               </Card>
             ))}
           </div>
