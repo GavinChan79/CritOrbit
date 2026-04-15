@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { APP_NAME, APP_POWERED_BY, APP_TAGLINE } from "@/lib/constants";
 import { getCategoryLabel, parseSpecialties } from "@/lib/helpers";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 
@@ -27,11 +28,14 @@ export default async function HomePage() {
                 Get Your Assignment Done. Fast.
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-ink/80">
-                Malaysia’s #1 helper platform for Interior Design and Architecture students.
+                {APP_TAGLINE} Malaysia&apos;s helper platform for students who need the right support fast.
+              </p>
+              <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-ink/70">
+                {APP_POWERED_BY}
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" })}>
-                  Get Help Now →
+                  Get Help Now {"\u2192"}
                 </Link>
                 <Link href="/#helpers" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                   Browse Helpers
@@ -58,7 +62,7 @@ export default async function HomePage() {
                   <div className="relative z-10 mt-5 flex items-start justify-between gap-4">
                     <div className="max-w-sm">
                       <div className="display-font text-3xl font-black leading-tight md:text-[2.15rem]">
-                        Studio Rescue Board
+                        Orbit Control Board
                       </div>
                       <p className="mt-3 max-w-xs text-sm leading-6 text-white/88">
                         A playful control panel for urgent briefs, curated helper picks, and smooth WhatsApp handoff.
@@ -80,7 +84,7 @@ export default async function HomePage() {
                       </div>
                       <div className="mt-3 display-font text-[1.7rem] font-black leading-tight">Fast turnarounds</div>
                       <div className="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em]">
-                        <span className="text-lg">↗</span>
+                        <span className="text-lg">{"\u2197"}</span>
                         Deadline-friendly output
                       </div>
                     </div>
@@ -106,7 +110,7 @@ export default async function HomePage() {
                               Controlled Flow
                             </span>
                             <span className="text-xs font-black uppercase tracking-[0.18em] text-white/75">
-                              Brief → Match → WhatsApp
+                              Brief {"\u2192"} Match {"\u2192"} WhatsApp
                             </span>
                           </div>
                           <div className="mt-3 max-w-xl display-font text-[1.55rem] font-black leading-tight">
@@ -117,14 +121,14 @@ export default async function HomePage() {
                           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
                             Route
                           </div>
-                          <div className="mt-2 display-font text-xl font-black">WA Redirect →</div>
+                          <div className="mt-2 display-font text-xl font-black">WA Redirect {"\u2192"}</div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="absolute -left-6 -top-6 rounded-[22px] border-[3px] border-line bg-red px-4 py-3 display-font text-lg font-black text-white shadow-[5px_5px_0_var(--line)]">
-                  Retro. Bold. Functional.
+                  Bold. Clear. Functional.
                 </div>
               </div>
             </div>
@@ -135,7 +139,7 @@ export default async function HomePage() {
           <SectionHeading
             eyebrow="How It Works"
             title="A simple, controlled student support flow"
-            description="CritStudio keeps the playful front-end experience while routing every real conversation through admin."
+            description={`${APP_NAME} keeps the playful front-end experience while routing every real conversation through admin.`}
             align="center"
           />
           <div className="mt-10 grid gap-6 md:grid-cols-3">
@@ -159,7 +163,7 @@ export default async function HomePage() {
 
         <section className="bg-green py-16 text-white">
           <div className="mx-auto max-w-7xl px-4 md:px-6">
-            <SectionHeading eyebrow="Why CritStudio" title="Built for design students under pressure" />
+            <SectionHeading eyebrow={`Why ${APP_NAME}`} title="Built for students under pressure" />
             <div className="mt-10 grid gap-6 md:grid-cols-4">
               {[
                 ["50+", "Helpers"],
@@ -215,11 +219,11 @@ export default async function HomePage() {
               <div>
                 <div className="display-font text-4xl font-black">Start Your Creative Journey</div>
                 <p className="mt-3 max-w-xl text-sm leading-7 text-white/80">
-                  Brief us once, browse the right helper, then let CritStudio handle the routing and follow-up.
+                  Brief us once, browse the right helper, then let {APP_NAME} handle the routing and follow-up.
                 </p>
               </div>
               <Link href="/requirements" className={buttonStyles({ tone: "yellow", size: "lg" })}>
-                Get Help Now →
+                Get Help Now {"\u2192"}
               </Link>
             </div>
           </div>
@@ -229,7 +233,7 @@ export default async function HomePage() {
           <SectionHeading eyebrow="FAQs" title="A few important rules" />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {[
-              ["Can I contact helpers directly?", "No. All communication is routed through CritStudio admin WhatsApp."],
+              ["Can I contact helpers directly?", `No. All communication is routed through ${APP_NAME} admin WhatsApp.`],
               ["Do you support payments?", "Not in Phase 1. Admin handles matching and deal tracking manually."],
               ["Can I use this for architecture and interior work?", "Yes. Both categories are supported in the current helper roster."],
               ["Will I see my request status later?", "Yes, logged-in users can track requests from the dashboard."],

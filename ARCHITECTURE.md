@@ -1,4 +1,4 @@
-# CritStudio Updated Blueprint
+# CritOrbit Updated Blueprint
 
 ## Architecture Plan
 - Next.js App Router full-stack app with reusable feature modules under `src/`.

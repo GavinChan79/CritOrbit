@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { adminSidebarLinks } from "@/lib/constants";
+import { APP_NAME, adminSidebarLinks } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export function AdminSidebar() {
@@ -10,7 +10,7 @@ export function AdminSidebar() {
 
   return (
     <aside className="w-full border-b-[3px] border-line bg-paper px-4 py-5 lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r-[3px] lg:px-5">
-      <div className="display-font text-2xl font-black uppercase">CritStudio</div>
+      <div className="display-font text-2xl font-black uppercase">{APP_NAME}</div>
       <p className="mt-2 text-sm text-muted">Admin workspace for lead routing and helper tracking.</p>
       <Link
         href="/"

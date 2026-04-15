@@ -1,4 +1,4 @@
-// CritStudio is configured for PostgreSQL-backed deployments.
+// CritOrbit is configured for PostgreSQL-backed deployments.
 // The relational model stays unchanged across local, preview, and production
 // environments so Prisma migrations and seeded app flows remain consistent.
 

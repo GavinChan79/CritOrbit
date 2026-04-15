@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { LeadStatus } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
 import { SiteHeaderClient } from "@/components/site-header-client";
+import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export async function SiteHeader() {
@@ -16,7 +17,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b-[3px] border-line bg-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
         <Link href="/" className="display-font text-2xl font-black uppercase tracking-tight">
-          CritStudio
+          {APP_NAME}
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
           <Link href="/#how-it-works">How it Works</Link>
@@ -44,9 +45,9 @@ export function SiteFooter() {
     <footer className="mt-16 border-t-[3px] border-line bg-paper">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3 md:px-6">
         <div>
-          <div className="display-font text-2xl font-black uppercase">CritStudio</div>
+          <div className="display-font text-2xl font-black uppercase">{APP_NAME}</div>
           <p className="mt-3 max-w-sm text-sm text-muted">
-            A controlled student help platform for architecture and interior design submissions.
+            {APP_TAGLINE}
           </p>
         </div>
         <div className="space-y-2 text-sm font-semibold">

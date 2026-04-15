@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { APP_NAME, APP_POWERED_BY, APP_TAGLINE } from "@/lib/constants";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -13,9 +14,21 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "CritStudio",
-  description:
-    "A controlled lead-generation platform for Malaysian Interior Design and Architecture students.",
+  title: APP_NAME,
+  description: `${APP_TAGLINE} A platform that matches users with the right helper for their work.`,
+  applicationName: APP_NAME,
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    title: APP_NAME,
+    description: `${APP_TAGLINE} ${APP_POWERED_BY}`,
+    siteName: APP_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: `${APP_TAGLINE} ${APP_POWERED_BY}`,
+  },
 };
 
 export default function RootLayout({

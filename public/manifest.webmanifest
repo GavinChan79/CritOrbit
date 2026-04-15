@@ -1,0 +1,9 @@
+{
+  "name": "CritOrbit",
+  "short_name": "CritOrbit",
+  "description": "Find the right help. Get it done.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8EA",
+  "theme_color": "#552CB7"
+}

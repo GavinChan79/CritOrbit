@@ -14,6 +14,7 @@ import {
   type HelperSpecialty,
 } from "@/lib/helpers";
 import {
+  APP_NAME,
   categoryOptions,
   getTaskTypeOptionsForCategory,
   statusOptions,
@@ -119,7 +120,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     <form onSubmit={handleSubmit} className="retro-card space-y-5 bg-white p-8">
       <div>
         <h1 className="display-font text-4xl font-black">
-          {mode === "login" ? "Welcome Back" : "Join CritStudio"}
+          {mode === "login" ? `Welcome to ${APP_NAME}` : `Join ${APP_NAME}`}
         </h1>
         <p className="mt-2 text-sm text-muted">
           {mode === "login"

@@ -1,4 +1,6 @@
-export const APP_NAME = "CritStudio";
+export const APP_NAME = "CritOrbit";
+export const APP_TAGLINE = "Find the right help. Get it done.";
+export const APP_POWERED_BY = "Powered by CritOrbit";
 export const ADMIN_WHATSAPP_NUMBER =
   process.env.ADMIN_WHATSAPP_NUMBER ?? "601161241368";
 

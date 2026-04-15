@@ -17,13 +17,13 @@ async function main() {
   await prisma.helper.deleteMany();
   await prisma.user.deleteMany();
 
-  const passwordHash = await bcrypt.hash("critstudio123", 10);
+  const passwordHash = await bcrypt.hash("critorbit123", 10);
 
   const [admin, studentA, studentB] = await Promise.all([
     prisma.user.create({
       data: {
-        name: "CritStudio Admin",
-        email: "admin@critstudio.my",
+        name: "CritOrbit Admin",
+        email: "admin@critorbit.my",
         passwordHash,
         role: UserRole.ADMIN,
       },
@@ -31,14 +31,14 @@ async function main() {
     prisma.user.create({
       data: {
         name: "Aina Rahman",
-        email: "aina@student.critstudio.my",
+        email: "aina@student.critorbit.my",
         passwordHash,
       },
     }),
     prisma.user.create({
       data: {
         name: "Faris Lim",
-        email: "faris@student.critstudio.my",
+        email: "faris@student.critorbit.my",
         passwordHash,
       },
     }),
@@ -319,9 +319,9 @@ async function main() {
     ],
   });
 
-  console.log("Seeded CritStudio demo data.");
-  console.log("Admin login: admin@critstudio.my / critstudio123");
-  console.log("Student login: aina@student.critstudio.my / critstudio123");
+  console.log("Seeded CritOrbit demo data.");
+  console.log("Admin login: admin@critorbit.my / critorbit123");
+  console.log("Student login: aina@student.critorbit.my / critorbit123");
   console.log(`Helpers seeded: ${helpers.length}. Admin id: ${admin.id}`);
 }
 
