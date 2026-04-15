@@ -3,12 +3,14 @@ import { unstable_noStore as noStore } from "next/cache";
 import { ReactNode } from "react";
 import { LeadStatus } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
+import { SiteHeaderClient } from "@/components/site-header-client";
 import { cn } from "@/lib/utils";
 
 export async function SiteHeader() {
   noStore();
   const session = await getAuthSession();
   const showAdminDashboard = session?.user?.role === "ADMIN";
+  const isAuthenticated = Boolean(session?.user);
 
   return (
     <header className="sticky top-0 z-40 border-b-[3px] border-line bg-paper/95 backdrop-blur">
@@ -17,15 +19,21 @@ export async function SiteHeader() {
           CritStudio
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
-          <a href="#how-it-works">How it Works</a>
+          <Link href="/#how-it-works">How it Works</Link>
           <Link href="/requirements">Find a Helper</Link>
-          <a href="#faqs">FAQs</a>
+          <Link href="/#faqs">FAQs</Link>
           {showAdminDashboard ? <Link href="/admin">Dashboard</Link> : null}
           {!session?.user ? <Link href="/login">Login</Link> : null}
         </nav>
-        <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "sm" })}>
-          Get Help Now
-        </Link>
+        <div className="hidden md:block">
+          <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "sm" })}>
+            Get Help Now
+          </Link>
+        </div>
+        <SiteHeaderClient
+          isAuthenticated={isAuthenticated}
+          showAdminDashboard={showAdminDashboard}
+        />
       </div>
     </header>
   );
@@ -42,7 +50,7 @@ export function SiteFooter() {
           </p>
         </div>
         <div className="space-y-2 text-sm font-semibold">
-          <Link href="/requirements">Find a Helper</Link>
+          <Link href="/requirements">Submit a Brief</Link>
           <Link href="/login">Login</Link>
           <Link href="/register">Register</Link>
         </div>
@@ -182,17 +190,20 @@ export function MetricCard({
 export function InputShell({
   label,
   hint,
+  error,
   children,
 }: {
   label: string;
   hint?: string;
+  error?: string;
   children: ReactNode;
 }) {
   return (
     <label className="space-y-2">
       <span className="text-sm font-black uppercase tracking-[0.14em] text-muted">{label}</span>
       {children}
-      {hint ? <span className="block text-xs text-muted">{hint}</span> : null}
+      {error ? <span className="block text-xs font-semibold text-[#E24B4A]">{error}</span> : null}
+      {!error && hint ? <span className="block text-xs text-muted">{hint}</span> : null}
     </label>
   );
 }

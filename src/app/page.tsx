@@ -33,7 +33,7 @@ export default async function HomePage() {
                 <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" })}>
                   Get Help Now →
                 </Link>
-                <Link href="/requirements" className={buttonStyles({ tone: "yellow", size: "lg" })}>
+                <Link href="/#helpers" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                   Browse Helpers
                 </Link>
               </div>
@@ -176,7 +176,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
+        <section id="helpers" className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
             <SectionHeading
               eyebrow="Featured Helpers"

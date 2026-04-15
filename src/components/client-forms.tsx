@@ -15,7 +15,6 @@ import {
 } from "@/lib/helpers";
 import {
   categoryOptions,
-  getDefaultTaskTypeForCategory,
   getTaskTypeOptionsForCategory,
   statusOptions,
   urgencyOptions,
@@ -33,19 +32,54 @@ type AuthMode = "login" | "register";
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<"name" | "email" | "password" | "confirmPassword", string>>>({});
   const [pending, startTransition] = useTransition();
+
+  function updateField(field: "name" | "email" | "password" | "confirmPassword", value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    setError("");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setFieldErrors({});
 
     const schema = mode === "register" ? registerSchema : loginSchema;
-    const parsed = schema.safeParse(form);
+    const schemaInput =
+      mode === "register"
+        ? { name: form.name, email: form.email, password: form.password }
+        : { email: form.email, password: form.password };
+    const parsed = schema.safeParse(schemaInput);
 
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Please check your form.");
+      const firstIssue = parsed.error.issues[0];
+      const field = firstIssue?.path[0];
+
+      if (
+        field === "name" ||
+        field === "email" ||
+        field === "password" ||
+        field === "confirmPassword"
+      ) {
+        setFieldErrors({ [field]: firstIssue.message });
+      } else {
+        setError(firstIssue?.message ?? "Please check your form.");
+      }
+
+      return;
+    }
+
+    if (mode === "register" && form.password !== form.confirmPassword) {
+      setFieldErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
 
@@ -95,49 +129,65 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </div>
 
       {mode === "register" ? (
-        <InputShell label="Name">
+        <InputShell label="Name" error={fieldErrors.name}>
           <input
             value={form.name}
-            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+            onChange={(event) => updateField("name", event.target.value)}
+            className={cn(
+              "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+              fieldErrors.name ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+            )}
             placeholder="Aina Rahman"
           />
         </InputShell>
       ) : null}
 
-      <InputShell label="Email">
+      <InputShell label="Email" error={fieldErrors.email}>
         <input
           value={form.email}
           type="email"
-          onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-          className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+          onChange={(event) => updateField("email", event.target.value)}
+          className={cn(
+            "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+            fieldErrors.email ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+          )}
           placeholder="you@student.edu.my"
         />
       </InputShell>
 
-      <InputShell label="Password">
+      <InputShell label="Password" error={fieldErrors.password}>
         <input
           value={form.password}
           type="password"
-          onChange={(event) =>
-            setForm((current) => ({ ...current, password: event.target.value }))
-          }
-          className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+          onChange={(event) => updateField("password", event.target.value)}
+          className={cn(
+            "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+            fieldErrors.password ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+          )}
           placeholder="At least 8 characters"
         />
       </InputShell>
+
+      {mode === "register" ? (
+        <InputShell label="Confirm Password" error={fieldErrors.confirmPassword}>
+          <input
+            value={form.confirmPassword}
+            type="password"
+            onChange={(event) => updateField("confirmPassword", event.target.value)}
+            className={cn(
+              "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+              fieldErrors.confirmPassword ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+            )}
+            placeholder="Confirm Password"
+          />
+        </InputShell>
+      ) : null}
 
       {error ? <p className="text-sm font-bold text-red">{error}</p> : null}
 
       <button type="submit" disabled={pending} className={buttonStyles({ tone: "purple", size: "lg", fullWidth: true })}>
         {pending ? "Working..." : mode === "login" ? "Log In" : "Create Account"}
       </button>
-
-      <p className="text-sm text-muted">
-        Demo accounts: admin@critstudio.my and aina@student.critstudio.my with password
-        {" "}
-        critstudio123.
-      </p>
     </form>
   );
 }
@@ -146,6 +196,9 @@ export function RequirementForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<"category" | "taskType" | "urgency" | "deadline" | "budget" | "description", string>>
+  >({});
   const [form, setForm] = useState<{
     category: string;
     taskType: string;
@@ -154,26 +207,113 @@ export function RequirementForm() {
     budget: string;
     description: string;
   }>({
-    category: "INTERIOR_DESIGN",
-    taskType: getDefaultTaskTypeForCategory("INTERIOR_DESIGN"),
-    urgency: "NORMAL",
+    category: "",
+    taskType: "",
+    urgency: "",
     deadline: "",
     budget: "",
     description: "",
   });
 
-  const taskTypeOptions = getTaskTypeOptionsForCategory(form.category);
+  const taskTypeOptions = form.category ? getTaskTypeOptionsForCategory(form.category) : [];
+
+  function updateField(
+    field: "category" | "taskType" | "urgency" | "deadline" | "budget" | "description",
+    value: string,
+  ) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    setError("");
+  }
+
+  function focusFirstInvalidField(
+    errors: Partial<Record<"category" | "taskType" | "urgency" | "deadline" | "budget" | "description", string>>,
+  ) {
+    const fieldOrder: Array<keyof typeof errors> = [
+      "category",
+      "taskType",
+      "urgency",
+      "deadline",
+      "description",
+      "budget",
+    ];
+
+    const firstInvalid = fieldOrder.find((field) => errors[field]);
+    if (!firstInvalid) {
+      return;
+    }
+
+    const element = document.getElementById(`requirement-${firstInvalid}`);
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (element instanceof HTMLElement) {
+      element.focus();
+    }
+  }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    const nextFieldErrors: Partial<Record<"category" | "taskType" | "urgency" | "deadline" | "budget" | "description", string>> = {};
 
-    const parsed = requirementSchema.safeParse(form);
+    if (!form.category) {
+      nextFieldErrors.category = "This field is required.";
+    }
+    if (!form.taskType) {
+      nextFieldErrors.taskType = "This field is required.";
+    }
+    if (!form.urgency) {
+      nextFieldErrors.urgency = "This field is required.";
+    }
+    if (!form.deadline) {
+      nextFieldErrors.deadline = "This field is required.";
+    }
+    if (!form.description.trim()) {
+      nextFieldErrors.description = "This field is required.";
+    }
 
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "Please complete the form.");
+    const sanitizedBudget = form.budget.replace(/[^\d]/g, "");
+    const payload = {
+      ...form,
+      budget: sanitizedBudget,
+      description: form.description.trim(),
+    };
+    const parsed = requirementSchema.safeParse(payload);
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      focusFirstInvalidField(nextFieldErrors);
       return;
     }
+
+    if (!parsed.success) {
+      const validationErrors: typeof nextFieldErrors = {};
+
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (
+          (field === "category" ||
+            field === "taskType" ||
+            field === "urgency" ||
+            field === "deadline" ||
+            field === "budget" ||
+            field === "description") &&
+          !validationErrors[field]
+        ) {
+          validationErrors[field] = issue.message;
+        }
+      }
+
+      if (Object.keys(validationErrors).length > 0) {
+        setFieldErrors(validationErrors);
+        focusFirstInvalidField(validationErrors);
+      } else {
+        setError(parsed.error.issues[0]?.message ?? "Please complete the form.");
+      }
+
+      return;
+    }
+
+    setFieldErrors({});
 
     startTransition(async () => {
       const response = await fetch("/api/leads/draft", {
@@ -199,45 +339,73 @@ export function RequirementForm() {
       <div className="grid gap-5 md:grid-cols-2">
         <SelectField
           label="Course / Field"
+          id="requirement-category"
           value={form.category}
           options={categoryOptions}
-          onChange={(value) =>
+          placeholder="Select course / field"
+          error={fieldErrors.category}
+          onChange={(value) => {
             setForm((current) => ({
               ...current,
               category: value,
-              taskType: getDefaultTaskTypeForCategory(value),
-            }))
-          }
+              taskType: "",
+            }));
+            setFieldErrors((current) => ({
+              ...current,
+              category: undefined,
+              taskType: undefined,
+            }));
+            setError("");
+          }}
         />
         <SelectField
           label="Task Type"
+          id="requirement-taskType"
           value={form.taskType}
           options={taskTypeOptions}
-          onChange={(value) => setForm((current) => ({ ...current, taskType: value }))}
+          placeholder={form.category ? "Select task type" : "Select course / field first"}
+          disabled={!form.category}
+          error={fieldErrors.taskType}
+          onChange={(value) => updateField("taskType", value)}
         />
         <SelectField
           label="Urgency"
+          id="requirement-urgency"
           value={form.urgency}
           options={urgencyOptions}
-          onChange={(value) => setForm((current) => ({ ...current, urgency: value }))}
+          placeholder="Select urgency"
+          error={fieldErrors.urgency}
+          onChange={(value) => updateField("urgency", value)}
         />
-        <InputShell label="Deadline">
+        <InputShell label="Deadline" error={fieldErrors.deadline}>
           <input
+            id="requirement-deadline"
             type="date"
             value={form.deadline}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, deadline: event.target.value }))
-            }
-            className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+            onChange={(event) => updateField("deadline", event.target.value)}
+            className={cn(
+              "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+              fieldErrors.deadline ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+            )}
           />
         </InputShell>
-        <InputShell label="Budget" hint="Optional. Example: RM150">
-          <input
-            value={form.budget}
-            onChange={(event) => setForm((current) => ({ ...current, budget: event.target.value }))}
-            className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
-            placeholder="RM150"
-          />
+        <InputShell label="Budget" hint="Optional. Example: 150" error={fieldErrors.budget}>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-black uppercase tracking-[0.14em] text-muted">RM</span>
+            <input
+              id="requirement-budget"
+              value={form.budget}
+              type="number"
+              min="0"
+              step="1"
+              onChange={(event) => updateField("budget", event.target.value.replace(/[^\d]/g, ""))}
+              className={cn(
+                "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                fieldErrors.budget ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+              )}
+              placeholder="e.g. 150"
+            />
+          </div>
         </InputShell>
         <div className="rounded-[20px] border-[3px] border-line bg-yellow p-4">
           <div className="display-font text-lg font-black">Lead score reminder</div>
@@ -248,14 +416,16 @@ export function RequirementForm() {
       </div>
 
       <div className="mt-5">
-        <InputShell label="Description">
+        <InputShell label="Description" error={fieldErrors.description}>
           <textarea
+            id="requirement-description"
             value={form.description}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, description: event.target.value }))
-            }
+            onChange={(event) => updateField("description", event.target.value)}
             rows={5}
-            className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+            className={cn(
+              "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+              fieldErrors.description ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+            )}
             placeholder="Tell us about your assignment..."
           />
         </InputShell>
@@ -615,23 +785,38 @@ export function LeadManagementForm({
 }
 
 function SelectField({
+  id,
   label,
   value,
   options,
+  placeholder,
+  disabled = false,
+  error,
   onChange,
 }: {
+  id?: string;
   label: string;
   value: string;
   options: ReadonlyArray<{ value: string; label: string }>;
+  placeholder?: string;
+  disabled?: boolean;
+  error?: string;
   onChange: (value: string) => void;
 }) {
   return (
-    <InputShell label={label}>
+    <InputShell label={label} error={error}>
       <select
+        id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+        disabled={disabled}
+        className={cn(
+          "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+          disabled && "cursor-not-allowed opacity-60",
+          error ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+        )}
       >
+        {placeholder ? <option value="">{placeholder}</option> : null}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
