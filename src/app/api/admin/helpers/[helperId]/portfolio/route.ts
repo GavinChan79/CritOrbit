@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { Prisma, UserRole } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { helperSchema } from "@/lib/validators";
+import { helperPortfolioSchema } from "@/lib/validators";
 
-export async function PATCH(
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ helperId: string }> },
 ) {
@@ -21,34 +21,38 @@ export async function PATCH(
   }
 
   try {
+    const helper = await prisma.helper.findUnique({
+      where: { id: helperId },
+      select: { id: true },
+    });
+
+    if (!helper) {
+      return NextResponse.json({ error: "Helper not found." }, { status: 404 });
+    }
+
     const json = await request.json();
-    const parsed = helperSchema.safeParse(json);
+    const parsed = helperPortfolioSchema.safeParse(json);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid helper payload." },
+        { error: parsed.error.issues[0]?.message ?? "Invalid portfolio payload." },
         { status: 400 },
       );
     }
 
-    const helper = await prisma.helper.update({
-      where: { id: helperId },
+    const item = await prisma.helperPortfolioItem.create({
       data: {
+        helperId,
         ...parsed.data,
       },
     });
 
     revalidatePath("/admin/helpers");
-    revalidatePath("/admin/helper-stats");
     revalidatePath("/helpers/select");
     revalidatePath("/");
 
-    return NextResponse.json({ success: true, helper });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return NextResponse.json({ error: "Helper not found." }, { status: 404 });
-    }
-
-    return NextResponse.json({ error: "Failed to update helper." }, { status: 500 });
+    return NextResponse.json({ success: true, item });
+  } catch {
+    return NextResponse.json({ error: "Failed to create portfolio item." }, { status: 500 });
   }
 }

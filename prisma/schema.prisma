@@ -91,8 +91,25 @@ model Helper {
   displayOrder     Int            @default(0)
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now()) @updatedAt
+  portfolioItems   HelperPortfolioItem[]
   selectedForLeads Lead[]         @relation("SelectedHelper")
   assignedLeads    Lead[]         @relation("AssignedHelper")
+}
+
+model HelperPortfolioItem {
+  id          String   @id @default(cuid())
+  helperId     String
+  title       String
+  imageUrl    String
+  description String?
+  externalLink String?
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  helper      Helper   @relation(fields: [helperId], references: [id], onDelete: Cascade)
+
+  @@index([helperId, displayOrder])
 }
 
 model Lead {

@@ -95,6 +95,16 @@ export const helperSchema = z.object({
   specialties: z.array(helperSpecialtySchema).min(1, "Add at least one specialty."),
 });
 
+export const helperPortfolioSchema = z.object({
+  title: z.string().min(2, "Portfolio title is required."),
+  imageUrl: z.url("Enter a valid image URL."),
+  description: z.string().trim().optional().transform((value) => value || undefined),
+  externalLink: z
+    .union([z.string().trim().url("Enter a valid external link."), z.literal(""), z.undefined()])
+    .transform((value) => (value ? value : undefined)),
+  displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or more."),
+});
+
 export const adminLeadUpdateSchema = z.object({
   status: z.enum(["NEW", "CONTACTED", "ASSIGNED", "COMPLETED"]),
   assignedHelperId: z.string().min(1).nullable(),

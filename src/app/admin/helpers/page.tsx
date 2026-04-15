@@ -14,6 +14,17 @@ export default async function AdminHelpersPage() {
       isActive: true,
       specialties: true,
       createdAt: true,
+      portfolioItems: {
+        select: {
+          id: true,
+          title: true,
+          imageUrl: true,
+          description: true,
+          externalLink: true,
+          displayOrder: true,
+        },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+      },
     },
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
   });
@@ -36,6 +47,7 @@ export default async function AdminHelpersPage() {
             displayOrder: helper.displayOrder,
             isActive: helper.isActive,
             specialties: parseSpecialties(helper.specialties),
+            portfolioItems: helper.portfolioItems,
           }))}
         />
       </div>

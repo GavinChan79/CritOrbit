@@ -6,6 +6,15 @@ export type HelperSpecialty = {
   taskTypes: string[];
 };
 
+export type HelperPortfolioItem = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  description?: string | null;
+  externalLink?: string | null;
+  displayOrder: number;
+};
+
 export function parseSpecialties(value: unknown): HelperSpecialty[] {
   if (!Array.isArray(value)) {
     return [];
@@ -29,6 +38,46 @@ export function parseSpecialties(value: unknown): HelperSpecialty[] {
           taskTypes: item.taskTypes.filter(
             (taskType: unknown): taskType is string => typeof taskType === "string",
           ),
+        },
+      ];
+    }
+
+    return [];
+  });
+}
+
+export function parsePortfolioItems(value: unknown): HelperPortfolioItem[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (
+      typeof item === "object" &&
+      item !== null &&
+      "id" in item &&
+      "title" in item &&
+      "imageUrl" in item &&
+      "displayOrder" in item &&
+      typeof item.id === "string" &&
+      typeof item.title === "string" &&
+      typeof item.imageUrl === "string" &&
+      typeof item.displayOrder === "number"
+    ) {
+      return [
+        {
+          id: item.id,
+          title: item.title,
+          imageUrl: item.imageUrl,
+          description:
+            "description" in item && typeof item.description === "string"
+              ? item.description
+              : null,
+          externalLink:
+            "externalLink" in item && typeof item.externalLink === "string"
+              ? item.externalLink
+              : null,
+          displayOrder: item.displayOrder,
         },
       ];
     }

@@ -11,6 +11,7 @@ import {
   helperMatchesRequest,
   getTaskTypeLabel,
   specialtyMatchesTaskType,
+  type HelperPortfolioItem,
   type HelperSpecialty,
 } from "@/lib/helpers";
 import {
@@ -456,6 +457,7 @@ export function HelperSelectionClient({
     displayOrder: number;
     specialties: HelperSpecialty[];
     shortBio: string;
+    portfolioItems: HelperPortfolioItem[];
   }>;
   request: {
     draftId: string;
@@ -664,6 +666,30 @@ export function HelperSelectionClient({
                       </span>
                     ) : null}
                   </div>
+                  {helper.portfolioItems.length ? (
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                        Portfolio Preview
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 sm:max-w-sm">
+                        {helper.portfolioItems.map((item) => (
+                          <a
+                            key={item.id}
+                            href={item.externalLink || item.imageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
+                          >
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title}
+                              className="h-24 w-full object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <button
                   type="button"

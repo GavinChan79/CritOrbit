@@ -33,6 +33,20 @@ export default async function HelperSelectPage({
   const helpers = await prisma.helper.findMany({
     where: { isActive: true },
     orderBy: { displayOrder: "asc" },
+    include: {
+      portfolioItems: {
+        select: {
+          id: true,
+          title: true,
+          imageUrl: true,
+          description: true,
+          externalLink: true,
+          displayOrder: true,
+        },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        take: 3,
+      },
+    },
   });
 
   const baseScore = calculateLeadScore({
@@ -59,6 +73,7 @@ export default async function HelperSelectPage({
               displayOrder: helper.displayOrder,
               specialties: parseSpecialties(helper.specialties),
               shortBio: helper.shortBio,
+              portfolioItems: helper.portfolioItems,
             }))}
             request={{
               draftId: draft.id,

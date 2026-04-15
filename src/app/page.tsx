@@ -12,6 +12,20 @@ export default async function HomePage() {
     where: { isActive: true },
     orderBy: { displayOrder: "asc" },
     take: 3,
+    include: {
+      portfolioItems: {
+        select: {
+          id: true,
+          title: true,
+          imageUrl: true,
+          description: true,
+          externalLink: true,
+          displayOrder: true,
+        },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
+        take: 3,
+      },
+    },
   });
 
   return (
@@ -208,6 +222,27 @@ export default async function HomePage() {
                     </span>
                   ))}
                 </div>
+                {helper.portfolioItems.length ? (
+                  <div className="mt-5">
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                      Portfolio
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {helper.portfolioItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="h-24 w-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </Card>
             ))}
           </div>
