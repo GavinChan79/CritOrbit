@@ -4,7 +4,7 @@ import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
 import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
 import { formatCurrency, formatDate, titleizeEnum } from "@/lib/format";
-import { LeadManagementForm } from "@/components/client-forms";
+import { DeleteLeadButton, LeadManagementForm } from "@/components/client-forms";
 import { buttonStyles, Card, SectionHeading, StatusBadge } from "@/components/ui";
 
 export default async function LeadDetailPage({
@@ -50,6 +50,7 @@ export default async function LeadDetailPage({
         <Link href="/admin/leads" className={buttonStyles({ tone: "yellow", size: "sm" })}>
           Back to Leads
         </Link>
+        <DeleteLeadButton leadId={lead.id} />
         <StatusBadge status={lead.status} />
         {lead.dealClosed ? (
           <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">

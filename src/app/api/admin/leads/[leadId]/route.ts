@@ -67,3 +67,48 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to update the lead." }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ leadId: string }> },
+) {
+  const session = await getAuthSession();
+  const { leadId } = await params;
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+
+  if (session.user.role !== UserRole.ADMIN) {
+    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  }
+
+  try {
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: {
+        id: true,
+        userId: true,
+      },
+    });
+
+    if (!lead) {
+      return NextResponse.json({ error: "Lead not found." }, { status: 404 });
+    }
+
+    await prisma.lead.delete({
+      where: { id: leadId },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/leads");
+    revalidatePath(`/admin/leads/${leadId}`);
+    revalidatePath("/admin/helper-stats");
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/requests/${leadId}`);
+
+    return NextResponse.json({ success: true, deletedLeadId: lead.id, userId: lead.userId });
+  } catch {
+    return NextResponse.json({ error: "Failed to delete the lead." }, { status: 500 });
+  }
+}

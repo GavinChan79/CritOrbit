@@ -10,21 +10,34 @@ export function buildWhatsappMessage(input: {
   helperName: string;
   description?: string | null;
 }) {
-  const budgetLine = input.budget ? `RM${input.budget}` : "Flexible / not specified";
+  const budgetLine = input.budget ? `RM${input.budget}` : "Not specified";
+  const preferredHelper = cleanLine(input.helperName, "Not specified");
+  const details = cleanLine(input.description, "Not provided");
 
   return [
-    "Hi, I need help with my assignment!",
+    "Hi, I need help with an assignment.",
     "",
-    `Course: ${input.category}`,
-    `Task: ${input.taskType}`,
-    `Urgency: ${input.urgency}`,
+    `Course: ${cleanLine(input.category, "Not specified")}`,
+    `Task: ${cleanLine(input.taskType, "Not specified")}`,
+    `Urgency: ${cleanLine(input.urgency, "Not specified")}`,
     `Deadline: ${formatDate(input.deadline)}`,
     `Budget: ${budgetLine}`,
-    `Preferred Helper: ${input.helperName}`,
-    `Details: ${input.description?.trim() || "-"}`,
+    `Preferred Helper: ${preferredHelper}`,
+    "",
+    "Details:",
+    details,
   ].join("\n");
 }
 
 export function buildWhatsappUrl(message: string) {
   return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function cleanLine(value: string | null | undefined, fallback: string) {
+  const normalized = value?.trim();
+  if (!normalized || normalized.toLowerCase() === "undefined" || normalized.toLowerCase() === "null") {
+    return fallback;
+  }
+
+  return normalized;
 }

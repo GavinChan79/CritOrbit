@@ -825,6 +825,87 @@ export function LeadManagementForm({
   );
 }
 
+export function DeleteLeadButton({ leadId }: { leadId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function closeModal() {
+    if (pending) {
+      return;
+    }
+
+    setOpen(false);
+    setError("");
+  }
+
+  function deleteLead() {
+    setError("");
+
+    startTransition(async () => {
+      const response = await fetch(`/api/admin/leads/${leadId}`, {
+        method: "DELETE",
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        setError(json.error ?? "Could not delete the lead.");
+        return;
+      }
+
+      router.push("/admin/leads");
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setError("");
+          setOpen(true);
+        }}
+        className={buttonStyles({ tone: "pink", size: "md" })}
+      >
+        Delete Lead
+      </button>
+
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 px-4 py-6">
+          <div className="retro-card w-full max-w-lg bg-white p-6">
+            <div className="display-font text-3xl font-black">Delete this lead?</div>
+            <p className="mt-3 text-sm leading-7 text-muted">
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </p>
+            {error ? <p className="mt-4 text-sm font-bold text-red">{error}</p> : null}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={deleteLead}
+                disabled={pending}
+                className={buttonStyles({ tone: "ink", size: "md" })}
+              >
+                {pending ? "Deleting..." : "Yes, Delete Lead"}
+              </button>
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={pending}
+                className={buttonStyles({ tone: "yellow", size: "md" })}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function SelectField({
   id,
   label,

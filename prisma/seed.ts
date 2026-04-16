@@ -15,15 +15,29 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.lead.deleteMany();
   await prisma.helper.deleteMany();
-  await prisma.user.deleteMany();
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        not: "admin@critorbit.com",
+      },
+    },
+  });
 
   const passwordHash = await bcrypt.hash("critorbit123", 10);
 
   const [admin, studentA, studentB] = await Promise.all([
-    prisma.user.create({
-      data: {
+    prisma.user.upsert({
+      where: {
+        email: "admin@critorbit.com",
+      },
+      create: {
         name: "CritOrbit Admin",
-        email: "admin@critorbit.my",
+        email: "admin@critorbit.com",
+        passwordHash,
+        role: UserRole.ADMIN,
+      },
+      update: {
+        name: "CritOrbit Admin",
         passwordHash,
         role: UserRole.ADMIN,
       },
@@ -320,7 +334,7 @@ async function main() {
   });
 
   console.log("Seeded CritOrbit demo data.");
-  console.log("Admin login: admin@critorbit.my / critorbit123");
+  console.log("Admin login: admin@critorbit.com / critorbit123");
   console.log("Student login: aina@student.critorbit.my / critorbit123");
   console.log(`Helpers seeded: ${helpers.length}. Admin id: ${admin.id}`);
 }
