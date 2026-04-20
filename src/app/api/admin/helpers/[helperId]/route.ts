@@ -7,6 +7,7 @@ import {
   getApplicationFileTitle,
   getPortfolioPreviewImageUrl,
 } from "@/lib/helper-applications";
+import { normalizeHelperSpecialties } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
 import { helperSchema } from "@/lib/validators";
 
@@ -27,7 +28,14 @@ export async function PATCH(
 
   try {
     const json = await request.json();
-    const parsed = helperSchema.safeParse(json);
+    const parsed = helperSchema.safeParse({
+      ...json,
+      specialties: normalizeHelperSpecialties(
+        typeof json === "object" && json !== null && "specialties" in json
+          ? (json as { specialties?: unknown }).specialties
+          : undefined,
+      ),
+    });
 
     if (!parsed.success) {
       return NextResponse.json(

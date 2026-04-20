@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
+import { normalizeHelperSpecialties } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
 import { helperSchema } from "@/lib/validators";
 
@@ -18,7 +19,14 @@ export async function POST(request: Request) {
 
   try {
     const json = await request.json();
-    const parsed = helperSchema.safeParse(json);
+    const parsed = helperSchema.safeParse({
+      ...json,
+      specialties: normalizeHelperSpecialties(
+        typeof json === "object" && json !== null && "specialties" in json
+          ? (json as { specialties?: unknown }).specialties
+          : undefined,
+      ),
+    });
 
     if (!parsed.success) {
       return NextResponse.json(

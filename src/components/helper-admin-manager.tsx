@@ -21,6 +21,7 @@ import {
   getCategoryLabel,
   getHelperStatusLabel,
   getHelperTypeLabel,
+  slugifySpecialtyLabel,
   type HelperPortfolioItem,
   type HelperSpecialty,
 } from "@/lib/helpers";
@@ -1406,12 +1407,4 @@ function SelectArrow() {
       ▾
     </span>
   );
-}
-
-function slugifySpecialtyLabel(label: string) {
-  return label
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }

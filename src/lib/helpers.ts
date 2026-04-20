@@ -15,6 +15,43 @@ export type HelperSpecialty = {
   taskTypes: string[];
 };
 
+export function slugifySpecialtyLabel(label: string) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function normalizeHelperSpecialties(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.map((item) => {
+    if (typeof item !== "object" || item === null) {
+      return item;
+    }
+
+    const record = item as {
+      code?: unknown;
+      label?: unknown;
+      taskTypes?: unknown;
+    };
+    const label = typeof record.label === "string" ? record.label.trim() : "";
+    const code =
+      typeof record.code === "string" && record.code.trim()
+        ? record.code.trim()
+        : slugifySpecialtyLabel(label);
+
+    return {
+      ...record,
+      label,
+      code,
+    };
+  });
+}
+
 export type HelperPortfolioItem = {
   id: string;
   title: string;
