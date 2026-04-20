@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         : { clickCount: { increment: 1 } };
 
     await prisma.$transaction(
-      helperIds.map((helperId) =>
+      helperIds.map((helperId: string) =>
         prisma.helper.update({
           where: { id: helperId },
           data: field,
