@@ -35,6 +35,26 @@ enum HelperPriceTier {
   PREMIUM
 }
 
+enum HelperExperienceLevel {
+  NO_EXPERIENCE
+  LESS_THAN_1_YEAR
+  ONE_TO_TWO_YEARS
+  THREE_TO_FIVE_YEARS
+  FIVE_PLUS_YEARS
+  EXPERT_ADVANCED
+}
+
+enum HelperPriceAnchor {
+  BELOW_RM100
+  RM100
+  RM200
+  RM300
+  RM400
+  RM500
+  RM700
+  RM1000_PLUS
+}
+
 enum HelperCategory {
   INTERIOR_DESIGN
   ARCHITECTURE
@@ -119,10 +139,12 @@ model Helper {
   teamSize         Int?
   isVerified       Boolean        @default(false)
   projectsCompleted Int           @default(0)
+  experienceLevel  HelperExperienceLevel @default(NO_EXPERIENCE)
   responseTime     String?
   deliveryTime     String?
   repeatClients    Int?
   priceTier        HelperPriceTier @default(STANDARD)
+  priceAnchor      HelperPriceAnchor @default(RM100)
   impressionCount  Int            @default(0)
   clickCount       Int            @default(0)
   selectionCount   Int            @default(0)

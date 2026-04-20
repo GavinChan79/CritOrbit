@@ -246,7 +246,7 @@ export function buttonStyles({
   };
 
   return cn(
-    "display-font inline-flex items-center justify-center rounded-[18px] border-[3px] border-line font-black transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
+    "display-font inline-flex items-center justify-center rounded-[18px] border-[3px] border-line font-black transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple/25",
     tones[tone],
     sizes[size],
     fullWidth && "w-full",

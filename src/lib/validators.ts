@@ -1,7 +1,11 @@
 import { z } from "zod";
 import {
   categoryValues,
+  helperExperienceLevelValues,
+  helperPriceAnchorValues,
   helperPriceTierValues,
+  helperResponseTimeOptions,
+  helperDeliveryTimeOptions,
   helperStatusValues,
   helperTypeValues,
   taskTypeValues,
@@ -100,12 +104,14 @@ export const helperSchema = z.object({
     .transform((value) => (value === undefined ? null : value)),
   isVerified: z.boolean(),
   projectsCompleted: z.coerce.number().int().min(0, "Projects completed must be 0 or more."),
-  responseTime: z.string().trim().optional().transform((value) => value || undefined),
-  deliveryTime: z.string().trim().optional().transform((value) => value || undefined),
+  experienceLevel: z.enum(helperExperienceLevelValues),
+  responseTime: z.enum(helperResponseTimeOptions).optional(),
+  deliveryTime: z.enum(helperDeliveryTimeOptions).optional(),
   repeatClients: z
     .union([z.coerce.number().int().min(0, "Repeat clients must be 0 or more."), z.null(), z.undefined()])
     .transform((value) => (value === undefined ? null : value)),
   priceTier: z.enum(helperPriceTierValues),
+  priceAnchor: z.enum(helperPriceAnchorValues),
   status: z.enum(helperStatusValues),
   category: z.enum(categoryValues),
   shortBio: z.string().min(12, "Add a short bio."),
@@ -144,7 +150,7 @@ export const helperApplicationSchema = z.object({
     .union([z.coerce.number().int().min(1, "Team size must be at least 1."), z.null(), z.undefined()])
     .transform((value) => (value === undefined ? null : value)),
   category: z.enum(categoryValues),
-  experience: z.string().min(12, "Tell us about your experience."),
+  experience: z.enum(helperExperienceLevelValues),
   portfolioNote: z
     .string()
     .trim()

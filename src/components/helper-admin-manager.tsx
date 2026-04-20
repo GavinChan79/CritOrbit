@@ -7,7 +7,11 @@ import { buttonStyles, Card, EmptyState, InputShell } from "@/components/ui";
 import {
   categoryOptions,
   getDefaultTaskTypeForCategory,
+  helperDeliveryTimeOptions,
+  helperExperienceLevelOptions,
+  helperPriceAnchorOptions,
   helperPriceTierOptions,
+  helperResponseTimeOptions,
   helperStatusOptions,
   helperTypeOptions,
   getTaskTypeOptionsForCategory,
@@ -29,11 +33,13 @@ type HelperRecord = {
   teamSize: number | null;
   isVerified: boolean;
   projectsCompleted: number;
+  experienceLevel: string;
   impressionCount: number;
   responseTime: string | null;
   deliveryTime: string | null;
   repeatClients: number | null;
   priceTier: string;
+  priceAnchor: string;
   clickCount: number;
   selectionCount: number;
   status: string;
@@ -56,10 +62,12 @@ type HelperFormState = {
   teamSize: string;
   isVerified: boolean;
   projectsCompleted: string;
+  experienceLevel: string;
   responseTime: string;
   deliveryTime: string;
   repeatClients: string;
   priceTier: string;
+  priceAnchor: string;
   status: string;
   category: string;
   shortBio: string;
@@ -93,10 +101,12 @@ const emptyForm = (): HelperFormState => ({
   teamSize: "",
   isVerified: false,
   projectsCompleted: "0",
-  responseTime: "",
-  deliveryTime: "",
+  experienceLevel: "NO_EXPERIENCE",
+  responseTime: "Within 1 hour",
+  deliveryTime: "24-48h",
   repeatClients: "",
   priceTier: "STANDARD",
+  priceAnchor: "RM100",
   status: "ACTIVE",
   category: "INTERIOR_DESIGN",
   shortBio: "",
@@ -116,7 +126,13 @@ const emptyPortfolioForm = (): PortfolioFormState => ({
   displayOrder: "0",
 });
 
-export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
+export function HelperAdminManager({
+  helpers,
+  activeFilter,
+}: {
+  helpers: HelperRecord[];
+  activeFilter: "all" | "pending" | "verified" | "rejected";
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLDivElement | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -132,7 +148,6 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
   const [savingHelper, setSavingHelper] = useState(false);
   const [savingPortfolio, setSavingPortfolio] = useState(false);
   const [deletingPortfolioId, setDeletingPortfolioId] = useState<string | null>(null);
-
   const taskTypeOptions = getTaskTypeOptionsForCategory(form.category);
   const editingHelper = useMemo(
     () => helpers.find((helper) => helper.id === editingId) ?? null,
@@ -140,13 +155,29 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
   );
   const sortedHelpers = useMemo(
     () =>
-      [...helpers].sort((left, right) => {
+      [...helpers]
+        .filter((helper) => {
+          if (activeFilter === "all") {
+            return true;
+          }
+
+          if (activeFilter === "pending") {
+            return helper.status === "PENDING";
+          }
+
+          if (activeFilter === "verified") {
+            return helper.isVerified;
+          }
+
+          return helper.status === "REJECTED";
+        })
+        .sort((left, right) => {
         if (left.displayOrder !== right.displayOrder) {
           return left.displayOrder - right.displayOrder;
         }
         return left.name.localeCompare(right.name);
       }),
-    [helpers],
+    [activeFilter, helpers],
   );
 
   useEffect(() => {
@@ -190,10 +221,12 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
       teamSize: helper.teamSize ? String(helper.teamSize) : "",
       isVerified: helper.isVerified,
       projectsCompleted: String(helper.projectsCompleted),
+      experienceLevel: helper.experienceLevel,
       responseTime: helper.responseTime ?? "",
       deliveryTime: helper.deliveryTime ?? "",
       repeatClients: helper.repeatClients ? String(helper.repeatClients) : "",
       priceTier: helper.priceTier,
+      priceAnchor: helper.priceAnchor,
       status: helper.status,
       category: helper.category,
       shortBio: helper.shortBio,
@@ -344,11 +377,13 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
       whatsappNumber: form.whatsappNumber.trim() || undefined,
       teamSize: form.type === "TEAM" && form.teamSize ? Number(form.teamSize) : null,
       projectsCompleted: Number(form.projectsCompleted || 0),
-      responseTime: form.responseTime.trim() || undefined,
-      deliveryTime: form.deliveryTime.trim() || undefined,
+      experienceLevel: form.experienceLevel,
+      responseTime: form.responseTime || undefined,
+      deliveryTime: form.deliveryTime || undefined,
       repeatClients: form.repeatClients ? Number(form.repeatClients) : null,
       priceTier:
         form.priceTier || (form.type === "TEAM" ? "PREMIUM" : "STANDARD"),
+      priceAnchor: form.priceAnchor,
       displayOrder: Number(form.displayOrder),
       specialties: form.specialties.map((specialty) => ({
         code: specialty.code.trim(),
@@ -522,8 +557,8 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
         <div className="space-y-4">
           {sortedHelpers.length === 0 ? (
             <EmptyState
-              title="No helpers yet"
-              description="Create the first helper so the public matching flow has someone to show."
+              title="No helpers in this filter"
+              description="Try another roster filter or create a new helper."
               action={
                 <button
                   type="button"
@@ -670,30 +705,30 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
 
             <div className="grid gap-4 md:grid-cols-2">
               <InputShell label="Helper Type" error={helperErrors.type}>
-                <select
-                  value={form.type}
-                  onChange={(event) => {
-                    const nextType = event.target.value;
-                    updateField("type", nextType);
-                    updateField(
-                      "priceTier",
-                      nextType === "TEAM" ? "PREMIUM" : form.priceTier || "STANDARD",
-                    );
-                    if (nextType !== "TEAM") {
-                      updateField("teamSize", "");
-                    }
-                  }}
-                  className={cn(
-                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-                    helperErrors.type ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                  )}
-                >
-                  {helperTypeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label === "Studio" ? "Team / Studio" : option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={form.type}
+                    onChange={(event) => {
+                      const nextType = event.target.value;
+                      updateField("type", nextType);
+                      updateField(
+                        "priceTier",
+                        nextType === "TEAM" ? "PREMIUM" : form.priceTier || "STANDARD",
+                      );
+                      if (nextType !== "TEAM") {
+                        updateField("teamSize", "");
+                      }
+                    }}
+                    className={selectClass(helperErrors.type)}
+                  >
+                    {helperTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label === "Studio" ? "Team / Studio" : option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
               </InputShell>
 
               {form.type === "TEAM" ? (
@@ -727,46 +762,92 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
               </InputShell>
 
               <InputShell label="Price Tier" error={helperErrors.priceTier}>
-                <select
-                  value={form.priceTier}
-                  onChange={(event) => updateField("priceTier", event.target.value)}
-                  className={cn(
-                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-                    helperErrors.priceTier ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                  )}
-                >
-                  {helperPriceTierOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.value} - {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={form.priceTier}
+                    onChange={(event) => updateField("priceTier", event.target.value)}
+                    className={selectClass(helperErrors.priceTier)}
+                  >
+                    {helperPriceTierOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.value} - {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
+              </InputShell>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Experience Level" error={helperErrors.experienceLevel}>
+                <div className="relative">
+                  <select
+                    value={form.experienceLevel}
+                    onChange={(event) => updateField("experienceLevel", event.target.value)}
+                    className={selectClass(helperErrors.experienceLevel)}
+                  >
+                    {helperExperienceLevelOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
+              </InputShell>
+
+              <InputShell label="Price Anchor" error={helperErrors.priceAnchor}>
+                <div className="relative">
+                  <select
+                    value={form.priceAnchor}
+                    onChange={(event) => updateField("priceAnchor", event.target.value)}
+                    className={selectClass(helperErrors.priceAnchor)}
+                  >
+                    {helperPriceAnchorOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
               </InputShell>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <InputShell label="Response Time" error={helperErrors.responseTime}>
-                <input
-                  value={form.responseTime}
-                  onChange={(event) => updateField("responseTime", event.target.value)}
-                  className={cn(
-                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-                    helperErrors.responseTime ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                  )}
-                  placeholder="Within 1 hour"
-                />
+                <div className="relative">
+                  <select
+                    value={form.responseTime}
+                    onChange={(event) => updateField("responseTime", event.target.value)}
+                    className={selectClass(helperErrors.responseTime)}
+                  >
+                    {helperResponseTimeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
               </InputShell>
 
               <InputShell label="Delivery Time" error={helperErrors.deliveryTime}>
-                <input
-                  value={form.deliveryTime}
-                  onChange={(event) => updateField("deliveryTime", event.target.value)}
-                  className={cn(
-                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-                    helperErrors.deliveryTime ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                  )}
-                  placeholder="24-48h"
-                />
+                <div className="relative">
+                  <select
+                    value={form.deliveryTime}
+                    onChange={(event) => updateField("deliveryTime", event.target.value)}
+                    className={selectClass(helperErrors.deliveryTime)}
+                  >
+                    {helperDeliveryTimeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
               </InputShell>
             </div>
 
@@ -798,42 +879,42 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
             </div>
 
             <InputShell label="Category / Discipline" error={helperErrors.category}>
-              <select
-                value={form.category}
-                onChange={(event) => {
-                  const nextCategory = event.target.value;
-                  const allowedTaskTypes = new Set<string>(
-                    getTaskTypeOptionsForCategory(nextCategory).map((option) => option.value),
-                  );
+              <div className="relative">
+                <select
+                  value={form.category}
+                  onChange={(event) => {
+                    const nextCategory = event.target.value;
+                    const allowedTaskTypes = new Set<string>(
+                      getTaskTypeOptionsForCategory(nextCategory).map((option) => option.value),
+                    );
 
-                  updateField("category", nextCategory);
-                  setForm((current) => ({
-                    ...current,
-                    specialties: current.specialties.map((specialty) => {
-                      const nextTaskTypes = specialty.taskTypes.filter((taskType) =>
-                        allowedTaskTypes.has(taskType),
-                      );
+                    updateField("category", nextCategory);
+                    setForm((current) => ({
+                      ...current,
+                      specialties: current.specialties.map((specialty) => {
+                        const nextTaskTypes = specialty.taskTypes.filter((taskType) =>
+                          allowedTaskTypes.has(taskType),
+                        );
 
-                      return {
-                        ...specialty,
-                        taskTypes: nextTaskTypes.length
-                          ? nextTaskTypes
-                          : [getDefaultTaskTypeForCategory(nextCategory)],
-                      };
-                    }),
-                  }));
-                }}
-                className={cn(
-                  "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-                  helperErrors.category ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                )}
-              >
-                {categoryOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                        return {
+                          ...specialty,
+                          taskTypes: nextTaskTypes.length
+                            ? nextTaskTypes
+                            : [getDefaultTaskTypeForCategory(nextCategory)],
+                        };
+                      }),
+                    }));
+                  }}
+                  className={selectClass(helperErrors.category)}
+                >
+                  {categoryOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <SelectArrow />
+              </div>
             </InputShell>
 
             <InputShell label="Short Description / Bio" error={helperErrors.shortBio}>
@@ -850,20 +931,20 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
 
             <div className="grid gap-4 md:grid-cols-2">
               <InputShell label="Application Status" error={helperErrors.status}>
-                <select
-                  value={form.status}
-                  onChange={(event) => updateField("status", event.target.value)}
-                  className={cn(
-                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-                    helperErrors.status ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                  )}
-                >
-                  {helperStatusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={form.status}
+                    onChange={(event) => updateField("status", event.target.value)}
+                    className={selectClass(helperErrors.status)}
+                  >
+                    {helperStatusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
               </InputShell>
 
               <InputShell label="Display Order" error={helperErrors.displayOrder}>
@@ -1213,5 +1294,20 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function selectClass(error?: string) {
+  return cn(
+    "w-full appearance-none rounded-[18px] bg-[#efe3bf] px-4 py-3 pr-12 outline-none font-semibold text-ink",
+    error ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+  );
+}
+
+function SelectArrow() {
+  return (
+    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-ink/70">
+      ▾
+    </span>
   );
 }

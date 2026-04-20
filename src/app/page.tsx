@@ -105,7 +105,7 @@ export default async function HomePage() {
                 <Link href="/#helpers" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                   Browse Helpers
                 </Link>
-                <Link href="/become-helper" className={buttonStyles({ tone: "ink", size: "lg" })}>
+                <Link href="/become-helper" className={buttonStyles({ tone: "pink", size: "lg" })}>
                   Become a Helper
                 </Link>
               </div>
@@ -365,6 +365,7 @@ export default async function HomePage() {
                                 type: helper.type,
                                 projectsCompleted: helper.projectsCompleted,
                                 priceTier: helper.priceTier,
+                                priceAnchor: helper.priceAnchor,
                               })}
                             </div>
                             <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-ink/70">
@@ -507,7 +508,7 @@ export default async function HomePage() {
                 <Link href="/requirements" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                   Get Help Now {"\u2192"}
                 </Link>
-                <Link href="/become-helper" className={buttonStyles({ tone: "ink", size: "lg" })}>
+                <Link href="/become-helper" className={buttonStyles({ tone: "pink", size: "lg" })}>
                   Join as Helper
                 </Link>
               </div>

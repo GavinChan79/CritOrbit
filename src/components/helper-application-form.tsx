@@ -4,6 +4,7 @@ import { useState } from "react";
 import { buttonStyles, InputShell } from "@/components/ui";
 import {
   categoryOptions,
+  helperExperienceLevelOptions,
   helperAgreementItems,
   helperTypeOptions,
 } from "@/lib/constants";
@@ -49,10 +50,41 @@ export function HelperApplicationForm() {
   const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
   const [identityFrontFile, setIdentityFrontFile] = useState<File | null>(null);
   const [identityBackFile, setIdentityBackFile] = useState<File | null>(null);
+  const allAgreementsAccepted = Object.values(form.confirmations).every(Boolean);
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setFieldErrors((current) => ({ ...current, [key]: "" }));
+    setError("");
+    setSuccess("");
+  }
+
+  function appendPortfolioFiles(nextFiles: FileList | null) {
+    const incomingFiles = Array.from(nextFiles ?? []);
+
+    if (incomingFiles.length === 0) {
+      return;
+    }
+
+    setPortfolioFiles((current) => {
+      const merged = [...current];
+
+      for (const file of incomingFiles) {
+        const alreadyAdded = merged.some(
+          (existing) =>
+            existing.name === file.name &&
+            existing.size === file.size &&
+            existing.lastModified === file.lastModified,
+        );
+
+        if (!alreadyAdded && merged.length < maxPortfolioFiles) {
+          merged.push(file);
+        }
+      }
+
+      return merged;
+    });
+    setFieldErrors((current) => ({ ...current, portfolioFiles: "" }));
     setError("");
     setSuccess("");
   }
@@ -110,8 +142,8 @@ export function HelperApplicationForm() {
       (file) => file.size > maxApplicationFileSizeBytes,
     );
     if (oversizePortfolio) {
-      setFieldErrors({ portfolioFiles: `${oversizePortfolio.name} exceeds 10MB.` });
-      setError(`${oversizePortfolio.name} exceeds 10MB.`);
+      setFieldErrors({ portfolioFiles: `${oversizePortfolio.name} exceeds 20MB.` });
+      setError(`${oversizePortfolio.name} exceeds 20MB.`);
       setPending(false);
       return;
     }
@@ -131,7 +163,7 @@ export function HelperApplicationForm() {
       (file) => file.size > maxApplicationFileSizeBytes,
     );
     if (oversizeIdentity) {
-      setError(`${oversizeIdentity.name} exceeds 10MB.`);
+      setError(`${oversizeIdentity.name} exceeds 20MB.`);
       setPending(false);
       return;
     }
@@ -159,8 +191,8 @@ export function HelperApplicationForm() {
         method: "POST",
         body: formData,
       });
-
-      const json = await response.json();
+      const responseText = await response.text();
+      const json = safeJsonParse(responseText);
 
       if (!response.ok) {
         setError(json.error ?? "Could not submit your application.");
@@ -168,7 +200,7 @@ export function HelperApplicationForm() {
         return;
       }
 
-      setSuccess(json.message);
+      setSuccess(json.message ?? "Application submitted successfully.");
       setForm({
         name: "",
         type: "INDIVIDUAL",
@@ -184,7 +216,7 @@ export function HelperApplicationForm() {
       setIdentityFrontFile(null);
       setIdentityBackFile(null);
     } catch {
-      setError("Could not submit your application.");
+      setError("Could not submit your application. Please review the form and try again.");
     } finally {
       setPending(false);
     }
@@ -202,23 +234,26 @@ export function HelperApplicationForm() {
         </InputShell>
 
         <InputShell label="Helper Type" error={fieldErrors.type}>
-          <select
-            value={form.type}
-            onChange={(event) => {
-              const value = event.target.value;
-              setField("type", value);
-              if (value === "INDIVIDUAL") {
-                setField("teamSize", "");
-              }
-            }}
-            className={inputClass(fieldErrors.type)}
-          >
-            {helperTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label === "Studio" ? "Team / Studio" : option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={form.type}
+              onChange={(event) => {
+                const value = event.target.value;
+                setField("type", value);
+                if (value === "INDIVIDUAL") {
+                  setField("teamSize", "");
+                }
+              }}
+              className={selectClass(fieldErrors.type)}
+            >
+              {helperTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label === "Studio" ? "Team / Studio" : option.label}
+                </option>
+              ))}
+            </select>
+            <SelectArrow />
+          </div>
         </InputShell>
 
         {form.type === "TEAM" ? (
@@ -234,17 +269,20 @@ export function HelperApplicationForm() {
         ) : null}
 
         <InputShell label="Category" error={fieldErrors.category}>
-          <select
-            value={form.category}
-            onChange={(event) => setField("category", event.target.value)}
-            className={inputClass(fieldErrors.category)}
-          >
-            {categoryOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={form.category}
+              onChange={(event) => setField("category", event.target.value)}
+              className={selectClass(fieldErrors.category)}
+            >
+              {categoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <SelectArrow />
+          </div>
         </InputShell>
 
         <InputShell label="Email" error={fieldErrors.email}>
@@ -267,12 +305,23 @@ export function HelperApplicationForm() {
       </div>
 
       <InputShell label="Experience" error={fieldErrors.experience}>
-        <textarea
-          rows={4}
-          value={form.experience}
-          onChange={(event) => setField("experience", event.target.value)}
-          className={inputClass(fieldErrors.experience)}
-        />
+        <div className="relative">
+          <select
+            value={form.experience}
+            onChange={(event) => setField("experience", event.target.value)}
+            className={selectClass(fieldErrors.experience)}
+          >
+            <option value="" disabled>
+              Select experience level
+            </option>
+            {helperExperienceLevelOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <SelectArrow />
+        </div>
       </InputShell>
 
       <InputShell label="Portfolio (link or text)" error={fieldErrors.portfolioNote}>
@@ -287,7 +336,7 @@ export function HelperApplicationForm() {
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
         <div className="display-font text-2xl font-black">Portfolio Files</div>
         <p className="mt-2 text-sm text-muted">
-          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 10MB each.
+          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 20MB each.
         </p>
         <div className="mt-4">
           <InputShell label="Portfolio Uploads" error={fieldErrors.portfolioFiles}>
@@ -295,19 +344,28 @@ export function HelperApplicationForm() {
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
               multiple
-              onChange={(event) => setPortfolioFiles(Array.from(event.target.files ?? []).slice(0, maxPortfolioFiles))}
+              onChange={(event) => {
+                appendPortfolioFiles(event.target.files);
+                event.target.value = "";
+              }}
               className={inputClass(fieldErrors.portfolioFiles)}
             />
           </InputShell>
           {portfolioFiles.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
-              {portfolioFiles.map((file) => (
-                <span
+              {portfolioFiles.map((file, index) => (
+                <button
                   key={`${file.name}-${file.lastModified}`}
+                  type="button"
+                  onClick={() =>
+                    setPortfolioFiles((current) =>
+                      current.filter((_, fileIndex) => fileIndex !== index),
+                    )
+                  }
                   className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase"
                 >
-                  {file.name}
-                </span>
+                  {file.name} ×
+                </button>
               ))}
             </div>
           ) : null}
@@ -342,6 +400,22 @@ export function HelperApplicationForm() {
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
         <div className="display-font text-2xl font-black">Required Agreement</div>
         <div className="mt-4 space-y-3">
+          <label className="flex items-start gap-3 rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3 text-sm font-semibold text-ink">
+            <input
+              type="checkbox"
+              checked={allAgreementsAccepted}
+              onChange={(event) =>
+                setField("confirmations", {
+                  originalWork: event.target.checked,
+                  noScamGhosting: event.target.checked,
+                  platformLiability: event.target.checked,
+                  deadlinesCommunication: event.target.checked,
+                  serviceTerms: event.target.checked,
+                })
+              }
+            />
+            <span>I accept all required agreements</span>
+          </label>
           {helperAgreementItems.map((label, index) => {
             const key = agreementKeyOrder[index];
             return (
@@ -389,4 +463,31 @@ function inputClass(error?: string) {
     "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
     error ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
   );
+}
+
+function selectClass(error?: string) {
+  return cn(
+    "w-full appearance-none rounded-[18px] bg-[#efe3bf] px-4 py-3 pr-12 outline-none font-semibold text-ink",
+    error ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+  );
+}
+
+function SelectArrow() {
+  return (
+    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-ink/70">
+      ▾
+    </span>
+  );
+}
+
+function safeJsonParse(value: string): { error?: string; message?: string } {
+  if (!value) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(value) as { error?: string; message?: string };
+  } catch {
+    return {};
+  }
 }

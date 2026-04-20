@@ -109,6 +109,7 @@ export default async function HelperSelectPage({
               deliveryTime: helper.deliveryTime,
               repeatClients: helper.repeatClients,
               priceTier: helper.priceTier,
+              priceAnchor: helper.priceAnchor,
               clickCount: helper.clickCount,
               selectionCount: helper.selectionCount,
               category: helper.category,

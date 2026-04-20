@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonStyles, Card, EmptyState } from "@/components/ui";
 import { getHelperVerificationStatusLabel } from "@/lib/helper-verification";
@@ -23,8 +23,13 @@ export function AdminHelperVerificationManager(props: {
   activeFilter: "all" | "pending" | "verified" | "rejected";
 }) {
   const router = useRouter();
+  const [items, setItems] = useState(props.helpers);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
+
+  useEffect(() => {
+    setItems(props.helpers);
+  }, [props.helpers]);
 
   async function updateVerification(helperId: string, nextStatus: "VERIFIED" | "REJECTED") {
     setSavingId(helperId);
@@ -45,6 +50,25 @@ export function AdminHelperVerificationManager(props: {
         return;
       }
 
+      setItems((current) =>
+        current.map((helper) =>
+          helper.id === helperId
+            ? {
+                ...helper,
+                isVerified: nextStatus === "VERIFIED",
+                verification: helper.verification
+                  ? { ...helper.verification, status: nextStatus }
+                  : {
+                      status: nextStatus,
+                      adminNote: null,
+                      updatedAt: new Date().toISOString(),
+                      icFrontUrl: null,
+                      icBackUrl: null,
+                    },
+              }
+            : helper,
+        ),
+      );
       setStatus(`Verification updated to ${nextStatus.toLowerCase()}.`);
       router.refresh();
     } catch {
@@ -54,7 +78,7 @@ export function AdminHelperVerificationManager(props: {
     }
   }
 
-  const filteredHelpers = props.helpers.filter((helper) => {
+  const filteredHelpers = items.filter((helper) => {
     if (props.activeFilter === "all") {
       return true;
     }

@@ -20,11 +20,13 @@ export default async function AdminHelpersPage({
       teamSize: true,
       isVerified: true,
       projectsCompleted: true,
+      experienceLevel: true,
       impressionCount: true,
       responseTime: true,
       deliveryTime: true,
       repeatClients: true,
       priceTier: true,
+      priceAnchor: true,
       clickCount: true,
       selectionCount: true,
       status: true,
@@ -90,6 +92,7 @@ export default async function AdminHelpersPage({
 
       <div className="mt-8">
         <HelperAdminManager
+          activeFilter={verificationFilter}
           helpers={helpers.map((helper) => ({
             id: helper.id,
             name: helper.name,
@@ -97,11 +100,13 @@ export default async function AdminHelpersPage({
             teamSize: helper.teamSize,
             isVerified: helper.isVerified,
             projectsCompleted: helper.projectsCompleted,
+            experienceLevel: helper.experienceLevel,
             impressionCount: helper.impressionCount,
             responseTime: helper.responseTime,
             deliveryTime: helper.deliveryTime,
             repeatClients: helper.repeatClients,
             priceTier: helper.priceTier,
+            priceAnchor: helper.priceAnchor,
             clickCount: helper.clickCount,
             selectionCount: helper.selectionCount,
             status: helper.status,

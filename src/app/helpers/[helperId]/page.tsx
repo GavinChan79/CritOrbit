@@ -232,6 +232,7 @@ export default async function HelperDetailPage({
                       type: helper.type,
                       projectsCompleted: helper.projectsCompleted,
                       priceTier: helper.priceTier,
+                      priceAnchor: helper.priceAnchor,
                     })}
                   </div>
                   <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-ink/70">

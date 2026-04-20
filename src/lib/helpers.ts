@@ -1,5 +1,7 @@
 import {
   categoryLabelMap,
+  helperExperienceLevelLabelMap,
+  helperPriceAnchorLabelMap,
   categoryTaskTypeMap,
   helperPriceTierLabelMap,
   helperStatusLabelMap,
@@ -30,10 +32,12 @@ type HelperConversionProfileInput = {
   impressionCount?: number | null;
   clickCount?: number | null;
   selectionCount?: number | null;
+  experienceLevel?: string | null;
   responseTime?: string | null;
   deliveryTime?: string | null;
   repeatClients?: number | null;
   priceTier?: string | null;
+  priceAnchor?: string | null;
   portfolioItems?: Array<unknown>;
   specialties?: HelperSpecialty[];
 };
@@ -49,6 +53,13 @@ export function getHelperStatusLabel(status: string) {
   return (
     helperStatusLabelMap[status as keyof typeof helperStatusLabelMap] ??
     status.replaceAll("_", " ")
+  );
+}
+
+export function getHelperExperienceLevelLabel(level: string) {
+  return (
+    helperExperienceLevelLabelMap[level as keyof typeof helperExperienceLevelLabelMap] ??
+    level.replaceAll("_", " ")
   );
 }
 
@@ -243,6 +254,19 @@ export function getHelperDeliveryTime(input: HelperConversionProfileInput) {
 }
 
 export function getHelperPriceAnchor(input: HelperConversionProfileInput) {
+  if (input.priceAnchor) {
+    const priceAnchorLabel =
+      helperPriceAnchorLabelMap[input.priceAnchor as keyof typeof helperPriceAnchorLabelMap];
+
+    if (priceAnchorLabel) {
+      if (input.priceAnchor === "BELOW_RM100") {
+        return priceAnchorLabel;
+      }
+
+      return `From ${priceAnchorLabel}`;
+    }
+  }
+
   const priceTier =
     input.priceTier ?? getRecommendedPriceTier(input);
 

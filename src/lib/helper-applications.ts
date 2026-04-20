@@ -11,7 +11,7 @@ const allowedApplicationMimeTypes = [
 ] as const;
 
 export const maxPortfolioFiles = 5;
-export const maxApplicationFileSizeBytes = 10 * 1024 * 1024;
+export const maxApplicationFileSizeBytes = 20 * 1024 * 1024;
 
 export function getHelperApplicationMessage(
   status: HelperApplicationNotificationStatus,
@@ -104,13 +104,27 @@ export function isAllowedApplicationFile(fileName: string, mimeType: string) {
   const hasAllowedExtension = allowedApplicationFileExtensions.some((extension) =>
     lowerCaseName.endsWith(extension),
   );
+  const normalizedMimeType = mimeType.toLowerCase().trim();
 
-  return (
-    hasAllowedExtension &&
-    allowedApplicationMimeTypes.includes(
-      mimeType.toLowerCase() as (typeof allowedApplicationMimeTypes)[number],
-    )
-  );
+  if (!hasAllowedExtension) {
+    return false;
+  }
+
+  if (!normalizedMimeType) {
+    return true;
+  }
+
+  if (allowedApplicationMimeTypes.includes(
+    normalizedMimeType as (typeof allowedApplicationMimeTypes)[number],
+  )) {
+    return true;
+  }
+
+  if (normalizedMimeType === "image/jpg") {
+    return true;
+  }
+
+  return false;
 }
 
 export function sanitizeApplicationFileName(fileName: string) {

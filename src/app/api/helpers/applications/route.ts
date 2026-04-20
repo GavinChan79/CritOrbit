@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { HelperStatus, HelperType } from "@prisma/client";
+import { HelperStatus, HelperType, Prisma } from "@prisma/client";
 import { sendHelperOnboardingEmail } from "@/lib/email";
+import { getHelperExperienceLevelLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
 import {
   getHelperApplicationMessage,
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     for (const file of allFiles) {
       if (file.size > maxApplicationFileSizeBytes) {
         return NextResponse.json(
-          { error: `${file.name} exceeds the 10MB limit.` },
+          { error: `${file.name} exceeds the 20MB limit.` },
           { status: 400 },
         );
       }
@@ -86,7 +87,8 @@ export async function POST(request: Request) {
         teamSize: parsed.data.type === "TEAM" ? parsed.data.teamSize : null,
         status: HelperStatus.PENDING,
         category: parsed.data.category,
-        shortBio: parsed.data.experience.trim(),
+        shortBio: getHelperExperienceLevelLabel(parsed.data.experience),
+        experienceLevel: parsed.data.experience,
         portfolioNote: parsed.data.portfolioNote?.trim(),
         email: parsed.data.email.toLowerCase(),
         whatsappNumber: parsed.data.whatsappNumber,
@@ -147,7 +149,29 @@ export async function POST(request: Request) {
       helperId: helper.id,
       message: getHelperApplicationMessage("SUBMIT", helper.name),
     });
-  } catch {
-    return NextResponse.json({ error: "Failed to submit helper application." }, { status: 500 });
+  } catch (error) {
+    console.error("[helper-application] submit failed", error);
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "An application with this email already exists." },
+        { status: 409 },
+      );
+    }
+
+    if (error instanceof Error && error.message) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to submit helper application." },
+      { status: 500 },
+    );
   }
 }

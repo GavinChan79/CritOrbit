@@ -7,6 +7,24 @@ export const ADMIN_WHATSAPP_NUMBER =
 export const helperTypeValues = ["INDIVIDUAL", "TEAM"] as const;
 export const helperStatusValues = ["PENDING", "APPROVED", "REJECTED", "ACTIVE"] as const;
 export const helperPriceTierValues = ["BUDGET", "STANDARD", "PREMIUM"] as const;
+export const helperExperienceLevelValues = [
+  "NO_EXPERIENCE",
+  "LESS_THAN_1_YEAR",
+  "ONE_TO_TWO_YEARS",
+  "THREE_TO_FIVE_YEARS",
+  "FIVE_PLUS_YEARS",
+  "EXPERT_ADVANCED",
+] as const;
+export const helperPriceAnchorValues = [
+  "BELOW_RM100",
+  "RM100",
+  "RM200",
+  "RM300",
+  "RM400",
+  "RM500",
+  "RM700",
+  "RM1000_PLUS",
+] as const;
 
 export const helperTypeLabelMap: Record<(typeof helperTypeValues)[number], string> = {
   INDIVIDUAL: "Individual",
@@ -29,6 +47,32 @@ export const helperPriceTierLabelMap: Record<
   PREMIUM: "Top quality • Fast delivery",
 };
 
+export const helperExperienceLevelLabelMap: Record<
+  (typeof helperExperienceLevelValues)[number],
+  string
+> = {
+  NO_EXPERIENCE: "No experience",
+  LESS_THAN_1_YEAR: "Less than 1 year",
+  ONE_TO_TWO_YEARS: "1-2 years",
+  THREE_TO_FIVE_YEARS: "3-5 years",
+  FIVE_PLUS_YEARS: "5+ years",
+  EXPERT_ADVANCED: "Expert / Advanced",
+};
+
+export const helperPriceAnchorLabelMap: Record<
+  (typeof helperPriceAnchorValues)[number],
+  string
+> = {
+  BELOW_RM100: "Below RM100",
+  RM100: "RM100",
+  RM200: "RM200",
+  RM300: "RM300",
+  RM400: "RM400",
+  RM500: "RM500",
+  RM700: "RM700",
+  RM1000_PLUS: "RM1000+",
+};
+
 export const helperTypeOptions = helperTypeValues.map((value) => ({
   value,
   label: helperTypeLabelMap[value],
@@ -43,6 +87,34 @@ export const helperPriceTierOptions = helperPriceTierValues.map((value) => ({
   value,
   label: helperPriceTierLabelMap[value],
 })) as ReadonlyArray<{ value: (typeof helperPriceTierValues)[number]; label: string }>;
+
+export const helperExperienceLevelOptions = helperExperienceLevelValues.map((value) => ({
+  value,
+  label: helperExperienceLevelLabelMap[value],
+})) as ReadonlyArray<{ value: (typeof helperExperienceLevelValues)[number]; label: string }>;
+
+export const helperPriceAnchorOptions = helperPriceAnchorValues.map((value) => ({
+  value,
+  label: helperPriceAnchorLabelMap[value],
+})) as ReadonlyArray<{ value: (typeof helperPriceAnchorValues)[number]; label: string }>;
+
+export const helperResponseTimeOptions = [
+  "Within 15 minutes",
+  "Within 30 minutes",
+  "Within 1 hour",
+  "Within 2 hours",
+  "Within 6 hours",
+  "Within 24 hours",
+] as const;
+
+export const helperDeliveryTimeOptions = [
+  "Same day",
+  "24-48h",
+  "2-3 days",
+  "3-5 days",
+  "5-7 days",
+  "Flexible timeline",
+] as const;
 
 export const categoryValues = [
   "INTERIOR_DESIGN",

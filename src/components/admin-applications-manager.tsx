@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonStyles, Card, EmptyState } from "@/components/ui";
 import {
@@ -40,8 +40,34 @@ export function AdminApplicationsManager({
   applications: ApplicationRecord[];
 }) {
   const router = useRouter();
+  const [items, setItems] = useState(applications);
+  const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [busyId, setBusyId] = useState("");
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setItems(applications);
+  }, [applications]);
+
+  const filteredApplications = useMemo(
+    () =>
+      items.filter((application) => {
+        if (activeFilter === "all") {
+          return true;
+        }
+
+        if (activeFilter === "pending") {
+          return application.status === "PENDING";
+        }
+
+        if (activeFilter === "approved") {
+          return application.status === "APPROVED";
+        }
+
+        return application.status === "REJECTED";
+      }),
+    [activeFilter, items],
+  );
 
   async function decideApplication(
     applicationId: string,
@@ -70,6 +96,13 @@ export function AdminApplicationsManager({
         return;
       }
 
+      setItems((current) =>
+        current.map((application) =>
+          application.id === applicationId
+            ? { ...application, status }
+            : application,
+        ),
+      );
       setFeedback((current) => ({
         ...current,
         [applicationId]: `${json.message} Notifications were triggered automatically.`,
@@ -92,7 +125,36 @@ export function AdminApplicationsManager({
     />
   ) : (
     <div className="space-y-4">
-      {applications.map((application) => {
+      <div className="flex flex-wrap gap-3">
+        {[
+          { value: "pending", label: "Pending" },
+          { value: "approved", label: "Approved" },
+          { value: "rejected", label: "Rejected" },
+          { value: "all", label: "All" },
+        ].map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() =>
+              setActiveFilter(filter.value as "all" | "pending" | "approved" | "rejected")
+            }
+            className={
+              activeFilter === filter.value
+                ? "retro-pill bg-purple px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white"
+                : "retro-pill bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-ink"
+            }
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredApplications.length === 0 ? (
+        <EmptyState
+          title="No applications in this filter"
+          description="Try another filter or wait for more helper applications."
+        />
+      ) : filteredApplications.map((application) => {
         const itemFeedback = feedback[application.id];
         const isPending = application.status === "PENDING";
         const isApproved = application.status === "APPROVED";

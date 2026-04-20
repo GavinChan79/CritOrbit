@@ -498,6 +498,7 @@ export function HelperSelectionClient({
     deliveryTime: string | null;
     repeatClients: number | null;
     priceTier: string;
+    priceAnchor: string;
     clickCount: number;
     selectionCount: number;
     category: string;
@@ -707,6 +708,7 @@ export function HelperSelectionClient({
       type: helper.type,
       projectsCompleted: helper.projectsCompleted,
       priceTier: helper.priceTier,
+      priceAnchor: helper.priceAnchor,
     });
     const portfolioCountLabel = getHelperPastWorksLabel(helper.portfolioItems.length);
     const trustedByLabel = getHelperTrustedByLabel({
