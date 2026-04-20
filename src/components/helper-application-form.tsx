@@ -7,6 +7,10 @@ import {
   helperAgreementItems,
   helperTypeOptions,
 } from "@/lib/constants";
+import {
+  maxApplicationFileSizeBytes,
+  maxPortfolioFiles,
+} from "@/lib/helper-applications";
 import { cn } from "@/lib/utils";
 import { helperApplicationSchema } from "@/lib/validators";
 
@@ -42,6 +46,9 @@ export function HelperApplicationForm() {
     whatsappNumber: "",
     confirmations: defaultAgreements,
   });
+  const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
+  const [identityFrontFile, setIdentityFrontFile] = useState<File | null>(null);
+  const [identityBackFile, setIdentityBackFile] = useState<File | null>(null);
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -85,11 +92,72 @@ export function HelperApplicationForm() {
       return;
     }
 
+    if (portfolioFiles.length === 0) {
+      setFieldErrors({ portfolioFiles: "Upload at least one portfolio file." });
+      setError("Upload at least one portfolio file.");
+      setPending(false);
+      return;
+    }
+
+    if (portfolioFiles.length > maxPortfolioFiles) {
+      setFieldErrors({ portfolioFiles: `Upload up to ${maxPortfolioFiles} portfolio files.` });
+      setError(`Upload up to ${maxPortfolioFiles} portfolio files.`);
+      setPending(false);
+      return;
+    }
+
+    const oversizePortfolio = portfolioFiles.find(
+      (file) => file.size > maxApplicationFileSizeBytes,
+    );
+    if (oversizePortfolio) {
+      setFieldErrors({ portfolioFiles: `${oversizePortfolio.name} exceeds 10MB.` });
+      setError(`${oversizePortfolio.name} exceeds 10MB.`);
+      setPending(false);
+      return;
+    }
+
+    if (!identityFrontFile || !identityBackFile) {
+      setFieldErrors({
+        identityFrontFile: identityFrontFile ? "" : "IC Front is required.",
+        identityBackFile: identityBackFile ? "" : "IC Back is required.",
+      });
+      setError("Identity certification files are required.");
+      setPending(false);
+      return;
+    }
+
+    const identityFiles = [identityFrontFile, identityBackFile];
+    const oversizeIdentity = identityFiles.find(
+      (file) => file.size > maxApplicationFileSizeBytes,
+    );
+    if (oversizeIdentity) {
+      setError(`${oversizeIdentity.name} exceeds 10MB.`);
+      setPending(false);
+      return;
+    }
+
     try {
+      const formData = new FormData();
+      formData.append("name", parsed.data.name);
+      formData.append("type", parsed.data.type);
+      if (parsed.data.teamSize) {
+        formData.append("teamSize", String(parsed.data.teamSize));
+      }
+      formData.append("category", parsed.data.category);
+      formData.append("experience", parsed.data.experience);
+      formData.append("portfolioNote", parsed.data.portfolioNote ?? "");
+      formData.append("email", parsed.data.email);
+      formData.append("whatsappNumber", parsed.data.whatsappNumber);
+      for (const [key, value] of Object.entries(parsed.data.confirmations)) {
+        formData.append(`confirmations.${key}`, String(value));
+      }
+      portfolioFiles.forEach((file) => formData.append("portfolioFiles", file));
+      formData.append("identityFrontFile", identityFrontFile);
+      formData.append("identityBackFile", identityBackFile);
+
       const response = await fetch("/api/helpers/applications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        body: formData,
       });
 
       const json = await response.json();
@@ -112,6 +180,9 @@ export function HelperApplicationForm() {
         whatsappNumber: "",
         confirmations: defaultAgreements,
       });
+      setPortfolioFiles([]);
+      setIdentityFrontFile(null);
+      setIdentityBackFile(null);
     } catch {
       setError("Could not submit your application.");
     } finally {
@@ -212,6 +283,61 @@ export function HelperApplicationForm() {
           className={inputClass(fieldErrors.portfolioNote)}
         />
       </InputShell>
+
+      <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
+        <div className="display-font text-2xl font-black">Portfolio Files</div>
+        <p className="mt-2 text-sm text-muted">
+          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 10MB each.
+        </p>
+        <div className="mt-4">
+          <InputShell label="Portfolio Uploads" error={fieldErrors.portfolioFiles}>
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg,.pdf"
+              multiple
+              onChange={(event) => setPortfolioFiles(Array.from(event.target.files ?? []).slice(0, maxPortfolioFiles))}
+              className={inputClass(fieldErrors.portfolioFiles)}
+            />
+          </InputShell>
+          {portfolioFiles.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {portfolioFiles.map((file) => (
+                <span
+                  key={`${file.name}-${file.lastModified}`}
+                  className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase"
+                >
+                  {file.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
+        <div className="display-font text-2xl font-black">Identity Certification</div>
+        <div className="mt-4 grid gap-5 md:grid-cols-2">
+          <InputShell label="IC Front" error={fieldErrors.identityFrontFile}>
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg,.pdf"
+              onChange={(event) => setIdentityFrontFile(event.target.files?.[0] ?? null)}
+              className={inputClass(fieldErrors.identityFrontFile)}
+            />
+          </InputShell>
+          <InputShell label="IC Back" error={fieldErrors.identityBackFile}>
+            <input
+              type="file"
+              accept=".png,.jpg,.jpeg,.pdf"
+              onChange={(event) => setIdentityBackFile(event.target.files?.[0] ?? null)}
+              className={inputClass(fieldErrors.identityBackFile)}
+            />
+          </InputShell>
+        </div>
+        <p className="mt-4 text-sm leading-7 text-muted">
+          To protect both users and helpers and to maintain a reliable system, we will only use the information for internal verification purposes, and it will not be shared externally.
+        </p>
+      </div>
 
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
         <div className="display-font text-2xl font-black">Required Agreement</div>

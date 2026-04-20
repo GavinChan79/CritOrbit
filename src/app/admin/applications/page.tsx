@@ -19,6 +19,19 @@ export default async function AdminApplicationsPage() {
       portfolioNote: true,
       email: true,
       whatsappNumber: true,
+      agreedToTerms: true,
+      agreedAt: true,
+      applicationFiles: {
+        select: {
+          id: true,
+          kind: true,
+          fileName: true,
+          mimeType: true,
+          sizeBytes: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
       createdAt: true,
     },
   });
@@ -50,6 +63,11 @@ export default async function AdminApplicationsPage() {
         <AdminApplicationsManager
           applications={sortedApplications.map((application) => ({
             ...application,
+            agreedAt: application.agreedAt?.toISOString() ?? null,
+            applicationFiles: application.applicationFiles.map((file) => ({
+              ...file,
+              createdAt: file.createdAt.toISOString(),
+            })),
             createdAt: application.createdAt.toISOString(),
           }))}
         />

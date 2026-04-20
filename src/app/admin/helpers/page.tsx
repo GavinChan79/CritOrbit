@@ -1,9 +1,17 @@
 import { HelperAdminManager } from "@/components/helper-admin-manager";
+import { AdminHelperVerificationManager } from "@/components/admin-helper-verification-manager";
 import { SectionHeading } from "@/components/ui";
 import { parseSpecialties } from "@/lib/helpers";
+import { getAdminHelperVerificationFilePath } from "@/lib/helper-verification";
 import { prisma } from "@/lib/prisma";
 
-export default async function AdminHelpersPage() {
+export default async function AdminHelpersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const verificationFilter = readFilter(Array.isArray(params?.verification) ? params.verification[0] : params?.verification);
   const helpers = await prisma.helper.findMany({
     select: {
       id: true,
@@ -29,6 +37,13 @@ export default async function AdminHelpersPage() {
       agreedAt: true,
       displayOrder: true,
       isActive: true,
+      verification: {
+        select: {
+          status: true,
+          adminNote: true,
+          updatedAt: true,
+        },
+      },
       specialties: true,
       createdAt: true,
       portfolioItems: {
@@ -53,6 +68,25 @@ export default async function AdminHelpersPage() {
         title="Manage helper roster"
         description="Create, edit, reorder, and toggle helper availability without leaving the admin area."
       />
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        {[
+          { value: "all", label: "All" },
+          { value: "pending", label: "Pending" },
+          { value: "verified", label: "Verified" },
+          { value: "rejected", label: "Rejected" },
+        ].map((filter) => (
+          <a
+            key={filter.value}
+            href={filter.value === "all" ? "/admin/helpers" : `/admin/helpers?verification=${filter.value}`}
+            className={`retro-pill px-4 py-2 text-xs font-black uppercase tracking-[0.14em] ${
+              verificationFilter === filter.value ? "bg-purple text-white" : "bg-white text-ink"
+            }`}
+          >
+            {filter.label}
+          </a>
+        ))}
+      </div>
 
       <div className="mt-8">
         <HelperAdminManager
@@ -85,6 +119,34 @@ export default async function AdminHelpersPage() {
           }))}
         />
       </div>
+
+      <div className="mt-12">
+        <AdminHelperVerificationManager
+          activeFilter={verificationFilter}
+          helpers={helpers.map((helper) => ({
+            id: helper.id,
+            name: helper.name,
+            isVerified: helper.isVerified,
+            verification: helper.verification
+              ? {
+                  status: helper.verification.status,
+                  adminNote: helper.verification.adminNote,
+                  updatedAt: helper.verification.updatedAt?.toISOString() ?? null,
+                  icFrontUrl: getAdminHelperVerificationFilePath(helper.id, "front"),
+                  icBackUrl: getAdminHelperVerificationFilePath(helper.id, "back"),
+                }
+              : null,
+          }))}
+        />
+      </div>
     </div>
   );
+}
+
+function readFilter(value: string | undefined): "all" | "pending" | "verified" | "rejected" {
+  if (value === "pending" || value === "verified" || value === "rejected") {
+    return value;
+  }
+
+  return "all";
 }

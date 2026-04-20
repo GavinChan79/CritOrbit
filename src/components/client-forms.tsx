@@ -7,25 +7,31 @@ import { useRouter } from "next/navigation";
 import { LeadStatus } from "@prisma/client";
 import { buttonStyles, EmptyState, InputShell } from "@/components/ui";
 import {
-  compareHelpersForConversion,
-  getHelperMatchPriority,
   getHelperCardSpecialties,
   getCategoryLabel,
+  getHelperBookedTimeLabel,
   getHelperDeliveryTime,
+  getHelperPastWorksLabel,
   getHelperPriceAnchor,
   getHelperPriceTierLabel,
   getHelperPriceTierReason,
-  getHelperProjectsCompleted,
+  getHelperReplyLine,
   getHelperUrgencySignals,
-  getRecommendedHelpers,
   getHelperResponseSpeed,
+  getHelperTrustedByLabel,
   getHelperTypeLabel,
   helperMatchesRequest,
+  isFastResponseText,
   getTaskTypeLabel,
   specialtyMatchesTaskType,
   type HelperPortfolioItem,
   type HelperSpecialty,
 } from "@/lib/helpers";
+import {
+  getHelperConversionTierLabel,
+  rankHelpersByConversion,
+  type HelperConversionTier,
+} from "@/lib/helper-ranking";
 import {
   APP_NAME,
   categoryOptions,
@@ -43,6 +49,24 @@ import {
 } from "@/lib/validators";
 
 type AuthMode = "login" | "register";
+
+function getDeliveryPriority(deliveryTime: string) {
+  const normalized = deliveryTime.toLowerCase();
+
+  if (
+    normalized.includes("1 hour") ||
+    normalized.includes("same day") ||
+    normalized.includes("24")
+  ) {
+    return 0;
+  }
+
+  if (normalized.includes("48") || normalized.includes("2 day")) {
+    return 1;
+  }
+
+  return 2;
+}
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
@@ -481,6 +505,10 @@ export function HelperSelectionClient({
     specialties: HelperSpecialty[];
     shortBio: string;
     portfolioItems: HelperPortfolioItem[];
+    completionScore: number;
+    portfolioItemsCount: number;
+    conversionScore: number;
+    conversionTier: HelperConversionTier;
   }>;
   request: {
     draftId: string;
@@ -502,61 +530,7 @@ export function HelperSelectionClient({
   const taskTypeOptions = getTaskTypeOptionsForCategory(request.category);
 
   const visibleHelpers = useMemo(() => {
-    const isUsingDraftDefaults =
-      categoryFilter === request.category && taskFilter === request.taskType;
-
-    const rankedHelpers = helpers
-      .map((helper, index) => ({
-        helper,
-        index,
-        priority: getHelperMatchPriority({
-          helperCategory: helper.category,
-          requestCategory: request.category,
-          specialties: helper.specialties,
-          requestTaskType: request.taskType,
-        }),
-      }))
-      .sort((left, right) => {
-        if (left.priority !== right.priority) {
-          return left.priority - right.priority;
-        }
-
-        const conversionSort = compareHelpersForConversion(
-          {
-            ...left.helper,
-            projectsCompleted: left.helper.projectsCompleted,
-            responseTime: left.helper.responseTime,
-            deliveryTime: left.helper.deliveryTime,
-            repeatClients: left.helper.repeatClients,
-            priceTier: left.helper.priceTier,
-            portfolioItems: left.helper.portfolioItems,
-            specialties: left.helper.specialties,
-          },
-          {
-            ...right.helper,
-            projectsCompleted: right.helper.projectsCompleted,
-            responseTime: right.helper.responseTime,
-            deliveryTime: right.helper.deliveryTime,
-            repeatClients: right.helper.repeatClients,
-            priceTier: right.helper.priceTier,
-            portfolioItems: right.helper.portfolioItems,
-            specialties: right.helper.specialties,
-          },
-        );
-
-        if (conversionSort !== 0) {
-          return conversionSort;
-        }
-
-        return left.index - right.index;
-      })
-      .map((entry) => entry.helper);
-
-    if (isUsingDraftDefaults) {
-      return rankedHelpers;
-    }
-
-    return rankedHelpers.filter((helper) => {
+    const filteredHelpers = helpers.filter((helper) => {
       const categoryPass =
         categoryFilter === "ALL" || helper.category === categoryFilter;
       const taskPass =
@@ -565,15 +539,50 @@ export function HelperSelectionClient({
 
       return categoryPass && taskPass;
     });
-  }, [categoryFilter, helpers, request.category, request.taskType, taskFilter]);
+
+    return rankHelpersByConversion(filteredHelpers);
+  }, [categoryFilter, helpers, taskFilter]);
 
   const recommendedHelpers = useMemo(
     () =>
-      getRecommendedHelpers(visibleHelpers, {
-        category: request.category,
-        taskType: request.taskType,
-        urgency: request.urgency,
-      }),
+      [...visibleHelpers]
+        .filter((helper) =>
+          helperMatchesRequest({
+            helperCategory: helper.category,
+            requestCategory: request.category,
+            specialties: helper.specialties,
+            requestTaskType: request.taskType,
+          }),
+        )
+        .sort((left, right) => {
+          if (request.urgency === "ASAP") {
+            const leftDelivery = getDeliveryPriority(
+              getHelperDeliveryTime({
+                type: left.type,
+                isVerified: left.isVerified,
+                deliveryTime: left.deliveryTime,
+              }),
+            );
+            const rightDelivery = getDeliveryPriority(
+              getHelperDeliveryTime({
+                type: right.type,
+                isVerified: right.isVerified,
+                deliveryTime: right.deliveryTime,
+              }),
+            );
+
+            if (leftDelivery !== rightDelivery) {
+              return leftDelivery - rightDelivery;
+            }
+          }
+
+          if (left.conversionScore !== right.conversionScore) {
+            return right.conversionScore - left.conversionScore;
+          }
+
+          return left.displayOrder - right.displayOrder;
+        })
+        .slice(0, 2),
     [request.category, request.taskType, request.urgency, visibleHelpers],
   );
 
@@ -676,6 +685,7 @@ export function HelperSelectionClient({
     const isPrimaryRecommendation = helper.id === primaryRecommendationId;
     const isSecondaryRecommendation = helper.id === secondaryRecommendationId;
     const isTopHelper = isPrimaryRecommendation || isSecondaryRecommendation;
+    const tierLabel = getHelperConversionTierLabel(helper.conversionTier);
     const recommended = helperMatchesRequest({
       helperCategory: helper.category,
       requestCategory: request.category,
@@ -683,18 +693,6 @@ export function HelperSelectionClient({
       requestTaskType: request.taskType,
     });
     const featuredSpecialties = getHelperCardSpecialties(helper.specialties);
-    const projectsCompleted = getHelperProjectsCompleted({
-      type: helper.type,
-      teamSize: helper.teamSize,
-      isVerified: helper.isVerified,
-      projectsCompleted: helper.projectsCompleted,
-      responseTime: helper.responseTime,
-      deliveryTime: helper.deliveryTime,
-      repeatClients: helper.repeatClients,
-      priceTier: helper.priceTier,
-      portfolioItems: helper.portfolioItems,
-      specialties: helper.specialties,
-    });
     const responseSpeed = getHelperResponseSpeed({
       type: helper.type,
       isVerified: helper.isVerified,
@@ -710,6 +708,22 @@ export function HelperSelectionClient({
       projectsCompleted: helper.projectsCompleted,
       priceTier: helper.priceTier,
     });
+    const portfolioCountLabel = getHelperPastWorksLabel(helper.portfolioItems.length);
+    const trustedByLabel = getHelperTrustedByLabel({
+      type: helper.type,
+      teamSize: helper.teamSize,
+      isVerified: helper.isVerified,
+      projectsCompleted: helper.projectsCompleted,
+      selectionCount: helper.selectionCount,
+      portfolioItems: helper.portfolioItems,
+      specialties: helper.specialties,
+    });
+    const bookedTimeLabel = getHelperBookedTimeLabel({
+      type: helper.type,
+      selectionCount: helper.selectionCount,
+      clickCount: helper.clickCount,
+    });
+    const fastResponse = isFastResponseText(responseSpeed);
     const urgencySignals = getHelperUrgencySignals({
       type: helper.type,
       teamSize: helper.teamSize,
@@ -746,6 +760,8 @@ export function HelperSelectionClient({
     const matchingLabels = helper.specialties
       .filter((specialty) => specialtyMatchesTaskType([specialty], request.taskType))
       .map((specialty) => specialty.label);
+    const profileImage = helper.portfolioItems[0]?.imageUrl;
+    const topTierUrgency = helper.conversionTier === "TOP_PICK";
 
     return (
       <div
@@ -756,31 +772,78 @@ export function HelperSelectionClient({
           isPremium && "border-[4px] border-red bg-[#fff8e8] shadow-[10px_10px_0_var(--line)]",
           isBudget && "bg-[#faf6ef] opacity-95",
           options?.emphasized && "border-green bg-[#f3fff5] shadow-[8px_8px_0_var(--line)]",
+          helper.conversionTier === "TOP_PICK" &&
+            "border-[4px] border-green bg-[#f3fff5] shadow-[10px_10px_0_var(--line)]",
+          helper.conversionTier === "POPULAR" && "border-purple bg-[#faf4ff]",
         )}
       >
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-5">
-            <div className="flex flex-wrap items-start gap-3">
-              <div
-                className={cn(
-                  "flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-line display-font text-xl font-black",
-                  helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 flex-1 space-y-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start">
+              <div className="shrink-0">
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt={`${helper.name} profile preview`}
+                    className="h-20 w-20 rounded-[22px] border-[3px] border-line object-cover"
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "flex h-20 w-20 items-center justify-center rounded-[22px] border-[3px] border-line display-font text-2xl font-black",
+                      helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
+                    )}
+                  >
+                    {helper.name.slice(0, 2).toUpperCase()}
+                  </div>
                 )}
-              >
-                {helper.name.slice(0, 2).toUpperCase()}
               </div>
-              <div className="space-y-2">
-                <Link
-                  href={`/helpers/${helper.id}?draftId=${request.draftId}`}
-                  onClick={() => trackHelperClick(helper.id)}
-                  className={cn(
-                    "display-font text-2xl font-black underline-offset-4 hover:underline",
-                    helper.type === "TEAM" && "text-[2rem]",
-                    options?.emphasized && "text-[2.15rem]",
-                  )}
-                >
-                  {helper.name}
-                </Link>
+
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-2">
+                    <Link
+                      href={`/helpers/${helper.id}?draftId=${request.draftId}`}
+                      onClick={() => trackHelperClick(helper.id)}
+                      className={cn(
+                        "display-font text-2xl font-black underline-offset-4 hover:underline md:text-3xl",
+                        helper.type === "TEAM" && "text-[2rem]",
+                        options?.emphasized && "text-[2.15rem]",
+                      )}
+                    >
+                      {helper.name}
+                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      {featuredSpecialties.map((specialty) => (
+                        <span
+                          key={specialty.code}
+                          className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase"
+                        >
+                          {specialty.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full rounded-[20px] border-[3px] border-line bg-yellow px-4 py-3 md:w-auto md:min-w-[180px]">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">
+                      Price
+                    </div>
+                    <div className="mt-2 display-font text-2xl font-black text-ink">
+                      {priceAnchor}
+                    </div>
+                    <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-ink/70">
+                      {getHelperPriceTierLabel(helper.priceTier)}
+                    </div>
+                    <div className="mt-1 text-[11px] font-semibold text-ink/70">
+                      {getHelperPriceTierReason(helper.priceTier)}
+                    </div>
+                    <div className="mt-3 border-t-[3px] border-line/20 pt-3 text-sm font-black text-ink">
+                      {deliveryTime} delivery
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
@@ -790,16 +853,31 @@ export function HelperSelectionClient({
                   >
                     {getHelperTypeLabel(helper.type)}
                   </span>
-                  {helper.type === "TEAM" ? (
-                    <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
-                      Studio Team
-                    </span>
-                  ) : null}
                   {helper.isVerified ? (
                     <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                      Verified
+                      Verified Helper
                     </span>
                   ) : null}
+                  {fastResponse ? (
+                    <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
+                      Fast Response ⚡
+                    </span>
+                  ) : null}
+                  {helper.type === "TEAM" ? (
+                    <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                      Team
+                    </span>
+                  ) : null}
+                  <span
+                    className={cn(
+                      "retro-pill px-3 py-1 text-xs font-black uppercase",
+                      helper.conversionTier === "TOP_PICK" && "bg-green text-white",
+                      helper.conversionTier === "POPULAR" && "bg-purple text-white",
+                      helper.conversionTier === "STANDARD" && "bg-white text-ink",
+                    )}
+                  >
+                    {tierLabel}
+                  </span>
                   {isPremium ? (
                     <span className="retro-pill bg-red px-3 py-1 text-xs font-black uppercase text-white">
                       Premium
@@ -813,15 +891,9 @@ export function HelperSelectionClient({
                     <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
                       Good alternative
                     </span>
-                  ) : recommended ? (
-                    <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                      Recommended
-                    </span>
                   ) : null}
                 </div>
-                <p className="text-sm font-semibold text-muted">
-                  {getCategoryLabel(helper.category)}
-                </p>
+
                 {recommendationCopy ? (
                   <p className="text-sm font-bold text-green">{recommendationCopy}</p>
                 ) : null}
@@ -831,152 +903,116 @@ export function HelperSelectionClient({
                     <span>Best results for this type of task</span>
                   </div>
                 ) : null}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {featuredSpecialties.map((specialty) => (
-                <span key={specialty.code} className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
-                  {specialty.label}
-                </span>
-              ))}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
-                  Trust
-                </div>
-                <div className="mt-2 text-sm font-black text-ink">
-                  {helper.type === "TEAM"
-                    ? `Handled ${projectsCompleted}+ student projects`
-                    : isPremium
-                      ? `${projectsCompleted || 40}+ high-priority projects completed`
-                    : projectsCompleted > 0
-                      ? `${projectsCompleted}+ projects completed`
-                      : "Trusted by students"}
-                </div>
-              </div>
-              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
-                  Response
-                </div>
-                <div className="mt-2 text-sm font-black text-ink">
-                  {responseSpeed}
-                </div>
-              </div>
-              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
-                  Delivery
-                </div>
-                <div className="mt-2 text-sm font-black text-ink">
-                  {deliveryTime}
-                </div>
-              </div>
-              <div className="rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3">
-                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">
-                  Price
-                </div>
-                <div className="mt-2 display-font text-xl font-black text-ink">
-                  {priceAnchor}
-                </div>
-                <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-ink/70">
-                  {getHelperPriceTierLabel(helper.priceTier)}
-                </div>
-                <div className="mt-1 text-[11px] font-semibold text-ink/70">
-                  {getHelperPriceTierReason(helper.priceTier)}
-                </div>
-                {isPremium ? (
-                  <div className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-red">
-                    Best for urgent deadlines
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
+                    {trustedByLabel} {"\u2022"} {bookedTimeLabel}
                   </div>
+                  <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
+                    {getHelperReplyLine(responseSpeed)}
+                  </div>
+                  <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
+                    {portfolioCountLabel}
+                  </div>
+                  <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
+                    {bookedTimeLabel}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em]">
+                  <span className="retro-pill bg-white px-3 py-1 text-muted">
+                    {getCategoryLabel(helper.category)}
+                  </span>
+                  {demandLabel ? (
+                    <span className="retro-pill bg-pink px-3 py-1 text-ink">
+                      {topTierUrgency
+                        ? "\uD83D\uDD25 High demand today"
+                        : demandLabel === "High demand"
+                          ? "High demand today"
+                          : demandLabel}
+                    </span>
+                  ) : null}
+                  {topTierUrgency ? (
+                    <span className="retro-pill bg-yellow px-3 py-1 text-ink">
+                      {"\u26A0\uFE0F Limited slots available"}
+                    </span>
+                  ) : null}
+                  {popularityLabel ? (
+                    <span className="retro-pill bg-green px-3 py-1 text-white">
+                      {popularityLabel}
+                    </span>
+                  ) : null}
+                  {helper.teamSize ? (
+                    <span className="retro-pill bg-purple px-3 py-1 text-white">
+                      Team of {helper.teamSize}
+                    </span>
+                  ) : null}
+                  {urgencySignals
+                    .filter((signal) => signal !== "Popular choice")
+                    .slice(0, 1)
+                    .map((signal) => (
+                      <span
+                        key={`${helper.id}-${signal}`}
+                        className="retro-pill bg-white px-3 py-1 text-muted"
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                </div>
+
+                {recommended ? (
+                  <span className="text-xs font-bold text-green">
+                    Match rule: category matches and specialty covers {matchingLabels.join(", ")}.
+                  </span>
                 ) : null}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {popularityLabel ? (
-                <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                  {popularityLabel}
-                </span>
-              ) : null}
-              {demandLabel ? (
-                <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
-                  {demandLabel}
-                </span>
-              ) : null}
-              {urgencySignals
-                .filter((signal) => signal !== "Popular choice")
-                .map((signal) => (
-                <span
-                  key={`${helper.id}-${signal}`}
-                  className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink"
-                >
-                  {signal}
-                </span>
-                ))}
-              {helper.teamSize ? (
-                <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
-                  Team of {helper.teamSize}
-                </span>
-              ) : null}
-            </div>
-            <p
-              className={cn(
-                "max-w-2xl text-sm leading-7 text-muted",
-                helper.type === "TEAM" && "font-semibold text-ink",
-              )}
-            >
-              {helper.shortBio}
-            </p>
-            {recommended ? (
-              <span className="text-xs font-bold text-green">
-                Match rule: category matches and specialty covers {matchingLabels.join(", ")}.
-              </span>
-            ) : null}
-            {helper.portfolioItems.length ? (
-              <div>
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
-                  {helper.type === "TEAM" ? "Studio Portfolio" : "Portfolio Preview"}
-                </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 sm:max-w-sm">
-                  {helper.portfolioItems.map((item) => (
-                    <a
-                      key={item.id}
-                      href={item.externalLink || item.imageUrl}
-                      onClick={() => trackHelperClick(helper.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
-                    >
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="h-24 w-full object-cover"
-                      />
-                    </a>
-                  ))}
-                </div>
-                <div className="mt-3">
-                  <Link
-                    href={`/helpers/${helper.id}?draftId=${request.draftId}`}
-                    onClick={() => trackHelperClick(helper.id)}
-                    className={buttonStyles({ tone: "yellow", size: "sm" })}
-                  >
-                    View Full Portfolio
-                  </Link>
-                </div>
-              </div>
-            ) : null}
           </div>
-          <div className="space-y-2">
+
+          <div className="w-full space-y-3 xl:w-[220px]">
             <button
               type="button"
               onClick={() => handleMatch(helper.id)}
               disabled={Boolean(loadingId)}
-              className={buttonStyles({ tone: bestMatch ? "green" : recommended ? "green" : "purple", size: "md" })}
+              className={cn(
+                buttonStyles({
+                  tone: bestMatch ? "green" : recommended ? "green" : "purple",
+                  size: "md",
+                }),
+                "w-full justify-center",
+              )}
             >
-              {loadingId === helper.id ? "Saving..." : "Get Help ->"}
+              {loadingId === helper.id ? "Saving..." : "Get Help with Your Assignment \u2192"}
             </button>
+            <Link
+              href={`/helpers/${helper.id}?draftId=${request.draftId}`}
+              onClick={() => trackHelperClick(helper.id)}
+              className={cn(buttonStyles({ tone: "yellow", size: "sm" }), "w-full justify-center")}
+            >
+              View Profile
+            </Link>
             {trustTrigger ? (
               <p className="text-[11px] font-semibold text-muted">{trustTrigger}</p>
+            ) : null}
+            {helper.portfolioItems.length ? (
+              <div className="grid grid-cols-3 gap-2">
+                {helper.portfolioItems.slice(0, 3).map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.externalLink || item.imageUrl}
+                    onClick={() => trackHelperClick(helper.id)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="overflow-hidden rounded-[16px] border-[3px] border-line bg-cream"
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="h-20 w-full object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>

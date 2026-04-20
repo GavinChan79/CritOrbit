@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth";
-import { compareHelpersForConversion, parseSpecialties } from "@/lib/helpers";
+import { parseSpecialties } from "@/lib/helpers";
+import { getHelperCompletionScore, rankHelpersByConversion } from "@/lib/helper-ranking";
 import { prisma } from "@/lib/prisma";
 import { calculateLeadScore } from "@/lib/scoring";
 import { HelperSelectionClient } from "@/components/client-forms";
@@ -33,6 +34,16 @@ export default async function HelperSelectPage({
   const helpers = await prisma.helper.findMany({
     where: { isActive: true, status: "ACTIVE" },
     include: {
+      verification: {
+        select: {
+          status: true,
+        },
+      },
+      _count: {
+        select: {
+          portfolioItems: true,
+        },
+      },
       portfolioItems: {
         select: {
           id: true,
@@ -48,43 +59,25 @@ export default async function HelperSelectPage({
     },
   });
 
-  const sortedHelpers = [...helpers].sort((left, right) =>
-    compareHelpersForConversion(
-        {
-          name: left.name,
-          type: left.type,
-          teamSize: left.teamSize,
-          isVerified: left.isVerified,
-          projectsCompleted: left.projectsCompleted,
-          impressionCount: left.impressionCount,
-          clickCount: left.clickCount,
-          selectionCount: left.selectionCount,
-          responseTime: left.responseTime,
-          deliveryTime: left.deliveryTime,
-          repeatClients: left.repeatClients,
-        priceTier: left.priceTier,
-        portfolioItems: left.portfolioItems,
-        specialties: parseSpecialties(left.specialties),
-        displayOrder: left.displayOrder,
-      },
-        {
-          name: right.name,
-          type: right.type,
-          teamSize: right.teamSize,
-          isVerified: right.isVerified,
-          projectsCompleted: right.projectsCompleted,
-          impressionCount: right.impressionCount,
-          clickCount: right.clickCount,
-          selectionCount: right.selectionCount,
-          responseTime: right.responseTime,
-          deliveryTime: right.deliveryTime,
-          repeatClients: right.repeatClients,
-        priceTier: right.priceTier,
-        portfolioItems: right.portfolioItems,
-        specialties: parseSpecialties(right.specialties),
-        displayOrder: right.displayOrder,
-      },
-    ),
+  const sortedHelpers = rankHelpersByConversion(
+    helpers.map((helper) => ({
+      ...helper,
+      completionScore: getHelperCompletionScore({
+        name: helper.name,
+        shortBio: helper.shortBio,
+        email: helper.email,
+        whatsappNumber: helper.whatsappNumber,
+        responseTime: helper.responseTime,
+        deliveryTime: helper.deliveryTime,
+        portfolioNote: helper.portfolioNote,
+        specialties: helper.specialties,
+        type: helper.type,
+        teamSize: helper.teamSize,
+        portfolioItemsCount: helper._count.portfolioItems,
+        verificationStatus: helper.verification?.status ?? "NONE",
+      }),
+      portfolioItemsCount: helper._count.portfolioItems,
+    })),
   );
 
   const baseScore = calculateLeadScore({
@@ -123,6 +116,10 @@ export default async function HelperSelectPage({
               specialties: parseSpecialties(helper.specialties),
               shortBio: helper.shortBio,
               portfolioItems: helper.portfolioItems,
+              completionScore: helper.completionScore,
+              portfolioItemsCount: helper.portfolioItemsCount,
+              conversionScore: helper.conversionScore,
+              conversionTier: helper.conversionTier,
             }))}
             request={{
               draftId: draft.id,

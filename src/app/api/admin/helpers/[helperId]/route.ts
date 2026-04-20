@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { Prisma, UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
+import {
+  getApplicationFileDownloadPath,
+  getApplicationFileTitle,
+  getPortfolioPreviewImageUrl,
+} from "@/lib/helper-applications";
 import { prisma } from "@/lib/prisma";
 import { helperSchema } from "@/lib/validators";
 
@@ -38,10 +43,56 @@ export async function PATCH(
       },
     });
 
+    if (parsed.data.status === "ACTIVE") {
+      const applicationPortfolioFiles = await prisma.helperApplicationFile.findMany({
+        where: {
+          helperId,
+          kind: "PORTFOLIO",
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      const existingPortfolioItems = await prisma.helperPortfolioItem.findMany({
+        where: { helperId },
+        select: { sourceApplicationFileId: true },
+      });
+      const existingFileIds = new Set(
+        existingPortfolioItems
+          .map((item) => item.sourceApplicationFileId)
+          .filter((value): value is string => Boolean(value)),
+      );
+
+      const nextFiles = applicationPortfolioFiles.filter(
+        (file) => !existingFileIds.has(file.id),
+      );
+
+      if (nextFiles.length > 0) {
+        const currentCount = await prisma.helperPortfolioItem.count({
+          where: { helperId },
+        });
+
+        await prisma.helperPortfolioItem.createMany({
+          data: nextFiles.map((file, index) => {
+            const downloadPath = getApplicationFileDownloadPath(file.id);
+            return {
+              helperId,
+              title: getApplicationFileTitle(file.fileName, `Portfolio ${index + 1}`),
+              imageUrl: getPortfolioPreviewImageUrl(file.id, file.mimeType, file.fileName),
+              description: "Uploaded during helper application review.",
+              externalLink: downloadPath,
+              sourceApplicationFileId: file.id,
+              displayOrder: currentCount + index,
+            };
+          }),
+        });
+      }
+    }
+
     revalidatePath("/admin/helpers");
     revalidatePath("/admin/applications");
     revalidatePath("/admin/helper-stats");
     revalidatePath("/helpers/select");
+    revalidatePath(`/helpers/${helperId}`);
     revalidatePath("/become-helper");
     revalidatePath("/");
 

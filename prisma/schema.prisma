@@ -47,6 +47,18 @@ enum HelperCategory {
   MARKETING
 }
 
+enum HelperApplicationFileKind {
+  PORTFOLIO
+  IDENTITY_FRONT
+  IDENTITY_BACK
+}
+
+enum HelperVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 enum LeadTaskType {
   RENDERING
   LAYOUT
@@ -127,9 +139,26 @@ model Helper {
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @default(now()) @updatedAt
+  applicationFiles HelperApplicationFile[]
+  verification     HelperVerification?
   portfolioItems   HelperPortfolioItem[]
   selectedForLeads Lead[]         @relation("SelectedHelper")
   assignedLeads    Lead[]         @relation("AssignedHelper")
+}
+
+model HelperApplicationFile {
+  id         String                    @id @default(cuid())
+  helperId    String
+  kind       HelperApplicationFileKind
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  content    Bytes
+  createdAt  DateTime                  @default(now())
+  updatedAt  DateTime                  @updatedAt
+  helper     Helper                    @relation(fields: [helperId], references: [id], onDelete: Cascade)
+
+  @@index([helperId, kind, createdAt])
 }
 
 model HelperPortfolioItem {
@@ -139,12 +168,31 @@ model HelperPortfolioItem {
   imageUrl    String
   description String?
   externalLink String?
+  sourceApplicationFileId String? @unique
   displayOrder Int     @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   helper      Helper   @relation(fields: [helperId], references: [id], onDelete: Cascade)
 
   @@index([helperId, displayOrder])
+}
+
+model HelperVerification {
+  id               String                   @id @default(cuid())
+  helperId         String                   @unique
+  icFrontUrl       String
+  icBackUrl        String
+  icFrontFileName  String
+  icBackFileName   String
+  icFrontMimeType  String
+  icBackMimeType   String
+  icFrontContent   Bytes
+  icBackContent    Bytes
+  status           HelperVerificationStatus @default(PENDING)
+  adminNote        String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  helper           Helper                   @relation(fields: [helperId], references: [id], onDelete: Cascade)
 }
 
 model Lead {

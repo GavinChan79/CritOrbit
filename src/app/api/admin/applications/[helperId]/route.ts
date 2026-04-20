@@ -2,13 +2,10 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { HelperStatus, UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
+import { sendHelperOnboardingEmail } from "@/lib/email";
 import {
   getHelperApplicationMessage,
 } from "@/lib/helper-applications";
-import {
-  sendHelperApproved,
-  sendHelperRejected,
-} from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { helperApplicationDecisionSchema } from "@/lib/validators";
 
@@ -58,12 +55,12 @@ export async function PATCH(
 
     try {
       if (decision === "APPROVED") {
-        await sendHelperApproved(helper);
+        await sendHelperOnboardingEmail(helper, "approved");
       } else {
-        await sendHelperRejected(helper);
+        await sendHelperOnboardingEmail(helper, "rejected");
       }
     } catch (error) {
-      console.error("[notifications] Failed to send helper application decision notification.", {
+      console.error("[email] Failed to send helper application decision email.", {
         helperId: helper.id,
         decision,
         error,

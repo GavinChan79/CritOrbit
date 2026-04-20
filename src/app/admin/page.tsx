@@ -11,6 +11,7 @@ import {
   SectionHeading,
   StatusBadge,
 } from "@/components/ui";
+import { AdminTestEmailButton } from "@/components/admin-test-email-button";
 
 export default async function AdminOverviewPage() {
   const [allLeads, recentLeads] = await Promise.all([
@@ -88,6 +89,8 @@ export default async function AdminOverviewPage() {
           </div>
         </Card>
       </div>
+
+      <AdminTestEmailButton />
 
       <div className="mt-10 retro-card bg-white p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

@@ -145,7 +145,11 @@ export const helperApplicationSchema = z.object({
     .transform((value) => (value === undefined ? null : value)),
   category: z.enum(categoryValues),
   experience: z.string().min(12, "Tell us about your experience."),
-  portfolioNote: z.string().min(6, "Share a portfolio link or description."),
+  portfolioNote: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => value || undefined),
   email: z.email("Enter a valid email address."),
   whatsappNumber: z
     .string()
@@ -180,6 +184,19 @@ export const helperApplicationDecisionSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
 });
 
+export const helperSelfProfileSchema = z.object({
+  name: z.string().min(2, "Helper name is required."),
+  category: z.enum(categoryValues),
+  shortBio: z.string().min(12, "Add a short bio."),
+  portfolioNote: z.string().trim().optional().transform((value) => value || undefined),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{9,15}$/, "Use digits only for WhatsApp number."),
+  responseTime: z.string().trim().min(2, "Add a response time."),
+  deliveryTime: z.string().trim().min(2, "Add a delivery time."),
+});
+
 export const helperPortfolioSchema = z.object({
   title: z.string().min(2, "Portfolio title is required."),
   imageUrl: z.url("Enter a valid image URL."),
@@ -188,6 +205,16 @@ export const helperPortfolioSchema = z.object({
     .union([z.string().trim().url("Enter a valid external link."), z.literal(""), z.undefined()])
     .transform((value) => (value ? value : undefined)),
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or more."),
+});
+
+export const helperPortfolioUploadSchema = z.object({
+  title: z.string().trim().optional().transform((value) => value || undefined),
+  description: z.string().trim().optional().transform((value) => value || undefined),
+});
+
+export const helperVerificationStatusSchema = z.object({
+  status: z.enum(["VERIFIED", "REJECTED"]),
+  adminNote: z.string().trim().optional().transform((value) => value || undefined),
 });
 
 export const adminLeadUpdateSchema = z.object({

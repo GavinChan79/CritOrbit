@@ -8,11 +8,9 @@ import { leadMatchPayloadSchema } from "@/lib/validators";
 export function HelperDetailActions({
   helperId,
   draftId,
-  helperName,
 }: {
   helperId: string;
   draftId?: string;
-  helperName: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -68,7 +66,7 @@ export function HelperDetailActions({
               disabled={loading}
               className={buttonStyles({ tone: "green", size: "md" })}
             >
-              {loading ? "Saving..." : `Get Matched with ${helperName}`}
+              {loading ? "Saving..." : "Get Help Now \u2192"}
             </button>
             <Link
               href={`/helpers/select?draftId=${draftId}`}
@@ -80,7 +78,7 @@ export function HelperDetailActions({
         ) : (
           <>
             <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "md" })}>
-              Get Help Now
+              Get Help Now \u2192
             </Link>
             <Link href="/#helpers" className={buttonStyles({ tone: "yellow", size: "md" })}>
               Back to Homepage

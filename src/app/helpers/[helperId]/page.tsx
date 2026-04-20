@@ -3,14 +3,18 @@ import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import {
   getCategoryLabel,
+  getHelperBookedTimeLabel,
   getHelperDeliveryTime,
   getHelperDetailPitch,
+  getHelperPastWorksLabel,
   getHelperPriceAnchor,
   getHelperPriceTierLabel,
   getHelperProjectsCompleted,
   getHelperResponseSpeed,
+  getHelperTrustedByLabel,
   getHelperTypeLabel,
   getHelperUrgencySignals,
+  isFastResponseText,
   parseSpecialties,
 } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
@@ -37,6 +41,11 @@ export default async function HelperDetailPage({
       status: "ACTIVE",
     },
     include: {
+      verification: {
+        select: {
+          status: true,
+        },
+      },
       portfolioItems: {
         orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
       },
@@ -71,6 +80,37 @@ export default async function HelperDetailPage({
     type: helper.type,
     projectsCompleted,
   });
+  const responseSpeed = getHelperResponseSpeed({
+    type: helper.type,
+    isVerified: helper.isVerified,
+    responseTime: helper.responseTime,
+  });
+  const deliveryTime = getHelperDeliveryTime({
+    type: helper.type,
+    isVerified: helper.isVerified,
+    deliveryTime: helper.deliveryTime,
+  });
+  const trustedByLabel = getHelperTrustedByLabel({
+    type: helper.type,
+    teamSize: helper.teamSize,
+    isVerified: helper.isVerified,
+    projectsCompleted: helper.projectsCompleted,
+    portfolioItems: helper.portfolioItems,
+    selectionCount: null,
+    specialties,
+  });
+  const portfolioLabel = getHelperPastWorksLabel(helper.portfolioItems.length);
+  const bookedTimeLabel = getHelperBookedTimeLabel({
+    type: helper.type,
+    selectionCount: null,
+    clickCount: null,
+  });
+  const profilePreviewImage = helper.portfolioItems[0]?.imageUrl;
+  const tagline =
+    helper.type === "TEAM"
+      ? "Studio support for urgent, presentation-ready student work."
+      : "Reliable assignment support with clear communication and fast turnaround.";
+  const fastResponse = isFastResponseText(responseSpeed);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -89,45 +129,70 @@ export default async function HelperDetailPage({
           <SectionHeading
             eyebrow="Helper Portfolio"
             title={helper.name}
-            description="Review the helper profile, specialties, and portfolio before starting the match flow."
+            description="Review the helper profile, trust signals, and portfolio before starting the match flow."
           />
         </div>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-6">
             <Card className="bg-white">
-              <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className={cn(
-                    "retro-pill px-3 py-1 text-xs font-black uppercase",
-                    helper.type === "TEAM" ? "bg-blue text-white" : "bg-cream text-ink",
+              <div className="flex flex-col gap-5 md:flex-row md:items-start">
+                <div className="shrink-0">
+                  {profilePreviewImage ? (
+                    <img
+                      src={profilePreviewImage}
+                      alt={`${helper.name} profile preview`}
+                      className="h-24 w-24 rounded-[24px] border-[3px] border-line object-cover"
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        "flex h-24 w-24 items-center justify-center rounded-[24px] border-[3px] border-line display-font text-3xl font-black",
+                        helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
+                      )}
+                    >
+                      {helper.name.slice(0, 2).toUpperCase()}
+                    </div>
                   )}
-                >
-                  {getHelperTypeLabel(helper.type)}
-                </span>
-                <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
-                  {getCategoryLabel(helper.category)}
-                </span>
-                <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
-                  {specialties.length} specialties
-                </span>
-                <span className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink">
-                  {helper.type === "TEAM" ? "Booked recently" : "Picked recently"}
-                </span>
-                {helper.isVerified ? (
-                  <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                    Verified
-                  </span>
-                ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={cn(
+                        "retro-pill px-3 py-1 text-xs font-black uppercase",
+                        helper.type === "TEAM" ? "bg-blue text-white" : "bg-cream text-ink",
+                      )}
+                    >
+                      {getHelperTypeLabel(helper.type)}
+                    </span>
+                    <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                      {getCategoryLabel(helper.category)}
+                    </span>
+                    <span className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink">
+                      {bookedTimeLabel}
+                    </span>
+                    {helper.isVerified ? (
+                      <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                        Verified Helper
+                      </span>
+                    ) : null}
+                    {fastResponse ? (
+                      <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
+                        Fast Response ⚡
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-4 text-sm font-bold text-ink">{tagline}</p>
+                  <p
+                    className={cn(
+                      "mt-3 text-sm leading-7 text-muted",
+                      helper.type === "TEAM" && "font-semibold text-ink",
+                    )}
+                  >
+                    {helper.shortBio}
+                  </p>
+                </div>
               </div>
-              <p
-                className={cn(
-                  "mt-5 text-sm leading-7 text-muted",
-                  helper.type === "TEAM" && "font-semibold text-ink",
-                )}
-              >
-                {helper.shortBio}
-              </p>
               {helper.teamSize ? (
                 <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-muted">
                   Team size: {helper.teamSize}
@@ -139,21 +204,15 @@ export default async function HelperDetailPage({
                     Trust
                   </div>
                   <div className="mt-2 text-sm font-black text-ink">
-                    {helper.type === "TEAM"
-                      ? `Handled ${projectsCompleted}+ student projects`
-                      : `${projectsCompleted || 24}+ projects`}
+                    {trustedByLabel}
                   </div>
                 </div>
                 <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
-                    Response
+                    Response Speed
                   </div>
                   <div className="mt-2 text-sm font-black text-ink">
-                    {getHelperResponseSpeed({
-                      type: helper.type,
-                      isVerified: helper.isVerified,
-                      responseTime: helper.responseTime,
-                    })}
+                    {responseSpeed}
                   </div>
                 </div>
                 <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
@@ -161,11 +220,7 @@ export default async function HelperDetailPage({
                     Delivery
                   </div>
                   <div className="mt-2 text-sm font-black text-ink">
-                    {getHelperDeliveryTime({
-                      type: helper.type,
-                      isVerified: helper.isVerified,
-                      deliveryTime: helper.deliveryTime,
-                    })}
+                    {deliveryTime}
                   </div>
                 </div>
                 <div className="rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3">
@@ -183,6 +238,35 @@ export default async function HelperDetailPage({
                     {getHelperPriceTierLabel(helper.priceTier)}
                   </div>
                 </div>
+              </div>
+              <div className="mt-5 rounded-[18px] border-[3px] border-line bg-[#f3fff5] px-4 py-4">
+                <div className="text-sm font-black text-ink">Get Help Now {"\u2192"}</div>
+                <div className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  You&apos;ll be connected via WhatsApp instantly
+                </div>
+                <div className="mt-4">
+                  <HelperDetailActions
+                    helperId={helper.id}
+                    draftId={draftId || undefined}
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {helper.isVerified ? (
+                  <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                    Verified helper
+                  </span>
+                ) : (
+                  <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase">
+                    Internal review in progress
+                  </span>
+                )}
+                <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase">
+                  {getHelperTypeLabel(helper.type)}
+                </span>
+                <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase">
+                  {portfolioLabel}
+                </span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {urgencySignals.map((signal) => (
@@ -235,18 +319,23 @@ export default async function HelperDetailPage({
               </div>
             </Card>
 
-            <Card className="bg-white">
+            <Card className="bg-white xl:sticky xl:top-6">
               <div className="display-font text-2xl font-black">Take the next step</div>
               <p className="mt-3 text-sm leading-7 text-muted">
                 {draftId
                   ? "If this looks like the right fit, you can match with this helper immediately."
                   : "Start from the brief form to get matched with the right helper for your request."}
               </p>
+              <div className="mt-4 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                <div className="text-sm font-black text-ink">Get Help Now {"\u2192"}</div>
+                <div className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  You&apos;ll be connected via WhatsApp instantly
+                </div>
+              </div>
               <div className="mt-5">
                 <HelperDetailActions
                   helperId={helper.id}
                   draftId={draftId || undefined}
-                  helperName={helper.name}
                 />
               </div>
             </Card>
@@ -267,18 +356,27 @@ export default async function HelperDetailPage({
                     key={item.id}
                     className="overflow-hidden rounded-[22px] border-[3px] border-line bg-cream"
                   >
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="h-52 w-full object-cover"
-                    />
+                    {isPdfPortfolioItem(item) ? (
+                      <div className="flex h-52 items-center justify-center bg-paper px-6 text-center">
+                        <div>
+                          <div className="display-font text-4xl font-black text-ink">PDF</div>
+                          <div className="mt-2 text-sm font-bold text-muted">Preview card</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-52 w-full object-cover"
+                      />
+                    )}
                     <div className="space-y-3 p-4">
                       <div className="display-font text-2xl font-black">{item.title}</div>
                       {item.description ? (
                         <p className="text-sm leading-7 text-muted">{item.description}</p>
                       ) : (
                         <p className="text-sm leading-7 text-muted">
-                          Portfolio sample prepared by the admin team for public viewing.
+                          Portfolio sample prepared for public viewing.
                         </p>
                       )}
                       {item.externalLink ? (
@@ -288,7 +386,7 @@ export default async function HelperDetailPage({
                           rel="noreferrer"
                           className={buttonStyles({ tone: "yellow", size: "sm" })}
                         >
-                          Open External Link
+                          {isPdfPortfolioItem(item) ? "Open PDF Preview" : "Open External Link"}
                         </a>
                       ) : null}
                     </div>
@@ -300,6 +398,18 @@ export default async function HelperDetailPage({
                 Portfolio samples will appear here once the admin team adds them.
               </div>
             )}
+            <div className="mt-6 rounded-[18px] border-[3px] border-line bg-[#f3fff5] px-4 py-4">
+              <div className="text-sm font-black text-ink">Get Help Now {"\u2192"}</div>
+              <div className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                You&apos;ll be connected via WhatsApp instantly
+              </div>
+              <div className="mt-4">
+                <HelperDetailActions
+                  helperId={helper.id}
+                  draftId={draftId || undefined}
+                />
+              </div>
+            </div>
           </Card>
         </div>
       </main>
@@ -309,4 +419,10 @@ export default async function HelperDetailPage({
 
 function readQuery(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function isPdfPortfolioItem(item: { imageUrl: string; externalLink?: string | null }) {
+  return [item.externalLink, item.imageUrl].some((value) =>
+    typeof value === "string" && value.toLowerCase().includes(".pdf"),
+  );
 }

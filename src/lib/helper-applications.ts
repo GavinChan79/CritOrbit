@@ -3,6 +3,16 @@ export type HelperApplicationNotificationStatus =
   | "APPROVED"
   | "REJECTED";
 
+const allowedApplicationFileExtensions = [".png", ".jpg", ".jpeg", ".pdf"] as const;
+const allowedApplicationMimeTypes = [
+  "image/png",
+  "image/jpeg",
+  "application/pdf",
+] as const;
+
+export const maxPortfolioFiles = 5;
+export const maxApplicationFileSizeBytes = 10 * 1024 * 1024;
+
 export function getHelperApplicationMessage(
   status: HelperApplicationNotificationStatus,
   name: string,
@@ -87,4 +97,41 @@ function escapeHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+export function isAllowedApplicationFile(fileName: string, mimeType: string) {
+  const lowerCaseName = fileName.toLowerCase();
+  const hasAllowedExtension = allowedApplicationFileExtensions.some((extension) =>
+    lowerCaseName.endsWith(extension),
+  );
+
+  return (
+    hasAllowedExtension &&
+    allowedApplicationMimeTypes.includes(
+      mimeType.toLowerCase() as (typeof allowedApplicationMimeTypes)[number],
+    )
+  );
+}
+
+export function sanitizeApplicationFileName(fileName: string) {
+  return fileName.replace(/[^\w.\- ]/g, "_");
+}
+
+export function getApplicationFileTitle(fileName: string, fallback: string) {
+  const withoutExtension = fileName.replace(/\.[^.]+$/, "").trim();
+  return withoutExtension || fallback;
+}
+
+export function getApplicationFileDownloadPath(fileId: string) {
+  return `/api/helper-application-files/${fileId}`;
+}
+
+export function getPortfolioPreviewImageUrl(fileId: string, mimeType: string, fileName: string) {
+  if (mimeType.startsWith("image/")) {
+    return getApplicationFileDownloadPath(fileId);
+  }
+
+  const label = getApplicationFileTitle(fileName, "Portfolio PDF").replace(/[<&>]/g, "");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#f4ead3"/><rect x="80" y="70" width="640" height="460" rx="34" fill="#ffffff" stroke="#1f1b18" stroke-width="12"/><text x="400" y="255" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="700" fill="#e24b4a">PDF</text><text x="400" y="340" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="600" fill="#1f1b18">${label}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }

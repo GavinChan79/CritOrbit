@@ -1,10 +1,12 @@
 import bcrypt from "bcryptjs";
-import { UserRole } from "@prisma/client";
+import { HelperStatus, UserRole } from "@prisma/client";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+
+const helperDashboardStatuses = [HelperStatus.APPROVED, HelperStatus.ACTIVE] as const;
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -93,4 +95,56 @@ export async function requireAdmin() {
   }
 
   return session;
+}
+
+export async function getAccessibleHelperByEmail(email?: string | null) {
+  if (!email) {
+    return null;
+  }
+
+  return prisma.helper.findFirst({
+    where: {
+      email: email.toLowerCase(),
+      status: {
+        in: [...helperDashboardStatuses],
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      type: true,
+      status: true,
+      category: true,
+      shortBio: true,
+      portfolioNote: true,
+      whatsappNumber: true,
+      responseTime: true,
+      deliveryTime: true,
+      specialties: true,
+      teamSize: true,
+      projectsCompleted: true,
+      _count: {
+        select: {
+          portfolioItems: true,
+        },
+      },
+      verification: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+}
+
+export async function requireApprovedHelper() {
+  const session = await requireUser();
+  const helper = await getAccessibleHelperByEmail(session.user.email);
+
+  if (!helper) {
+    redirect("/dashboard");
+  }
+
+  return { session, helper };
 }

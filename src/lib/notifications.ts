@@ -4,6 +4,7 @@ import {
   getHelperApplicationMessage,
   type HelperApplicationNotificationStatus,
 } from "@/lib/helper-applications";
+import { sendEmail } from "@/lib/email";
 import { buildWhatsappUrlForNumber } from "@/lib/whatsapp";
 
 type HelperNotificationRecipient = {
@@ -11,12 +12,6 @@ type HelperNotificationRecipient = {
   name: string;
   email?: string | null;
   whatsappNumber?: string | null;
-};
-
-type EmailPayload = {
-  to: string;
-  subject: string;
-  html: string;
 };
 
 type WhatsappPayload = {
@@ -36,43 +31,6 @@ export async function sendHelperApproved(helper: HelperNotificationRecipient) {
 
 export async function sendHelperRejected(helper: HelperNotificationRecipient) {
   return sendHelperNotification(helper, "REJECTED");
-}
-
-export async function sendEmail({ to, subject, html }: EmailPayload) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL ?? process.env.NOTIFICATION_FROM_EMAIL;
-
-  if (!apiKey || !from) {
-    console.warn("[notifications] Email skipped: missing RESEND_API_KEY or sender address.", {
-      to,
-      subject,
-    });
-    return { status: "skipped" as const, provider: "resend", reason: "missing_config" };
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      html,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Resend request failed (${response.status}): ${errorText}`);
-  }
-
-  return {
-    status: "sent" as const,
-    provider: "resend",
-  };
 }
 
 export async function sendWhatsAppMessage({ phone, message }: WhatsappPayload) {

@@ -227,3 +227,12 @@ export const adminSidebarLinks = [
   { href: "/admin/helpers", label: "Helpers", match: "/admin/helpers" },
   { href: "/admin/settings", label: "Settings", match: "/admin/settings" },
 ];
+
+export const helperSidebarLinks = [
+  { href: "/helper", label: "Overview" },
+  { href: "/helper/profile", label: "Profile" },
+  { href: "/helper/portfolio", label: "Portfolio" },
+  { href: "/helper/verification", label: "Verification" },
+  { href: "/helper/leads", label: "Assigned Leads" },
+  { href: "/helper/earnings", label: "Earnings" },
+];

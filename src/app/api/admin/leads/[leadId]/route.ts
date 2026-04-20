@@ -57,6 +57,9 @@ export async function PATCH(
     revalidatePath("/admin/leads");
     revalidatePath(`/admin/leads/${leadId}`);
     revalidatePath("/admin/helper-stats");
+    revalidatePath("/helper");
+    revalidatePath("/helper/leads");
+    revalidatePath("/helper/earnings");
     if (lead.userId) {
       revalidatePath("/dashboard");
       revalidatePath(`/dashboard/requests/${leadId}`);
@@ -104,6 +107,9 @@ export async function DELETE(
     revalidatePath("/admin/leads");
     revalidatePath(`/admin/leads/${leadId}`);
     revalidatePath("/admin/helper-stats");
+    revalidatePath("/helper");
+    revalidatePath("/helper/leads");
+    revalidatePath("/helper/earnings");
     revalidatePath("/dashboard");
     revalidatePath(`/dashboard/requests/${leadId}`);
 

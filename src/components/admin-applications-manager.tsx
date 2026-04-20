@@ -21,6 +21,16 @@ type ApplicationRecord = {
   portfolioNote: string | null;
   email: string | null;
   whatsappNumber: string | null;
+  agreedToTerms: boolean;
+  agreedAt: string | null;
+  applicationFiles: Array<{
+    id: string;
+    kind: string;
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    createdAt: string;
+  }>;
   createdAt: string;
 };
 
@@ -86,6 +96,9 @@ export function AdminApplicationsManager({
         const itemFeedback = feedback[application.id];
         const isPending = application.status === "PENDING";
         const isApproved = application.status === "APPROVED";
+        const portfolioFiles = application.applicationFiles.filter((file) => file.kind === "PORTFOLIO");
+        const identityFront = application.applicationFiles.find((file) => file.kind === "IDENTITY_FRONT");
+        const identityBack = application.applicationFiles.find((file) => file.kind === "IDENTITY_BACK");
 
         return (
           <Card key={application.id} className="bg-white">
@@ -136,6 +149,67 @@ export function AdminApplicationsManager({
                     <span className="font-black text-ink">
                       {application.whatsappNumber ?? "-"}
                     </span>
+                  </div>
+                  <div>
+                    Agreement:{" "}
+                    <span className="font-black text-ink">
+                      {application.agreedToTerms
+                        ? `Accepted${application.agreedAt ? ` on ${formatDate(application.agreedAt)}` : ""}`
+                        : "Not accepted"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[18px] border-[3px] border-line bg-cream p-4 text-sm text-muted">
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                      Portfolio Files
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {portfolioFiles.length ? (
+                        portfolioFiles.map((file) => (
+                          <a
+                            key={file.id}
+                            href={`/api/helper-application-files/${file.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block rounded-[14px] border-[3px] border-line bg-white px-3 py-2 font-semibold text-ink"
+                          >
+                            {file.fileName}
+                          </a>
+                        ))
+                      ) : (
+                        <p>No portfolio files uploaded.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-[18px] border-[3px] border-line bg-cream p-4 text-sm text-muted">
+                    <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                      Identity Certification
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {[identityFront, identityBack].map((file, index) => (
+                        <div
+                          key={file?.id ?? `${application.id}-${index}`}
+                          className="rounded-[14px] border-[3px] border-line bg-white px-3 py-2"
+                        >
+                          <div className="font-black text-ink">
+                            {index === 0 ? "IC Front" : "IC Back"}
+                          </div>
+                          {file ? (
+                            <a
+                              href={`/api/helper-application-files/${file.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-block font-semibold text-purple underline-offset-4 hover:underline"
+                            >
+                              Open {file.fileName}
+                            </a>
+                          ) : (
+                            <div className="mt-1">Missing file</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

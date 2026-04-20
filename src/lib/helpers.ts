@@ -327,6 +327,70 @@ export function getHelperBookedLabel(input: HelperConversionProfileInput) {
   return input.type === "TEAM" ? "Booked recently" : "Picked recently";
 }
 
+export function isFastResponseText(responseSpeed: string) {
+  const normalized = responseSpeed.toLowerCase();
+
+  return (
+    normalized.includes("1 hour") ||
+    normalized.includes("under 1 hour") ||
+    normalized.includes("within an hour")
+  );
+}
+
+export function getHelperTrustedByLabel(input: HelperConversionProfileInput) {
+  const trustedCount =
+    (input.selectionCount ?? 0) >= 5
+      ? input.selectionCount ?? 0
+      : getHelperProjectsCompleted(input);
+
+  if (trustedCount > 0) {
+    return `Trusted by ${trustedCount} student${trustedCount === 1 ? "" : "s"}`;
+  }
+
+  return "Trusted by students";
+}
+
+export function getHelperPastWorksLabel(portfolioCount: number) {
+  if (portfolioCount > 0) {
+    return `${portfolioCount} past work${portfolioCount === 1 ? "" : "s"} available`;
+  }
+
+  return "Past works available on request";
+}
+
+export function getHelperBookedTimeLabel(input: HelperConversionProfileInput) {
+  const selectionCount = input.selectionCount ?? 0;
+  const clickCount = input.clickCount ?? 0;
+
+  if (selectionCount >= 15 || clickCount >= 30) {
+    return "Last booked 1 hour ago";
+  }
+
+  if (selectionCount >= 8 || clickCount >= 15) {
+    return "Last booked 3 hours ago";
+  }
+
+  return input.type === "TEAM" ? "Last booked 4 hours ago" : "Last booked 6 hours ago";
+}
+
+export function getHelperReplyLine(responseSpeed: string) {
+  const normalized = responseSpeed.trim();
+
+  if (/responds within\s+/i.test(normalized)) {
+    return `Usually replies within ${normalized.replace(/^responds within\s+/i, "")}`;
+  }
+
+  if (/within\s+/i.test(normalized)) {
+    return `Usually replies ${normalized}`;
+  }
+
+  if (/fast turnaround/i.test(normalized)) {
+    return "Usually replies fast";
+  }
+
+  return normalized;
+}
+
 export function getHelperCardSpecialties(
   specialties: HelperSpecialty[],
   limit = 3,
