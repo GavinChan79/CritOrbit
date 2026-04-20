@@ -23,10 +23,13 @@ export async function SiteHeader() {
         <nav className="hidden items-center gap-6 text-sm font-semibold md:flex">
           <Link href="/#how-it-works">How it Works</Link>
           <Link href="/requirements">Find a Helper</Link>
+          <Link href="/become-helper">Become a Helper</Link>
           <Link href="/#faqs">FAQs</Link>
           {showAdminDashboard ? <Link href="/admin">Dashboard</Link> : null}
           {!session?.user ? <Link href="/login">Login</Link> : null}
-          {session?.user ? <LogoutButton callbackUrl="/" label="Logout" tone="ink" size="sm" /> : null}
+          {session?.user ? (
+            <LogoutButton callbackUrl="/" label="Logout" tone="ink" size="sm" />
+          ) : null}
         </nav>
         <div className="hidden md:block">
           <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "sm" })}>
@@ -48,16 +51,15 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3 md:px-6">
         <div>
           <div className="display-font text-2xl font-black uppercase">{APP_NAME}</div>
-          <p className="mt-3 max-w-sm text-sm text-muted">
-            {APP_TAGLINE}
-          </p>
+          <p className="mt-3 max-w-sm text-sm text-muted">{APP_TAGLINE}</p>
         </div>
         <div className="space-y-2 text-sm font-semibold">
           <Link href="/requirements">Submit a Brief</Link>
+          <Link href="/become-helper">Become a Helper</Link>
           <Link href="/login">Login</Link>
           <Link href="/register">Register</Link>
         </div>
-        <p className="text-sm font-semibold text-muted">Made for Malaysian students 🇲🇾</p>
+        <p className="text-sm font-semibold text-muted">Made for Malaysian students.</p>
       </div>
     </footer>
   );
@@ -181,7 +183,12 @@ export function MetricCard({
 
   return (
     <Card className="gap-3">
-      <div className={cn("retro-pill inline-flex w-fit px-3 py-1 text-xs font-black uppercase", accents[tone])}>
+      <div
+        className={cn(
+          "retro-pill inline-flex w-fit px-3 py-1 text-xs font-black uppercase",
+          accents[tone],
+        )}
+      >
         {label}
       </div>
       <div className="mt-4 display-font text-4xl font-black">{value}</div>
@@ -203,9 +210,13 @@ export function InputShell({
 }) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-black uppercase tracking-[0.14em] text-muted">{label}</span>
+      <span className="text-sm font-black uppercase tracking-[0.14em] text-muted">
+        {label}
+      </span>
       {children}
-      {error ? <span className="block text-xs font-semibold text-[#E24B4A]">{error}</span> : null}
+      {error ? (
+        <span className="block text-xs font-semibold text-[#E24B4A]">{error}</span>
+      ) : null}
       {!error && hint ? <span className="block text-xs text-muted">{hint}</span> : null}
     </label>
   );

@@ -4,6 +4,46 @@ export const APP_POWERED_BY = "Powered by CritOrbit";
 export const ADMIN_WHATSAPP_NUMBER =
   process.env.ADMIN_WHATSAPP_NUMBER ?? "601161241368";
 
+export const helperTypeValues = ["INDIVIDUAL", "TEAM"] as const;
+export const helperStatusValues = ["PENDING", "APPROVED", "REJECTED", "ACTIVE"] as const;
+export const helperPriceTierValues = ["BUDGET", "STANDARD", "PREMIUM"] as const;
+
+export const helperTypeLabelMap: Record<(typeof helperTypeValues)[number], string> = {
+  INDIVIDUAL: "Individual",
+  TEAM: "Studio",
+};
+
+export const helperStatusLabelMap: Record<(typeof helperStatusValues)[number], string> = {
+  PENDING: "Under review (3-7 days)",
+  APPROVED: "You're approved. Preparing your profile.",
+  REJECTED: "Rejected",
+  ACTIVE: "Live on platform",
+};
+
+export const helperPriceTierLabelMap: Record<
+  (typeof helperPriceTierValues)[number],
+  string
+> = {
+  BUDGET: "Affordable option",
+  STANDARD: "Balanced choice",
+  PREMIUM: "Top quality • Fast delivery",
+};
+
+export const helperTypeOptions = helperTypeValues.map((value) => ({
+  value,
+  label: helperTypeLabelMap[value],
+})) as ReadonlyArray<{ value: (typeof helperTypeValues)[number]; label: string }>;
+
+export const helperStatusOptions = helperStatusValues.map((value) => ({
+  value,
+  label: helperStatusLabelMap[value],
+})) as ReadonlyArray<{ value: (typeof helperStatusValues)[number]; label: string }>;
+
+export const helperPriceTierOptions = helperPriceTierValues.map((value) => ({
+  value,
+  label: helperPriceTierLabelMap[value],
+})) as ReadonlyArray<{ value: (typeof helperPriceTierValues)[number]; label: string }>;
+
 export const categoryValues = [
   "INTERIOR_DESIGN",
   "ARCHITECTURE",
@@ -172,8 +212,17 @@ export const statusOptions = [
   { value: "COMPLETED", label: "Completed" },
 ] as const;
 
+export const helperAgreementItems = [
+  "I confirm that all submitted work is original and not plagiarized",
+  "I agree not to scam, ghost, or abandon assigned tasks",
+  "I understand CritOrbit is a platform and not liable for disputes",
+  "I agree to follow deadlines and communication standards",
+  "I accept CritOrbit's service terms and policies",
+] as const;
+
 export const adminSidebarLinks = [
   { href: "/admin", label: "Leads", match: "/admin" },
+  { href: "/admin/applications", label: "Applications", match: "/admin/applications" },
   { href: "/admin/helper-stats", label: "Helper Stats", match: "/admin/helper-stats" },
   { href: "/admin/helpers", label: "Helpers", match: "/admin/helpers" },
   { href: "/admin/settings", label: "Settings", match: "/admin/settings" },

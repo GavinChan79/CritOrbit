@@ -30,7 +30,11 @@ export function buildWhatsappMessage(input: {
 }
 
 export function buildWhatsappUrl(message: string) {
-  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  return buildWhatsappUrlForNumber(ADMIN_WHATSAPP_NUMBER, message);
+}
+
+export function buildWhatsappUrlForNumber(phoneNumber: string, message: string) {
+  return `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 }
 
 function cleanLine(value: string | null | undefined, fallback: string) {

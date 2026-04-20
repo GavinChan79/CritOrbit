@@ -39,8 +39,10 @@ export async function PATCH(
     });
 
     revalidatePath("/admin/helpers");
+    revalidatePath("/admin/applications");
     revalidatePath("/admin/helper-stats");
     revalidatePath("/helpers/select");
+    revalidatePath("/become-helper");
     revalidatePath("/");
 
     return NextResponse.json({ success: true, helper });

@@ -17,6 +17,24 @@ enum UserRole {
   ADMIN
 }
 
+enum HelperType {
+  INDIVIDUAL
+  TEAM
+}
+
+enum HelperStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+}
+
+enum HelperPriceTier {
+  BUDGET
+  STANDARD
+  PREMIUM
+}
+
 enum HelperCategory {
   INTERIOR_DESIGN
   ARCHITECTURE
@@ -85,9 +103,26 @@ model User {
 model Helper {
   id               String         @id @default(cuid())
   name             String
+  type             HelperType     @default(INDIVIDUAL)
+  teamSize         Int?
+  isVerified       Boolean        @default(false)
+  projectsCompleted Int           @default(0)
+  responseTime     String?
+  deliveryTime     String?
+  repeatClients    Int?
+  priceTier        HelperPriceTier @default(STANDARD)
+  impressionCount  Int            @default(0)
+  clickCount       Int            @default(0)
+  selectionCount   Int            @default(0)
+  status           HelperStatus   @default(ACTIVE)
   category         HelperCategory
   specialties      Json
   shortBio         String
+  portfolioNote    String?
+  email            String?
+  whatsappNumber   String?
+  agreedToTerms    Boolean        @default(false)
+  agreedAt         DateTime?
   displayOrder     Int            @default(0)
   isActive         Boolean        @default(true)
   createdAt        DateTime       @default(now())

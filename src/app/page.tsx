@@ -2,16 +2,28 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { APP_NAME, APP_POWERED_BY, APP_TAGLINE } from "@/lib/constants";
-import { getCategoryLabel, parseSpecialties } from "@/lib/helpers";
+import {
+  compareHelpersForConversion,
+  getCategoryLabel,
+  getHelperCardSpecialties,
+  getHelperDeliveryTime,
+  getHelperLastActiveLabel,
+  getHelperPriceAnchor,
+  getHelperPriceTierLabel,
+  getHelperProjectsCompleted,
+  getHelperResponseSpeed,
+  getHelperTypeLabel,
+  getHelperUrgencySignals,
+  parseSpecialties,
+} from "@/lib/helpers";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 export default async function HomePage() {
   noStore();
 
   const helpers = await prisma.helper.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: "asc" },
-    take: 3,
+    where: { isActive: true, status: "ACTIVE" },
     include: {
       portfolioItems: {
         select: {
@@ -27,6 +39,46 @@ export default async function HomePage() {
       },
     },
   });
+  const sortedHelpers = [...helpers]
+    .sort((left, right) =>
+      compareHelpersForConversion(
+        {
+          name: left.name,
+          type: left.type,
+          teamSize: left.teamSize,
+          isVerified: left.isVerified,
+          projectsCompleted: left.projectsCompleted,
+          impressionCount: left.impressionCount,
+          clickCount: left.clickCount,
+          selectionCount: left.selectionCount,
+          responseTime: left.responseTime,
+          deliveryTime: left.deliveryTime,
+          repeatClients: left.repeatClients,
+          priceTier: left.priceTier,
+          portfolioItems: left.portfolioItems,
+          specialties: parseSpecialties(left.specialties),
+          displayOrder: left.displayOrder,
+        },
+        {
+          name: right.name,
+          type: right.type,
+          teamSize: right.teamSize,
+          isVerified: right.isVerified,
+          projectsCompleted: right.projectsCompleted,
+          impressionCount: right.impressionCount,
+          clickCount: right.clickCount,
+          selectionCount: right.selectionCount,
+          responseTime: right.responseTime,
+          deliveryTime: right.deliveryTime,
+          repeatClients: right.repeatClients,
+          priceTier: right.priceTier,
+          portfolioItems: right.portfolioItems,
+          specialties: parseSpecialties(right.specialties),
+          displayOrder: right.displayOrder,
+        },
+      ),
+    )
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -53,6 +105,9 @@ export default async function HomePage() {
                 </Link>
                 <Link href="/#helpers" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                   Browse Helpers
+                </Link>
+                <Link href="/become-helper" className={buttonStyles({ tone: "ink", size: "lg" })}>
+                  Become a Helper
                 </Link>
               </div>
             </div>
@@ -206,52 +261,185 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {helpers.map((helper, index) => (
-              <Card key={helper.id} className={index === 1 ? "bg-yellow" : "bg-white"}>
-                <div className="flex items-center justify-between">
-                  <Link href={`/helpers/${helper.id}`} className="display-font text-2xl font-black underline-offset-4 hover:underline">
-                    {helper.name}
-                  </Link>
-                  <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
-                    {getCategoryLabel(helper.category)}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-muted">{helper.shortBio}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {parseSpecialties(helper.specialties).map((specialty) => (
-                    <span key={specialty.code} className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
-                      {specialty.label}
-                    </span>
-                  ))}
-                </div>
-                {helper.portfolioItems.length ? (
-                  <div className="mt-5">
-                    <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
-                      Portfolio
-                    </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {helper.portfolioItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
+            {sortedHelpers.map((helper, index) => {
+              const specialties = getHelperCardSpecialties(
+                parseSpecialties(helper.specialties),
+              );
+              const projectsCompleted = getHelperProjectsCompleted({
+                type: helper.type,
+                teamSize: helper.teamSize,
+                isVerified: helper.isVerified,
+                projectsCompleted: helper.projectsCompleted,
+                responseTime: helper.responseTime,
+                deliveryTime: helper.deliveryTime,
+                repeatClients: helper.repeatClients,
+                priceTier: helper.priceTier,
+                portfolioItems: helper.portfolioItems,
+                specialties: parseSpecialties(helper.specialties),
+              });
+              const urgencySignals = getHelperUrgencySignals({
+                type: helper.type,
+                teamSize: helper.teamSize,
+                isVerified: helper.isVerified,
+                projectsCompleted: helper.projectsCompleted,
+              });
+
+              return (
+                <Card
+                  key={helper.id}
+                  className={cn(
+                    index === 1 ? "bg-yellow" : "bg-white",
+                    helper.type === "TEAM" && "border-blue bg-[#f4f8ff]",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Link
+                        href={`/helpers/${helper.id}`}
+                        className={cn(
+                          "display-font text-2xl font-black underline-offset-4 hover:underline",
+                          helper.type === "TEAM" && "text-[2rem]",
+                        )}
+                      >
+                        {helper.name}
+                      </Link>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span
+                          className={cn(
+                            "retro-pill px-3 py-1 text-xs font-black uppercase",
+                            helper.type === "TEAM" ? "bg-blue text-white" : "bg-cream text-ink",
+                          )}
                         >
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="h-24 w-full object-cover"
-                          />
-                        </div>
-                      ))}
+                          {getHelperTypeLabel(helper.type)}
+                        </span>
+                        {helper.type === "TEAM" ? (
+                          <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                            Studio Team
+                          </span>
+                        ) : null}
+                        <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                          {getCategoryLabel(helper.category)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">
+                        Price
+                      </div>
+                      <div className="mt-2 display-font text-xl font-black text-ink">
+                        {getHelperPriceAnchor({
+                          type: helper.type,
+                          projectsCompleted: helper.projectsCompleted,
+                          priceTier: helper.priceTier,
+                        })}
+                      </div>
+                      <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-ink/70">
+                        {getHelperPriceTierLabel(helper.priceTier)}
+                      </div>
                     </div>
                   </div>
-                ) : null}
-                <div className="mt-5">
-                  <Link href={`/helpers/${helper.id}`} className={buttonStyles({ tone: "yellow", size: "sm" })}>
-                    View Portfolio
-                  </Link>
-                </div>
-              </Card>
-            ))}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {specialties.map((specialty) => (
+                      <span key={specialty.code} className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
+                        {specialty.label}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                        Trust
+                      </div>
+                      <div className="mt-2 text-sm font-black text-ink">
+                        {helper.type === "TEAM"
+                          ? `Handled ${projectsCompleted}+ student projects`
+                          : `${projectsCompleted || 24}+ projects completed`}
+                      </div>
+                    </div>
+                    <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                        Response
+                      </div>
+                      <div className="mt-2 text-sm font-black text-ink">
+                        {getHelperResponseSpeed({
+                          type: helper.type,
+                          isVerified: helper.isVerified,
+                          responseTime: helper.responseTime,
+                        })}
+                      </div>
+                    </div>
+                    <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                        Delivery
+                      </div>
+                      <div className="mt-2 text-sm font-black text-ink">
+                        {getHelperDeliveryTime({
+                          type: helper.type,
+                          isVerified: helper.isVerified,
+                          deliveryTime: helper.deliveryTime,
+                        })}
+                      </div>
+                    </div>
+                    <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                        Activity
+                      </div>
+                      <div className="mt-2 text-sm font-black text-ink">
+                        {getHelperLastActiveLabel({ type: helper.type })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {urgencySignals.map((signal) => (
+                      <span
+                        key={`${helper.id}-${signal}`}
+                        className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink"
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                    {helper.teamSize ? (
+                      <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                        Team of {helper.teamSize}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <p className={cn("mt-4 text-sm leading-7 text-muted", helper.type === "TEAM" && "font-semibold text-ink")}>
+                    {helper.shortBio}
+                  </p>
+                  {helper.portfolioItems.length ? (
+                    <div className="mt-5">
+                      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                        {helper.type === "TEAM" ? "Studio Portfolio" : "Portfolio"}
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {helper.portfolioItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
+                          >
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title}
+                              className="h-24 w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-5">
+                    <Link href={`/helpers/${helper.id}`} className={buttonStyles({ tone: "yellow", size: "sm" })}>
+                      Get Help -&gt;
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </section>
 
@@ -264,9 +452,14 @@ export default async function HomePage() {
                   Brief us once, browse the right helper, then let {APP_NAME} handle the routing and follow-up.
                 </p>
               </div>
-              <Link href="/requirements" className={buttonStyles({ tone: "yellow", size: "lg" })}>
-                Get Help Now {"\u2192"}
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/requirements" className={buttonStyles({ tone: "yellow", size: "lg" })}>
+                  Get Help Now {"\u2192"}
+                </Link>
+                <Link href="/become-helper" className={buttonStyles({ tone: "ink", size: "lg" })}>
+                  Join as Helper
+                </Link>
+              </div>
             </div>
           </div>
         </section>

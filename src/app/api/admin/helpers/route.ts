@@ -34,7 +34,9 @@ export async function POST(request: Request) {
     });
 
     revalidatePath("/admin/helpers");
+    revalidatePath("/admin/applications");
     revalidatePath("/helpers/select");
+    revalidatePath("/become-helper");
     revalidatePath("/");
 
     return NextResponse.json({ success: true, helper });

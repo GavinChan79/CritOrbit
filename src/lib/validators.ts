@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { categoryValues, taskTypeValues } from "@/lib/constants";
+import {
+  categoryValues,
+  helperPriceTierValues,
+  helperStatusValues,
+  helperTypeValues,
+  taskTypeValues,
+} from "@/lib/constants";
 import { isTaskTypeAllowedForCategory } from "@/lib/helpers";
 
 const baseRequirementSchema = z.object({
@@ -88,11 +94,90 @@ export const helperSpecialtySchema = z.object({
 
 export const helperSchema = z.object({
   name: z.string().min(2, "Helper name is required."),
+  type: z.enum(helperTypeValues),
+  teamSize: z
+    .union([z.coerce.number().int().min(1, "Team size must be at least 1."), z.null(), z.undefined()])
+    .transform((value) => (value === undefined ? null : value)),
+  isVerified: z.boolean(),
+  projectsCompleted: z.coerce.number().int().min(0, "Projects completed must be 0 or more."),
+  responseTime: z.string().trim().optional().transform((value) => value || undefined),
+  deliveryTime: z.string().trim().optional().transform((value) => value || undefined),
+  repeatClients: z
+    .union([z.coerce.number().int().min(0, "Repeat clients must be 0 or more."), z.null(), z.undefined()])
+    .transform((value) => (value === undefined ? null : value)),
+  priceTier: z.enum(helperPriceTierValues),
+  status: z.enum(helperStatusValues),
   category: z.enum(categoryValues),
   shortBio: z.string().min(12, "Add a short bio."),
+  portfolioNote: z.string().trim().optional().transform((value) => value || undefined),
+  email: z.email("Enter a valid email address.").optional(),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{9,15}$/, "Use digits only for WhatsApp number.")
+    .optional(),
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or more."),
   isActive: z.boolean(),
   specialties: z.array(helperSpecialtySchema).min(1, "Add at least one specialty."),
+}).superRefine((value, ctx) => {
+  if (value.type === "TEAM" && !value.teamSize) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["teamSize"],
+      message: "Team size is required for Studio helpers.",
+    });
+  }
+
+  if (value.type === "INDIVIDUAL" && value.teamSize) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["teamSize"],
+      message: "Team size should only be used for Studio helpers.",
+    });
+  }
+});
+
+export const helperApplicationSchema = z.object({
+  name: z.string().min(2, "Full name is required."),
+  type: z.enum(helperTypeValues),
+  teamSize: z
+    .union([z.coerce.number().int().min(1, "Team size must be at least 1."), z.null(), z.undefined()])
+    .transform((value) => (value === undefined ? null : value)),
+  category: z.enum(categoryValues),
+  experience: z.string().min(12, "Tell us about your experience."),
+  portfolioNote: z.string().min(6, "Share a portfolio link or description."),
+  email: z.email("Enter a valid email address."),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{9,15}$/, "Use digits only for WhatsApp number."),
+  confirmations: z.object({
+    originalWork: z.literal(true),
+    noScamGhosting: z.literal(true),
+    platformLiability: z.literal(true),
+    deadlinesCommunication: z.literal(true),
+    serviceTerms: z.literal(true),
+  }),
+}).superRefine((value, ctx) => {
+  if (value.type === "TEAM" && !value.teamSize) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["teamSize"],
+      message: "Team size is required for Team / Studio applications.",
+    });
+  }
+
+  if (value.type === "INDIVIDUAL" && value.teamSize) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["teamSize"],
+      message: "Team size should be blank for Individual applications.",
+    });
+  }
+});
+
+export const helperApplicationDecisionSchema = z.object({
+  status: z.enum(["APPROVED", "REJECTED"]),
 });
 
 export const helperPortfolioSchema = z.object({

@@ -7,10 +7,15 @@ import { buttonStyles, Card, EmptyState, InputShell } from "@/components/ui";
 import {
   categoryOptions,
   getDefaultTaskTypeForCategory,
+  helperPriceTierOptions,
+  helperStatusOptions,
+  helperTypeOptions,
   getTaskTypeOptionsForCategory,
 } from "@/lib/constants";
 import {
   getCategoryLabel,
+  getHelperStatusLabel,
+  getHelperTypeLabel,
   type HelperPortfolioItem,
   type HelperSpecialty,
 } from "@/lib/helpers";
@@ -20,8 +25,25 @@ import { helperPortfolioSchema, helperSchema } from "@/lib/validators";
 type HelperRecord = {
   id: string;
   name: string;
+  type: string;
+  teamSize: number | null;
+  isVerified: boolean;
+  projectsCompleted: number;
+  impressionCount: number;
+  responseTime: string | null;
+  deliveryTime: string | null;
+  repeatClients: number | null;
+  priceTier: string;
+  clickCount: number;
+  selectionCount: number;
+  status: string;
   category: string;
   shortBio: string;
+  portfolioNote: string | null;
+  email: string | null;
+  whatsappNumber: string | null;
+  agreedToTerms: boolean;
+  agreedAt: string | null;
   displayOrder: number;
   isActive: boolean;
   specialties: HelperSpecialty[];
@@ -30,8 +52,20 @@ type HelperRecord = {
 
 type HelperFormState = {
   name: string;
+  type: string;
+  teamSize: string;
+  isVerified: boolean;
+  projectsCompleted: string;
+  responseTime: string;
+  deliveryTime: string;
+  repeatClients: string;
+  priceTier: string;
+  status: string;
   category: string;
   shortBio: string;
+  portfolioNote: string;
+  email: string;
+  whatsappNumber: string;
   displayOrder: string;
   isActive: boolean;
   specialties: HelperSpecialty[];
@@ -55,8 +89,20 @@ const emptySpecialty = (category = "INTERIOR_DESIGN"): HelperSpecialty => ({
 
 const emptyForm = (): HelperFormState => ({
   name: "",
+  type: "INDIVIDUAL",
+  teamSize: "",
+  isVerified: false,
+  projectsCompleted: "0",
+  responseTime: "",
+  deliveryTime: "",
+  repeatClients: "",
+  priceTier: "STANDARD",
+  status: "ACTIVE",
   category: "INTERIOR_DESIGN",
   shortBio: "",
+  portfolioNote: "",
+  email: "",
+  whatsappNumber: "",
   displayOrder: "0",
   isActive: true,
   specialties: [emptySpecialty()],
@@ -140,8 +186,20 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
     setPortfolioSuccess("");
     setForm({
       name: helper.name,
+      type: helper.type,
+      teamSize: helper.teamSize ? String(helper.teamSize) : "",
+      isVerified: helper.isVerified,
+      projectsCompleted: String(helper.projectsCompleted),
+      responseTime: helper.responseTime ?? "",
+      deliveryTime: helper.deliveryTime ?? "",
+      repeatClients: helper.repeatClients ? String(helper.repeatClients) : "",
+      priceTier: helper.priceTier,
+      status: helper.status,
       category: helper.category,
       shortBio: helper.shortBio,
+      portfolioNote: helper.portfolioNote ?? "",
+      email: helper.email ?? "",
+      whatsappNumber: helper.whatsappNumber ?? "",
       displayOrder: String(helper.displayOrder),
       isActive: helper.isActive,
       specialties: helper.specialties.length
@@ -281,6 +339,16 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
       ...form,
       name: form.name.trim(),
       shortBio: form.shortBio.trim(),
+      portfolioNote: form.portfolioNote.trim() || undefined,
+      email: form.email.trim() ? form.email.trim().toLowerCase() : undefined,
+      whatsappNumber: form.whatsappNumber.trim() || undefined,
+      teamSize: form.type === "TEAM" && form.teamSize ? Number(form.teamSize) : null,
+      projectsCompleted: Number(form.projectsCompleted || 0),
+      responseTime: form.responseTime.trim() || undefined,
+      deliveryTime: form.deliveryTime.trim() || undefined,
+      repeatClients: form.repeatClients ? Number(form.repeatClients) : null,
+      priceTier:
+        form.priceTier || (form.type === "TEAM" ? "PREMIUM" : "STANDARD"),
       displayOrder: Number(form.displayOrder),
       specialties: form.specialties.map((specialty) => ({
         code: specialty.code.trim(),
@@ -479,6 +547,9 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="display-font text-2xl font-black">{helper.name}</div>
+                        <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                          {getHelperTypeLabel(helper.type)}
+                        </span>
                         <span
                           className={cn(
                             "retro-pill px-3 py-1 text-xs font-black uppercase",
@@ -487,6 +558,14 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
                         >
                           {helper.isActive ? "Active" : "Inactive"}
                         </span>
+                        <span className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
+                          {getHelperStatusLabel(helper.status)}
+                        </span>
+                        {helper.isVerified ? (
+                          <span className="retro-pill bg-blue px-3 py-1 text-xs font-black uppercase text-white">
+                            Verified
+                          </span>
+                        ) : null}
                         {isEditing ? (
                           <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
                             Editing
@@ -494,9 +573,14 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
                         ) : null}
                       </div>
                       <p className="mt-2 text-sm text-muted">
-                        {getCategoryLabel(helper.category)} · Sort order {helper.displayOrder} ·{" "}
+                        {getCategoryLabel(helper.category)}
+                        {helper.teamSize ? ` · ${helper.teamSize} people` : ""}
+                        {` · Sort order ${helper.displayOrder} · `}
                         {helper.portfolioItems.length} portfolio item
                         {helper.portfolioItems.length === 1 ? "" : "s"}
+                      </p>
+                      <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-muted">
+                        {helper.projectsCompleted}+ projects · {helper.priceTier} · {helper.impressionCount} impressions · {helper.clickCount} clicks · {helper.selectionCount} selections
                       </p>
                       <p className="mt-2 text-sm leading-7 text-muted">{helper.shortBio}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -584,6 +668,135 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
               />
             </InputShell>
 
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Helper Type" error={helperErrors.type}>
+                <select
+                  value={form.type}
+                  onChange={(event) => {
+                    const nextType = event.target.value;
+                    updateField("type", nextType);
+                    updateField(
+                      "priceTier",
+                      nextType === "TEAM" ? "PREMIUM" : form.priceTier || "STANDARD",
+                    );
+                    if (nextType !== "TEAM") {
+                      updateField("teamSize", "");
+                    }
+                  }}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.type ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                >
+                  {helperTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label === "Studio" ? "Team / Studio" : option.label}
+                    </option>
+                  ))}
+                </select>
+              </InputShell>
+
+              {form.type === "TEAM" ? (
+                <InputShell label="Team Size" error={helperErrors.teamSize}>
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.teamSize}
+                    onChange={(event) => updateField("teamSize", event.target.value)}
+                    className={cn(
+                      "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                      helperErrors.teamSize ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                    )}
+                  />
+                </InputShell>
+              ) : null}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Projects Completed" error={helperErrors.projectsCompleted}>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.projectsCompleted}
+                  onChange={(event) => updateField("projectsCompleted", event.target.value)}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.projectsCompleted ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                />
+              </InputShell>
+
+              <InputShell label="Price Tier" error={helperErrors.priceTier}>
+                <select
+                  value={form.priceTier}
+                  onChange={(event) => updateField("priceTier", event.target.value)}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.priceTier ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                >
+                  {helperPriceTierOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.value} - {option.label}
+                    </option>
+                  ))}
+                </select>
+              </InputShell>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Response Time" error={helperErrors.responseTime}>
+                <input
+                  value={form.responseTime}
+                  onChange={(event) => updateField("responseTime", event.target.value)}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.responseTime ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                  placeholder="Within 1 hour"
+                />
+              </InputShell>
+
+              <InputShell label="Delivery Time" error={helperErrors.deliveryTime}>
+                <input
+                  value={form.deliveryTime}
+                  onChange={(event) => updateField("deliveryTime", event.target.value)}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.deliveryTime ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                  placeholder="24-48h"
+                />
+              </InputShell>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Repeat Clients" error={helperErrors.repeatClients}>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.repeatClients}
+                  onChange={(event) => updateField("repeatClients", event.target.value)}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.repeatClients ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                  placeholder="Optional"
+                />
+              </InputShell>
+
+              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                  Live Counters
+                </div>
+                <p className="mt-2 text-sm font-semibold text-ink">
+                  {editingHelper
+                    ? `${editingHelper.impressionCount} impressions · ${editingHelper.clickCount} clicks · ${editingHelper.selectionCount} selections`
+                    : "Counters start after the helper goes live."}
+                </p>
+              </div>
+            </div>
+
             <InputShell label="Category / Discipline" error={helperErrors.category}>
               <select
                 value={form.category}
@@ -636,6 +849,23 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
             </InputShell>
 
             <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Application Status" error={helperErrors.status}>
+                <select
+                  value={form.status}
+                  onChange={(event) => updateField("status", event.target.value)}
+                  className={cn(
+                    "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
+                    helperErrors.status ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                  )}
+                >
+                  {helperStatusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </InputShell>
+
               <InputShell label="Display Order" error={helperErrors.displayOrder}>
                 <input
                   type="number"
@@ -648,7 +878,9 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
                   )}
                 />
               </InputShell>
+            </div>
 
+            <div className="grid gap-4 md:grid-cols-2">
               <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
                 <input
                   type="checkbox"
@@ -657,7 +889,54 @@ export function HelperAdminManager({ helpers }: { helpers: HelperRecord[] }) {
                 />
                 Active helper
               </label>
+
+              <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
+                <input
+                  type="checkbox"
+                  checked={form.isVerified}
+                  onChange={(event) => updateField("isVerified", event.target.checked)}
+                />
+                Verified helper
+              </label>
             </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Email">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => updateField("email", event.target.value)}
+                  className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+                />
+              </InputShell>
+
+              <InputShell label="WhatsApp Number">
+                <input
+                  value={form.whatsappNumber}
+                  onChange={(event) => updateField("whatsappNumber", event.target.value.replace(/[^\d]/g, ""))}
+                  className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+                />
+              </InputShell>
+            </div>
+
+            <InputShell label="Application Portfolio Note">
+              <textarea
+                rows={3}
+                value={form.portfolioNote}
+                onChange={(event) => updateField("portfolioNote", event.target.value)}
+                className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+              />
+            </InputShell>
+
+            {editingHelper?.agreedToTerms ? (
+              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm text-muted">
+                Agreement accepted
+                {editingHelper.agreedAt
+                  ? ` on ${new Date(editingHelper.agreedAt).toLocaleDateString()}`
+                  : ""}
+                .
+              </div>
+            ) : null}
 
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">

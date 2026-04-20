@@ -66,6 +66,9 @@ export function SiteHeaderClient({
             <Link href="/requirements" className="text-sm font-semibold" onClick={closeMenu}>
               Find a Helper
             </Link>
+            <Link href="/become-helper" className="text-sm font-semibold" onClick={closeMenu}>
+              Become a Helper
+            </Link>
             <Link href="/#faqs" className="text-sm font-semibold" onClick={closeMenu}>
               FAQs
             </Link>

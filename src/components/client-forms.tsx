@@ -1,14 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LeadStatus } from "@prisma/client";
 import { buttonStyles, EmptyState, InputShell } from "@/components/ui";
 import {
+  compareHelpersForConversion,
   getHelperMatchPriority,
+  getHelperCardSpecialties,
   getCategoryLabel,
+  getHelperDeliveryTime,
+  getHelperPriceAnchor,
+  getHelperPriceTierLabel,
+  getHelperPriceTierReason,
+  getHelperProjectsCompleted,
+  getHelperUrgencySignals,
+  getRecommendedHelpers,
+  getHelperResponseSpeed,
+  getHelperTypeLabel,
   helperMatchesRequest,
   getTaskTypeLabel,
   specialtyMatchesTaskType,
@@ -441,7 +452,7 @@ export function RequirementForm() {
         type="submit"
         disabled={pending}
       >
-        {pending ? "Saving Brief..." : "Find My Helper →"}
+        {pending ? "Saving Brief..." : "Find My Helper ->"}
       </button>
     </form>
   );
@@ -454,6 +465,17 @@ export function HelperSelectionClient({
   helpers: Array<{
     id: string;
     name: string;
+    type: string;
+    teamSize: number | null;
+    isVerified: boolean;
+    projectsCompleted: number;
+    impressionCount: number;
+    responseTime: string | null;
+    deliveryTime: string | null;
+    repeatClients: number | null;
+    priceTier: string;
+    clickCount: number;
+    selectionCount: number;
     category: string;
     displayOrder: number;
     specialties: HelperSpecialty[];
@@ -475,6 +497,8 @@ export function HelperSelectionClient({
   const [taskFilter, setTaskFilter] = useState(request.taskType);
   const [loadingId, setLoadingId] = useState("");
   const [error, setError] = useState("");
+  const [showAllHelpers, setShowAllHelpers] = useState(false);
+  const trackedImpressionIdsRef = useRef<Set<string>>(new Set());
   const taskTypeOptions = getTaskTypeOptionsForCategory(request.category);
 
   const visibleHelpers = useMemo(() => {
@@ -497,8 +521,31 @@ export function HelperSelectionClient({
           return left.priority - right.priority;
         }
 
-        if (left.helper.displayOrder !== right.helper.displayOrder) {
-          return left.helper.displayOrder - right.helper.displayOrder;
+        const conversionSort = compareHelpersForConversion(
+          {
+            ...left.helper,
+            projectsCompleted: left.helper.projectsCompleted,
+            responseTime: left.helper.responseTime,
+            deliveryTime: left.helper.deliveryTime,
+            repeatClients: left.helper.repeatClients,
+            priceTier: left.helper.priceTier,
+            portfolioItems: left.helper.portfolioItems,
+            specialties: left.helper.specialties,
+          },
+          {
+            ...right.helper,
+            projectsCompleted: right.helper.projectsCompleted,
+            responseTime: right.helper.responseTime,
+            deliveryTime: right.helper.deliveryTime,
+            repeatClients: right.helper.repeatClients,
+            priceTier: right.helper.priceTier,
+            portfolioItems: right.helper.portfolioItems,
+            specialties: right.helper.specialties,
+          },
+        );
+
+        if (conversionSort !== 0) {
+          return conversionSort;
         }
 
         return left.index - right.index;
@@ -519,6 +566,53 @@ export function HelperSelectionClient({
       return categoryPass && taskPass;
     });
   }, [categoryFilter, helpers, request.category, request.taskType, taskFilter]);
+
+  const recommendedHelpers = useMemo(
+    () =>
+      getRecommendedHelpers(visibleHelpers, {
+        category: request.category,
+        taskType: request.taskType,
+        urgency: request.urgency,
+      }),
+    [request.category, request.taskType, request.urgency, visibleHelpers],
+  );
+
+  const remainingHelpers = useMemo(
+    () => visibleHelpers.filter((helper) => !recommendedHelpers.some((entry) => entry.id === helper.id)),
+    [recommendedHelpers, visibleHelpers],
+  );
+  const primaryRecommendationId = recommendedHelpers[0]?.id ?? null;
+  const secondaryRecommendationId = recommendedHelpers[1]?.id ?? null;
+  const initialVisibleHelpers = remainingHelpers.slice(0, 3);
+  const collapsedHelpers = remainingHelpers.slice(3);
+  const displayedHelpers = showAllHelpers ? remainingHelpers : initialVisibleHelpers;
+  const visibleTrackingIds = useMemo(
+    () => [...recommendedHelpers, ...displayedHelpers].map((helper) => helper.id),
+    [displayedHelpers, recommendedHelpers],
+  );
+
+  useEffect(() => {
+    const nextIds = visibleTrackingIds.filter(
+      (helperId) => !trackedImpressionIdsRef.current.has(helperId),
+    );
+
+    if (nextIds.length === 0) {
+      return;
+    }
+
+    nextIds.forEach((helperId) => trackedImpressionIdsRef.current.add(helperId));
+
+    void fetch("/api/helpers/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "impression",
+        helperIds: nextIds,
+      }),
+    }).catch(() => {
+      nextIds.forEach((helperId) => trackedImpressionIdsRef.current.delete(helperId));
+    });
+  }, [visibleTrackingIds]);
 
   async function handleMatch(helperId: string) {
     if (loadingId) {
@@ -561,6 +655,333 @@ export function HelperSelectionClient({
     }
 
     window.location.assign(json.whatsappUrl);
+  }
+
+  function trackHelperClick(helperId: string) {
+    void fetch("/api/helpers/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "click",
+        helperId,
+      }),
+    }).catch(() => undefined);
+  }
+
+  function renderHelperCard(
+    helper: (typeof helpers)[number],
+    options?: { bestMatch?: boolean; emphasized?: boolean },
+  ) {
+    const bestMatch = Boolean(options?.bestMatch);
+    const isPrimaryRecommendation = helper.id === primaryRecommendationId;
+    const isSecondaryRecommendation = helper.id === secondaryRecommendationId;
+    const isTopHelper = isPrimaryRecommendation || isSecondaryRecommendation;
+    const recommended = helperMatchesRequest({
+      helperCategory: helper.category,
+      requestCategory: request.category,
+      specialties: helper.specialties,
+      requestTaskType: request.taskType,
+    });
+    const featuredSpecialties = getHelperCardSpecialties(helper.specialties);
+    const projectsCompleted = getHelperProjectsCompleted({
+      type: helper.type,
+      teamSize: helper.teamSize,
+      isVerified: helper.isVerified,
+      projectsCompleted: helper.projectsCompleted,
+      responseTime: helper.responseTime,
+      deliveryTime: helper.deliveryTime,
+      repeatClients: helper.repeatClients,
+      priceTier: helper.priceTier,
+      portfolioItems: helper.portfolioItems,
+      specialties: helper.specialties,
+    });
+    const responseSpeed = getHelperResponseSpeed({
+      type: helper.type,
+      isVerified: helper.isVerified,
+      responseTime: helper.responseTime,
+    });
+    const deliveryTime = getHelperDeliveryTime({
+      type: helper.type,
+      isVerified: helper.isVerified,
+      deliveryTime: helper.deliveryTime,
+    });
+    const priceAnchor = getHelperPriceAnchor({
+      type: helper.type,
+      projectsCompleted: helper.projectsCompleted,
+      priceTier: helper.priceTier,
+    });
+    const urgencySignals = getHelperUrgencySignals({
+      type: helper.type,
+      teamSize: helper.teamSize,
+      isVerified: helper.isVerified,
+      projectsCompleted: helper.projectsCompleted,
+    });
+    const isPremium = helper.priceTier === "PREMIUM";
+    const isBudget = helper.priceTier === "BUDGET";
+    const popularityLabel =
+      helper.selectionCount >= 5
+        ? `Chosen by ${helper.selectionCount} student${helper.selectionCount === 1 ? "" : "s"}`
+        : helper.clickCount >= 10
+          ? "Popular choice"
+          : null;
+    const demandLabel =
+      helper.selectionCount >= 5
+        ? "High demand"
+        : isTopHelper
+          ? "Filling fast"
+          : helper.clickCount >= 10
+            ? "Limited slots today"
+          : null;
+    const recommendationCopy = isPrimaryRecommendation
+      ? "Best match for your request"
+      : isSecondaryRecommendation
+        ? "Good alternative if you prefer a different style"
+        : null;
+    const trustTrigger = isPrimaryRecommendation
+      ? "Frequently selected for similar tasks"
+      : isSecondaryRecommendation
+        ? "Students often choose this"
+        : null;
+
+    const matchingLabels = helper.specialties
+      .filter((specialty) => specialtyMatchesTaskType([specialty], request.taskType))
+      .map((specialty) => specialty.label);
+
+    return (
+      <div
+        key={helper.id}
+        className={cn(
+          "retro-card bg-white p-6",
+          helper.type === "TEAM" && "border-blue bg-[#f4f8ff]",
+          isPremium && "border-[4px] border-red bg-[#fff8e8] shadow-[10px_10px_0_var(--line)]",
+          isBudget && "bg-[#faf6ef] opacity-95",
+          options?.emphasized && "border-green bg-[#f3fff5] shadow-[8px_8px_0_var(--line)]",
+        )}
+      >
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-start gap-3">
+              <div
+                className={cn(
+                  "flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-line display-font text-xl font-black",
+                  helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
+                )}
+              >
+                {helper.name.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="space-y-2">
+                <Link
+                  href={`/helpers/${helper.id}?draftId=${request.draftId}`}
+                  onClick={() => trackHelperClick(helper.id)}
+                  className={cn(
+                    "display-font text-2xl font-black underline-offset-4 hover:underline",
+                    helper.type === "TEAM" && "text-[2rem]",
+                    options?.emphasized && "text-[2.15rem]",
+                  )}
+                >
+                  {helper.name}
+                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "retro-pill px-3 py-1 text-xs font-black uppercase",
+                      helper.type === "TEAM" ? "bg-blue text-white" : "bg-cream text-ink",
+                    )}
+                  >
+                    {getHelperTypeLabel(helper.type)}
+                  </span>
+                  {helper.type === "TEAM" ? (
+                    <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                      Studio Team
+                    </span>
+                  ) : null}
+                  {helper.isVerified ? (
+                    <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                      Verified
+                    </span>
+                  ) : null}
+                  {isPremium ? (
+                    <span className="retro-pill bg-red px-3 py-1 text-xs font-black uppercase text-white">
+                      Premium
+                    </span>
+                  ) : null}
+                  {bestMatch ? (
+                    <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                      Best Match
+                    </span>
+                  ) : isSecondaryRecommendation ? (
+                    <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
+                      Good alternative
+                    </span>
+                  ) : recommended ? (
+                    <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                      Recommended
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-sm font-semibold text-muted">
+                  {getCategoryLabel(helper.category)}
+                </p>
+                {recommendationCopy ? (
+                  <p className="text-sm font-bold text-green">{recommendationCopy}</p>
+                ) : null}
+                {isPrimaryRecommendation ? (
+                  <div className="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-muted">
+                    <span>Most chosen for similar requests</span>
+                    <span>Best results for this type of task</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {featuredSpecialties.map((specialty) => (
+                <span key={specialty.code} className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
+                  {specialty.label}
+                </span>
+              ))}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                  Trust
+                </div>
+                <div className="mt-2 text-sm font-black text-ink">
+                  {helper.type === "TEAM"
+                    ? `Handled ${projectsCompleted}+ student projects`
+                    : isPremium
+                      ? `${projectsCompleted || 40}+ high-priority projects completed`
+                    : projectsCompleted > 0
+                      ? `${projectsCompleted}+ projects completed`
+                      : "Trusted by students"}
+                </div>
+              </div>
+              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                  Response
+                </div>
+                <div className="mt-2 text-sm font-black text-ink">
+                  {responseSpeed}
+                </div>
+              </div>
+              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">
+                  Delivery
+                </div>
+                <div className="mt-2 text-sm font-black text-ink">
+                  {deliveryTime}
+                </div>
+              </div>
+              <div className="rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">
+                  Price
+                </div>
+                <div className="mt-2 display-font text-xl font-black text-ink">
+                  {priceAnchor}
+                </div>
+                <div className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-ink/70">
+                  {getHelperPriceTierLabel(helper.priceTier)}
+                </div>
+                <div className="mt-1 text-[11px] font-semibold text-ink/70">
+                  {getHelperPriceTierReason(helper.priceTier)}
+                </div>
+                {isPremium ? (
+                  <div className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-red">
+                    Best for urgent deadlines
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {popularityLabel ? (
+                <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                  {popularityLabel}
+                </span>
+              ) : null}
+              {demandLabel ? (
+                <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
+                  {demandLabel}
+                </span>
+              ) : null}
+              {urgencySignals
+                .filter((signal) => signal !== "Popular choice")
+                .map((signal) => (
+                <span
+                  key={`${helper.id}-${signal}`}
+                  className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink"
+                >
+                  {signal}
+                </span>
+                ))}
+              {helper.teamSize ? (
+                <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                  Team of {helper.teamSize}
+                </span>
+              ) : null}
+            </div>
+            <p
+              className={cn(
+                "max-w-2xl text-sm leading-7 text-muted",
+                helper.type === "TEAM" && "font-semibold text-ink",
+              )}
+            >
+              {helper.shortBio}
+            </p>
+            {recommended ? (
+              <span className="text-xs font-bold text-green">
+                Match rule: category matches and specialty covers {matchingLabels.join(", ")}.
+              </span>
+            ) : null}
+            {helper.portfolioItems.length ? (
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                  {helper.type === "TEAM" ? "Studio Portfolio" : "Portfolio Preview"}
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:max-w-sm">
+                  {helper.portfolioItems.map((item) => (
+                    <a
+                      key={item.id}
+                      href={item.externalLink || item.imageUrl}
+                      onClick={() => trackHelperClick(helper.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
+                    >
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-24 w-full object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+                <div className="mt-3">
+                  <Link
+                    href={`/helpers/${helper.id}?draftId=${request.draftId}`}
+                    onClick={() => trackHelperClick(helper.id)}
+                    className={buttonStyles({ tone: "yellow", size: "sm" })}
+                  >
+                    View Full Portfolio
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => handleMatch(helper.id)}
+              disabled={Boolean(loadingId)}
+              className={buttonStyles({ tone: bestMatch ? "green" : recommended ? "green" : "purple", size: "md" })}
+            >
+              {loadingId === helper.id ? "Saving..." : "Get Help ->"}
+            </button>
+            {trustTrigger ? (
+              <p className="text-[11px] font-semibold text-muted">{trustTrigger}</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -626,97 +1047,45 @@ export function HelperSelectionClient({
             description="Try clearing the current category or task filter to see the full shortlist again."
           />
         ) : null}
-        {visibleHelpers.map((helper) => {
-          const recommended = helperMatchesRequest({
-            helperCategory: helper.category,
-            requestCategory: request.category,
-            specialties: helper.specialties,
-            requestTaskType: request.taskType,
-          });
-
-          const matchingLabels = helper.specialties
-            .filter((specialty) => specialtyMatchesTaskType([specialty], request.taskType))
-            .map((specialty) => specialty.label);
-
-          return (
-            <div key={helper.id} className="retro-card bg-white p-6">
-              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-[18px] border-[3px] border-line bg-yellow display-font text-xl font-black">
-                      {helper.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <Link
-                        href={`/helpers/${helper.id}?draftId=${request.draftId}`}
-                        className="display-font text-2xl font-black underline-offset-4 hover:underline"
-                      >
-                        {helper.name}
-                      </Link>
-                      <p className="text-sm font-semibold text-muted">
-                        {getCategoryLabel(helper.category)}
-                      </p>
-                    </div>
-                    {recommended ? <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">Recommended</span> : null}
-                  </div>
-                  <p className="max-w-2xl text-sm leading-7 text-muted">{helper.shortBio}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {helper.specialties.map((specialty) => (
-                      <span key={specialty.code} className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
-                        {specialty.label}
-                      </span>
-                    ))}
-                    {recommended ? (
-                      <span className="text-xs font-bold text-green">
-                        Match rule: category matches and specialty covers {matchingLabels.join(", ")}.
-                      </span>
-                    ) : null}
-                  </div>
-                  {helper.portfolioItems.length ? (
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
-                        Portfolio Preview
-                      </div>
-                      <div className="mt-3 grid grid-cols-3 gap-2 sm:max-w-sm">
-                        {helper.portfolioItems.map((item) => (
-                          <a
-                            key={item.id}
-                            href={item.externalLink || item.imageUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
-                          >
-                            <img
-                              src={item.imageUrl}
-                              alt={item.title}
-                              className="h-24 w-full object-cover"
-                            />
-                          </a>
-                        ))}
-                      </div>
-                      <div className="mt-3">
-                        <Link
-                          href={`/helpers/${helper.id}?draftId=${request.draftId}`}
-                          className={buttonStyles({ tone: "yellow", size: "sm" })}
-                        >
-                          View Full Portfolio
-                        </Link>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleMatch(helper.id)}
-                  disabled={Boolean(loadingId)}
-                  className={buttonStyles({ tone: recommended ? "green" : "purple", size: "md" })}
-                >
-                  {loadingId === helper.id ? "Saving..." : "Get Matched →"}
-                </button>
+        {recommendedHelpers.length ? (
+          <div className="space-y-4">
+            <div>
+              <div className="display-font text-3xl font-black">Best match for your request</div>
+              <p className="mt-2 text-sm text-muted">
+                These are ranked first using category match, urgency, and studio priority.
+              </p>
+            </div>
+            {recommendedHelpers.map((helper, index) =>
+              renderHelperCard(helper, {
+                bestMatch: index === 0,
+                emphasized: true,
+              }),
+            )}
+          </div>
+        ) : null}
+        {displayedHelpers.length ? (
+          <div className="pt-2">
+            <div className="mb-4 border-t-[3px] border-dashed border-line pt-4">
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                Other options
               </div>
             </div>
-          );
-        })}
+          </div>
+        ) : null}
+        {displayedHelpers.map((helper) => renderHelperCard(helper))}
+        {collapsedHelpers.length > 0 ? (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowAllHelpers((current) => !current)}
+              className={buttonStyles({ tone: "yellow", size: "md" })}
+            >
+              {showAllHelpers
+                ? "Show less"
+                : `View more (${collapsedHelpers.length})`}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

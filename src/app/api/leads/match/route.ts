@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getAuthSession } from "@/lib/auth";
 import { calculateLeadScore, getDerivedLeadMetrics } from "@/lib/scoring";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
 
     const helper = await prisma.helper.findUnique({ where: { id: parsed.data.selectedHelperId } });
 
-    if (!helper || !helper.isActive) {
+    if (!helper || !helper.isActive || helper.status !== "ACTIVE") {
       return NextResponse.json({ error: "Selected helper not found." }, { status: 404 });
     }
 
@@ -44,9 +45,23 @@ export async function POST(request: Request) {
 
     const derivedMetrics = getDerivedLeadMetrics(score);
 
+    const existingLead = await prisma.lead.findUnique({
+      where: { clientRequestKey: draft.id },
+      select: {
+        id: true,
+        userId: true,
+        whatsappClicked: true,
+        selectedHelperId: true,
+      },
+    });
+
     let lead = await prisma.lead.upsert({
       where: { clientRequestKey: draft.id },
-      update: {},
+      update: {
+        selectedHelperId: helper.id,
+        leadScore: derivedMetrics.leadScore,
+        leadTemperature: derivedMetrics.leadTemperature,
+      },
       create: {
         clientRequestKey: draft.id,
         userId: draft.userId,
@@ -71,6 +86,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "You do not have access to this lead." }, { status: 403 });
     }
 
+    const helperCounterUpdate =
+      existingLead?.selectedHelperId === helper.id
+        ? { selectionCount: { increment: 1 } }
+        : {
+            selectionCount: { increment: 1 },
+          };
+
+    await prisma.helper.update({
+      where: { id: helper.id },
+      data: helperCounterUpdate,
+    });
+
     if (!lead.whatsappClicked) {
       lead = await prisma.lead.update({
         where: { id: lead.id },
@@ -94,6 +121,13 @@ export async function POST(request: Request) {
       helperName: whatsappHelperName,
       description: lead.description,
     });
+
+    revalidatePath("/helpers/select");
+    revalidatePath(`/helpers/${helper.id}`);
+    revalidatePath("/");
+    revalidatePath("/dashboard");
+    revalidatePath("/admin");
+    revalidatePath("/admin/helper-stats");
 
     return NextResponse.json({
       leadId: lead.id,
