@@ -112,7 +112,7 @@ export default async function HelperDetailPage({
                   {specialties.length} specialties
                 </span>
                 <span className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink">
-                  {getHelperBookedLabel({ type: helper.type })}
+                  {helper.type === "TEAM" ? "Booked recently" : "Picked recently"}
                 </span>
                 {helper.isVerified ? (
                   <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
