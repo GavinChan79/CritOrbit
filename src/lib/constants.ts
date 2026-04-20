@@ -116,6 +116,81 @@ export const helperDeliveryTimeOptions = [
   "Flexible timeline",
 ] as const;
 
+export const helperSpecialtyPresetOptions = [
+  {
+    value: "space-planning",
+    label: "Space Planning",
+    category: "INTERIOR_DESIGN",
+    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "3d-rendering",
+    label: "3D Rendering",
+    category: "INTERIOR_DESIGN",
+    defaultTaskTypes: ["RENDERING", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "material-board",
+    label: "Material Board",
+    category: "INTERIOR_DESIGN",
+    defaultTaskTypes: ["PRESENTATION_BOARD", "PORTFOLIO"],
+  },
+  {
+    value: "architectural-drawing",
+    label: "Architectural Drawing",
+    category: "ARCHITECTURE",
+    defaultTaskTypes: ["LAYOUT", "PORTFOLIO"],
+  },
+  {
+    value: "concept-rendering",
+    label: "Concept Rendering",
+    category: "ARCHITECTURE",
+    defaultTaskTypes: ["RENDERING", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "portfolio-curation",
+    label: "Portfolio Curation",
+    category: "ARCHITECTURE",
+    defaultTaskTypes: ["PORTFOLIO", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "financial-analysis",
+    label: "Financial Analysis",
+    category: "FINANCE",
+    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "calculation-model",
+    label: "Calculation Model",
+    category: "FINANCE",
+    defaultTaskTypes: ["CALCULATION_MODEL", "REPORT"],
+  },
+  {
+    value: "case-study-strategy",
+    label: "Case Study Strategy",
+    category: "BUSINESS",
+    defaultTaskTypes: ["CASE_STUDY", "REPORT"],
+  },
+  {
+    value: "slides-storytelling",
+    label: "Slides Storytelling",
+    category: "BUSINESS",
+    defaultTaskTypes: ["PRESENTATION_SLIDES", "REPORT"],
+  },
+  {
+    value: "market-research",
+    label: "Market Research",
+    category: "MARKETING",
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "essay-structuring",
+    label: "Essay Structuring",
+    category: "ETHICS",
+    defaultTaskTypes: ["ESSAY", "REPORT"],
+  },
+] as const;
+
 export const categoryValues = [
   "INTERIOR_DESIGN",
   "ARCHITECTURE",

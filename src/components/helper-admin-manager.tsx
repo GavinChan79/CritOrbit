@@ -12,6 +12,7 @@ import {
   helperPriceAnchorOptions,
   helperPriceTierOptions,
   helperResponseTimeOptions,
+  helperSpecialtyPresetOptions,
   helperStatusOptions,
   helperTypeOptions,
   getTaskTypeOptionsForCategory,
@@ -94,6 +95,8 @@ const emptySpecialty = (category = "INTERIOR_DESIGN"): HelperSpecialty => ({
   label: "",
   taskTypes: [getDefaultTaskTypeForCategory(category)],
 });
+
+const customSpecialtyValue = "__custom__";
 
 const emptyForm = (): HelperFormState => ({
   name: "",
@@ -270,6 +273,54 @@ export function HelperAdminManager({
     }));
     setHelperError("");
     setHelperSuccess("");
+  }
+
+  function applySpecialtyPreset(index: number, presetValue: string) {
+    if (presetValue === customSpecialtyValue) {
+      setForm((current) => ({
+        ...current,
+        specialties: current.specialties.map((specialty, specialtyIndex) =>
+          specialtyIndex === index
+            ? {
+                ...specialty,
+                label: specialty.label || "",
+                code: specialty.label ? slugifySpecialtyLabel(specialty.label) : "",
+              }
+            : specialty,
+        ),
+      }));
+      setHelperError("");
+      setHelperSuccess("");
+      return;
+    }
+
+    const preset = helperSpecialtyPresetOptions.find((item) => item.value === presetValue);
+    if (!preset) {
+      return;
+    }
+
+    const duplicate = form.specialties.some(
+      (specialty, specialtyIndex) =>
+        specialtyIndex !== index && specialty.code.toLowerCase() === preset.value,
+    );
+
+    if (duplicate) {
+      setHelperError("That specialty is already added.");
+      return;
+    }
+
+    updateSpecialty(index, {
+      code: preset.value,
+      label: preset.label,
+      taskTypes: [...preset.defaultTaskTypes],
+    });
+  }
+
+  function updateCustomSpecialtyLabel(index: number, label: string) {
+    updateSpecialty(index, {
+      label,
+      code: slugifySpecialtyLabel(label),
+    });
   }
 
   function toggleTaskType(index: number, taskType: string) {
@@ -1038,29 +1089,71 @@ export function HelperAdminManager({
                   key={`${specialty.code || "specialty"}-${index}`}
                   className="rounded-[20px] border-[3px] border-line bg-cream p-4"
                 >
+                  {(() => {
+                    const availablePresets = helperSpecialtyPresetOptions.filter(
+                      (preset) =>
+                        preset.category === form.category &&
+                        !form.specialties.some(
+                          (currentSpecialty, specialtyIndex) =>
+                            specialtyIndex !== index &&
+                            currentSpecialty.code.toLowerCase() === preset.value,
+                        ),
+                    );
+                    const matchedPreset = helperSpecialtyPresetOptions.find(
+                      (preset) => preset.value === specialty.code,
+                    );
+                    const selectedPresetValue = matchedPreset?.value ?? customSpecialtyValue;
+
+                    return (
+                      <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <InputShell
-                      label="Code"
+                      label="Specialty Preset"
                       error={
                         helperErrors[`specialties.${index}.code`] ||
                         helperErrors["specialties"]
                       }
                     >
-                      <input
-                        value={specialty.code}
-                        onChange={(event) => updateSpecialty(index, { code: event.target.value })}
-                        className="w-full rounded-[16px] border-[3px] border-line bg-white px-4 py-3 outline-none"
-                        placeholder="financial-analysis"
-                      />
+                      <div className="relative">
+                        <select
+                          value={selectedPresetValue}
+                          onChange={(event) => applySpecialtyPreset(index, event.target.value)}
+                          className={selectClass(
+                            helperErrors[`specialties.${index}.code`] ||
+                              helperErrors["specialties"],
+                          )}
+                        >
+                          {matchedPreset ? (
+                            <option value={matchedPreset.value}>{matchedPreset.label}</option>
+                          ) : null}
+                          {availablePresets.map((preset) => (
+                            <option key={preset.value} value={preset.value}>
+                              {preset.label}
+                            </option>
+                          ))}
+                          <option value={customSpecialtyValue}>Custom Specialty</option>
+                        </select>
+                        <SelectArrow />
+                      </div>
                     </InputShell>
                     <InputShell label="Label" error={helperErrors[`specialties.${index}.label`]}>
                       <input
                         value={specialty.label}
-                        onChange={(event) => updateSpecialty(index, { label: event.target.value })}
+                        onChange={(event) =>
+                          matchedPreset
+                            ? undefined
+                            : updateCustomSpecialtyLabel(index, event.target.value)
+                        }
+                        disabled={Boolean(matchedPreset)}
                         className="w-full rounded-[16px] border-[3px] border-line bg-white px-4 py-3 outline-none"
-                        placeholder="Financial Analysis"
+                        placeholder={matchedPreset ? matchedPreset.label : "Financial Analysis"}
                       />
                     </InputShell>
+                  </div>
+
+                  <div className="mt-3 rounded-[16px] border-[3px] border-line bg-white px-4 py-3 text-sm text-muted">
+                    <span className="font-black text-ink">Code:</span>{" "}
+                    {specialty.code || "Will be generated automatically"}
                   </div>
 
                   <div className="mt-4">
@@ -1094,6 +1187,9 @@ export function HelperAdminManager({
                   >
                     Remove Specialty
                   </button>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
@@ -1310,4 +1406,12 @@ function SelectArrow() {
       ▾
     </span>
   );
+}
+
+function slugifySpecialtyLabel(label: string) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

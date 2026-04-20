@@ -141,6 +141,19 @@ export const helperSchema = z.object({
       message: "Team size should only be used for Studio helpers.",
     });
   }
+
+  const seenCodes = new Set<string>();
+  value.specialties.forEach((specialty, index) => {
+    const normalizedCode = specialty.code.trim().toLowerCase();
+    if (seenCodes.has(normalizedCode)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["specialties", index, "label"],
+        message: "Duplicate specialties are not allowed.",
+      });
+    }
+    seenCodes.add(normalizedCode);
+  });
 });
 
 export const helperApplicationSchema = z.object({
