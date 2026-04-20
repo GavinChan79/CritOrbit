@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
+import { logServerDataLoadError } from "@/lib/server-load";
 import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
 import { formatCurrency, formatDate, titleizeEnum } from "@/lib/format";
 import { DeleteLeadButton, LeadManagementForm } from "@/components/client-forms";
@@ -14,7 +15,7 @@ export default async function LeadDetailPage({
 }) {
   const { leadId } = await params;
 
-  const [lead, helpers] = await Promise.all([
+  const [leadResult, helpersResult] = await Promise.allSettled([
     prisma.lead.findUnique({
       where: { id: leadId },
       include: {
@@ -28,9 +29,41 @@ export default async function LeadDetailPage({
     }),
   ]);
 
-  if (!lead) {
-    notFound();
+  if (leadResult.status === "rejected") {
+    logServerDataLoadError("admin-lead-detail", leadResult.reason);
   }
+
+  if (helpersResult.status === "rejected") {
+    logServerDataLoadError("admin-lead-detail-helpers", helpersResult.reason);
+  }
+
+  const lead = leadResult.status === "fulfilled" ? leadResult.value : null;
+  const helpers = helpersResult.status === "fulfilled" ? helpersResult.value : [];
+
+  if (!lead) {
+    if (leadResult.status === "fulfilled") {
+      notFound();
+    }
+
+    return (
+      <div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/admin/leads" className={buttonStyles({ tone: "yellow", size: "sm" })}>
+            Back to Leads
+          </Link>
+        </div>
+        <div className="mt-5">
+          <SectionHeading
+            eyebrow="Lead Detail"
+            title="Lead data temporarily unavailable"
+            description="The page stayed up, but this lead could not be loaded right now. Try refreshing in a moment."
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const helpersUnavailable = helpersResult.status === "rejected";
 
   const whatsappUrl = buildWhatsappUrl(
     buildWhatsappMessage({
@@ -130,6 +163,11 @@ export default async function LeadDetailPage({
           }}
           helpers={helpers.map((helper) => ({ id: helper.id, name: helper.name }))}
         />
+        {helpersUnavailable ? (
+          <div className="rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
+            Helper assignment options are temporarily unavailable. Lead detail remains visible while helper data reconnects.
+          </div>
+        ) : null}
       </div>
     </div>
   );

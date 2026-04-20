@@ -4,15 +4,10 @@ import { SectionHeading } from "@/components/ui";
 import { parseSpecialties } from "@/lib/helpers";
 import { getAdminHelperVerificationFilePath } from "@/lib/helper-verification";
 import { prisma } from "@/lib/prisma";
+import { logServerDataLoadError } from "@/lib/server-load";
 
-export default async function AdminHelpersPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = await searchParams;
-  const verificationFilter = readFilter(Array.isArray(params?.verification) ? params.verification[0] : params?.verification);
-  const helpers = await prisma.helper.findMany({
+async function getAdminHelpers() {
+  return prisma.helper.findMany({
     select: {
       id: true,
       name: true,
@@ -62,6 +57,22 @@ export default async function AdminHelpersPage({
     },
     orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
   });
+}
+
+export default async function AdminHelpersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const verificationFilter = readFilter(Array.isArray(params?.verification) ? params.verification[0] : params?.verification);
+  let helpers: Awaited<ReturnType<typeof getAdminHelpers>> = [];
+
+  try {
+    helpers = await getAdminHelpers();
+  } catch (error) {
+    logServerDataLoadError("admin-helpers-page", error);
+  }
 
   return (
     <div>
@@ -91,6 +102,11 @@ export default async function AdminHelpersPage({
       </div>
 
       <div className="mt-8">
+        {helpers.length === 0 ? (
+          <div className="mb-4 rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
+            Helper roster data is temporarily unavailable. Filters and layout stay available while the database reconnects.
+          </div>
+        ) : null}
         <HelperAdminManager
           activeFilter={verificationFilter}
           helpers={helpers.map((helper) => ({

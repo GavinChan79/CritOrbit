@@ -2,6 +2,7 @@ import Link from "next/link";
 import { subDays } from "date-fns";
 import { getCategoryLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
+import { logServerDataLoadError } from "@/lib/server-load";
 import { formatCurrency } from "@/lib/format";
 import { Card, EmptyState, SectionHeading } from "@/components/ui";
 
@@ -15,7 +16,7 @@ export default async function HelperStatsPage({
   const fromDate =
     range === "week" ? subDays(new Date(), 7) : range === "month" ? subDays(new Date(), 30) : null;
 
-  const [helpers, leads] = await Promise.all([
+  const [helpersResult, leadsResult] = await Promise.allSettled([
     prisma.helper.findMany({
       select: {
         id: true,
@@ -38,6 +39,17 @@ export default async function HelperStatsPage({
       },
     }),
   ]);
+
+  if (helpersResult.status === "rejected") {
+    logServerDataLoadError("admin-helper-stats-helpers", helpersResult.reason);
+  }
+
+  if (leadsResult.status === "rejected") {
+    logServerDataLoadError("admin-helper-stats-leads", leadsResult.reason);
+  }
+
+  const helpers = helpersResult.status === "fulfilled" ? helpersResult.value : [];
+  const leads = leadsResult.status === "fulfilled" ? leadsResult.value : [];
 
   const rows = helpers.map((helper) => {
     const selected = leads.filter((lead) => lead.selectedHelperId === helper.id);
@@ -84,6 +96,11 @@ export default async function HelperStatsPage({
         ))}
       </div>
       <div className="mt-8 space-y-4">
+        {helpersResult.status === "rejected" || leadsResult.status === "rejected" ? (
+          <div className="rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
+            Some helper performance data could not load. Available metrics below are shown with safe fallbacks.
+          </div>
+        ) : null}
         {rows.length === 0 ? (
           <EmptyState
             title="No helpers to analyze yet"

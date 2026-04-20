@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { logServerDataLoadError } from "@/lib/server-load";
 import { calculateLeadFunnel } from "@/lib/analytics";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
@@ -14,7 +15,7 @@ import {
 import { AdminTestEmailButton } from "@/components/admin-test-email-button";
 
 export default async function AdminOverviewPage() {
-  const [allLeads, recentLeads] = await Promise.all([
+  const [allLeadsResult, recentLeadsResult] = await Promise.allSettled([
     prisma.lead.findMany({
       select: {
         status: true,
@@ -49,6 +50,20 @@ export default async function AdminOverviewPage() {
     }),
   ]);
 
+  if (allLeadsResult.status === "rejected") {
+    logServerDataLoadError("admin-overview-funnel", allLeadsResult.reason);
+  }
+
+  if (recentLeadsResult.status === "rejected") {
+    logServerDataLoadError("admin-overview-recent-leads", recentLeadsResult.reason);
+  }
+
+  const allLeads = allLeadsResult.status === "fulfilled" ? allLeadsResult.value : [];
+  const recentLeads =
+    recentLeadsResult.status === "fulfilled" ? recentLeadsResult.value : [];
+  const funnelUnavailable = allLeadsResult.status === "rejected";
+  const recentLeadsUnavailable = recentLeadsResult.status === "rejected";
+
   const funnel = calculateLeadFunnel(allLeads);
 
   return (
@@ -65,6 +80,12 @@ export default async function AdminOverviewPage() {
         <MetricCard label="Closed Deals" value={String(funnel.closedDealsCount)} hint={`Conversion ${funnel.conversionRate}%`} tone="green" />
         <MetricCard label="Estimated Revenue" value={formatCurrency(funnel.revenue)} hint="Summed from closed deal values" tone="yellow" />
       </div>
+
+      {funnelUnavailable ? (
+        <div className="mt-5 rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
+          Pipeline metrics are temporarily unavailable. The dashboard is still usable while the database reconnects.
+        </div>
+      ) : null}
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <Card className="bg-white">
@@ -104,6 +125,11 @@ export default async function AdminOverviewPage() {
         </div>
 
         <div className="mt-6 space-y-4">
+          {recentLeadsUnavailable ? (
+            <div className="rounded-[20px] border-[3px] border-line bg-cream px-5 py-4 text-sm font-semibold text-ink">
+              Recent leads could not load right now. Try refreshing in a moment.
+            </div>
+          ) : null}
           {recentLeads.length === 0 ? (
             <EmptyState
               title="No leads yet"

@@ -4,8 +4,36 @@ import { Prisma } from "@prisma/client";
 import { categoryOptions } from "@/lib/constants";
 import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
+import { logServerDataLoadError } from "@/lib/server-load";
 import { formatCurrency, formatDate, titleizeEnum } from "@/lib/format";
 import { buttonStyles, Card, EmptyState, SectionHeading, StatusBadge } from "@/components/ui";
+
+async function getAdminLeads(where: Prisma.LeadWhereInput) {
+  return prisma.lead.findMany({
+    where,
+    select: {
+      id: true,
+      createdAt: true,
+      category: true,
+      taskType: true,
+      urgency: true,
+      status: true,
+      leadScore: true,
+      dealValue: true,
+      dealClosed: true,
+      user: {
+        select: { name: true },
+      },
+      selectedHelper: {
+        select: { name: true },
+      },
+      assignedHelper: {
+        select: { name: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
 
 export default async function AdminLeadsPage({
   searchParams,
@@ -43,30 +71,13 @@ export default async function AdminLeadsPage({
       : {}),
   };
 
-  const leads = await prisma.lead.findMany({
-    where,
-    select: {
-      id: true,
-      createdAt: true,
-      category: true,
-      taskType: true,
-      urgency: true,
-      status: true,
-      leadScore: true,
-      dealValue: true,
-      dealClosed: true,
-      user: {
-        select: { name: true },
-      },
-      selectedHelper: {
-        select: { name: true },
-      },
-      assignedHelper: {
-        select: { name: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  let leads: Awaited<ReturnType<typeof getAdminLeads>> = [];
+
+  try {
+    leads = await getAdminLeads(where);
+  } catch (error) {
+    logServerDataLoadError("admin-leads-page", error);
+  }
 
   return (
     <div>
@@ -123,6 +134,11 @@ export default async function AdminLeadsPage({
       </form>
 
       <div className="mt-8 space-y-4">
+        {leads.length === 0 && (query || category || status || from || to) ? (
+          <div className="rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
+            Lead data is temporarily unavailable or no leads match these filters.
+          </div>
+        ) : null}
         {leads.length === 0 ? (
           <EmptyState
             title="No leads match these filters"

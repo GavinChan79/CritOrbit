@@ -6,11 +6,19 @@ import { getAuthSession } from "@/lib/auth";
 import { LogoutButton } from "@/components/logout-button";
 import { SiteHeaderClient } from "@/components/site-header-client";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
+import { logServerDataLoadError } from "@/lib/server-load";
 import { cn } from "@/lib/utils";
 
 export async function SiteHeader() {
   noStore();
-  const session = await getAuthSession();
+  let session = null;
+
+  try {
+    session = await getAuthSession();
+  } catch (error) {
+    logServerDataLoadError("site-header-session", error);
+  }
+
   const showAdminDashboard = session?.user?.role === "ADMIN";
   const isAuthenticated = Boolean(session?.user);
 

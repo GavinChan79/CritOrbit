@@ -2,9 +2,10 @@ import { SectionHeading } from "@/components/ui";
 import { AdminApplicationsManager } from "@/components/admin-applications-manager";
 import { getApplicationExperienceRank } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
+import { logServerDataLoadError } from "@/lib/server-load";
 
-export default async function AdminApplicationsPage() {
-  const applications = await prisma.helper.findMany({
+async function getApplications() {
+  return prisma.helper.findMany({
     where: {
       agreedToTerms: true,
     },
@@ -35,6 +36,16 @@ export default async function AdminApplicationsPage() {
       createdAt: true,
     },
   });
+}
+
+export default async function AdminApplicationsPage() {
+  let applications: Awaited<ReturnType<typeof getApplications>> = [];
+
+  try {
+    applications = await getApplications();
+  } catch (error) {
+    logServerDataLoadError("admin-applications-page", error);
+  }
   const sortedApplications = [...applications].sort((left, right) => {
     if (left.type !== right.type) {
       return left.type === "TEAM" ? -1 : 1;
@@ -60,6 +71,11 @@ export default async function AdminApplicationsPage() {
       />
 
       <div className="mt-8">
+        {applications.length === 0 ? (
+          <div className="mb-4 rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
+            Applications could not be loaded or there are no applications yet.
+          </div>
+        ) : null}
         <AdminApplicationsManager
           applications={sortedApplications.map((application) => ({
             ...application,
