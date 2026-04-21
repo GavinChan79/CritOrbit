@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LeadStatus } from "@prisma/client";
-import { buttonStyles, EmptyState, InputShell } from "@/components/ui";
+import { buttonStyles, EmptyState, InputShell } from "@/components/ui-primitives";
 import {
   getHelperCardSpecialties,
   getCategoryLabel,

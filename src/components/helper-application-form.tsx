@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buttonStyles, InputShell } from "@/components/ui";
+import { buttonStyles, InputShell } from "@/components/ui-primitives";
 import {
   categoryOptions,
   helperExperienceLevelOptions,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buttonStyles, Card } from "@/components/ui";
+import { buttonStyles, Card } from "@/components/ui-primitives";
 
 const TEST_EMAIL_RECIPIENT = "your-test-email@example.com";
 const TEST_EMAIL_NAME = "CritOrbit Admin Test";

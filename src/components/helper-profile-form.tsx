@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { categoryOptions } from "@/lib/constants";
-import { buttonStyles, Card, InputShell } from "@/components/ui";
+import { buttonStyles, Card, InputShell } from "@/components/ui-primitives";
 
 type HelperProfileFormValues = {
   name: string;

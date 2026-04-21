@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { buttonStyles, Card, EmptyState } from "@/components/ui";
+import { buttonStyles, Card, EmptyState } from "@/components/ui-primitives";
 import { getHelperVerificationStatusLabel } from "@/lib/helper-verification";
 
 type VerificationHelperRecord = {

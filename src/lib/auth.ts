@@ -1,3 +1,5 @@
+import "server-only";
+
 import bcrypt from "bcryptjs";
 import { HelperStatus, UserRole } from "@prisma/client";
 import type { NextAuthOptions } from "next-auth";

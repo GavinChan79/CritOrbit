@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ZodError } from "zod";
-import { buttonStyles, Card, EmptyState, InputShell } from "@/components/ui";
+import { buttonStyles, Card, EmptyState, InputShell } from "@/components/ui-primitives";
 import {
   categoryOptions,
   getDefaultTaskTypeForCategory,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { buttonStyles } from "@/components/ui";
+import { buttonStyles } from "@/components/ui-primitives";
 import { leadMatchPayloadSchema } from "@/lib/validators";
 
 export function HelperDetailActions({

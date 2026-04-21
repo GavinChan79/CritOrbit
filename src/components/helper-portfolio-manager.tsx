@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { buttonStyles, Card, EmptyState, InputShell } from "@/components/ui";
+import { buttonStyles, Card, EmptyState, InputShell } from "@/components/ui-primitives";
 
 type PortfolioItemRecord = {
   id: string;
