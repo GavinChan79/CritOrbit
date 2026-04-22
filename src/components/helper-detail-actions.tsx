@@ -70,7 +70,7 @@ export function HelperDetailActions({
             </button>
             <Link
               href={`/helpers/select?draftId=${draftId}`}
-              className={buttonStyles({ tone: "yellow", size: "md" })}
+              className={buttonStyles({ tone: "ink", size: "md" })}
             >
               Back to Helper Selection
             </Link>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { UserRole } from "@prisma/client";
+import { HelperPriceAnchor, UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
 import { normalizeHelperSpecialties } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
@@ -38,6 +38,9 @@ export async function POST(request: Request) {
     const helper = await prisma.helper.create({
       data: {
         ...parsed.data,
+        submittedPriceAnchor: parsed.data.submittedPriceAnchor as HelperPriceAnchor,
+        priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
+        isActive: parsed.data.status === "ACTIVE" ? parsed.data.isActive : false,
       },
     });
 

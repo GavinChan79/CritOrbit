@@ -41,7 +41,9 @@ type HelperRecord = {
   deliveryTime: string | null;
   repeatClients: number | null;
   priceTier: string;
+  submittedPriceAnchor: string;
   priceAnchor: string;
+  priceLockedByAdmin: boolean;
   clickCount: number;
   selectionCount: number;
   status: string;
@@ -69,7 +71,9 @@ type HelperFormState = {
   deliveryTime: string;
   repeatClients: string;
   priceTier: string;
+  submittedPriceAnchor: string;
   priceAnchor: string;
+  priceLockedByAdmin: boolean;
   status: string;
   category: string;
   shortBio: string;
@@ -83,9 +87,7 @@ type HelperFormState = {
 
 type PortfolioFormState = {
   title: string;
-  imageUrl: string;
   description: string;
-  externalLink: string;
   displayOrder: string;
 };
 
@@ -110,7 +112,9 @@ const emptyForm = (): HelperFormState => ({
   deliveryTime: "24-48h",
   repeatClients: "",
   priceTier: "STANDARD",
+  submittedPriceAnchor: "RM100",
   priceAnchor: "RM100",
+  priceLockedByAdmin: false,
   status: "ACTIVE",
   category: "INTERIOR_DESIGN",
   shortBio: "",
@@ -124,9 +128,7 @@ const emptyForm = (): HelperFormState => ({
 
 const emptyPortfolioForm = (): PortfolioFormState => ({
   title: "",
-  imageUrl: "",
   description: "",
-  externalLink: "",
   displayOrder: "0",
 });
 
@@ -143,6 +145,7 @@ export function HelperAdminManager({
   const [editingPortfolioId, setEditingPortfolioId] = useState<string | null>(null);
   const [form, setForm] = useState<HelperFormState>(emptyForm());
   const [portfolioForm, setPortfolioForm] = useState<PortfolioFormState>(emptyPortfolioForm());
+  const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
   const [helperErrors, setHelperErrors] = useState<FieldErrors>({});
   const [portfolioErrors, setPortfolioErrors] = useState<FieldErrors>({});
   const [helperError, setHelperError] = useState("");
@@ -230,7 +233,9 @@ export function HelperAdminManager({
       deliveryTime: helper.deliveryTime ?? "",
       repeatClients: helper.repeatClients ? String(helper.repeatClients) : "",
       priceTier: helper.priceTier,
+      submittedPriceAnchor: helper.submittedPriceAnchor,
       priceAnchor: helper.priceAnchor,
+      priceLockedByAdmin: helper.priceLockedByAdmin,
       status: helper.status,
       category: helper.category,
       shortBio: helper.shortBio,
@@ -377,11 +382,10 @@ export function HelperAdminManager({
     setPortfolioSuccess("");
     setPortfolioForm({
       title: item.title,
-      imageUrl: item.imageUrl,
       description: item.description ?? "",
-      externalLink: item.externalLink ?? "",
       displayOrder: String(item.displayOrder),
     });
+    setPortfolioFile(null);
     scrollFormIntoView();
   }
 
@@ -391,6 +395,7 @@ export function HelperAdminManager({
     setPortfolioError("");
     setPortfolioSuccess("");
     setPortfolioForm(emptyPortfolioForm());
+    setPortfolioFile(null);
   }
 
   function updatePortfolioField<K extends keyof PortfolioFormState>(
@@ -401,6 +406,17 @@ export function HelperAdminManager({
     setPortfolioErrors((current) => {
       const next = { ...current };
       delete next[key];
+      return next;
+    });
+    setPortfolioError("");
+    setPortfolioSuccess("");
+  }
+
+  function updatePortfolioFile(file: File | null) {
+    setPortfolioFile(file);
+    setPortfolioErrors((current) => {
+      const next = { ...current };
+      delete next.file;
       return next;
     });
     setPortfolioError("");
@@ -435,7 +451,9 @@ export function HelperAdminManager({
       repeatClients: form.repeatClients ? Number(form.repeatClients) : null,
       priceTier:
         form.priceTier || (form.type === "TEAM" ? "PREMIUM" : "STANDARD"),
+      submittedPriceAnchor: form.submittedPriceAnchor,
       priceAnchor: form.priceAnchor,
+      priceLockedByAdmin: form.priceLockedByAdmin,
       displayOrder: Number(form.displayOrder),
       specialties: form.specialties.map((specialty) => ({
         code: specialty.code.trim(),
@@ -500,9 +518,7 @@ export function HelperAdminManager({
 
     const payload = {
       title: portfolioForm.title.trim(),
-      imageUrl: portfolioForm.imageUrl.trim(),
       description: portfolioForm.description.trim(),
-      externalLink: portfolioForm.externalLink.trim(),
       displayOrder: Number(portfolioForm.displayOrder),
     };
 
@@ -513,20 +529,33 @@ export function HelperAdminManager({
       return;
     }
 
+    if (!editingPortfolioId && !portfolioFile) {
+      setPortfolioErrors({ file: "Upload a portfolio file before saving." });
+      setPortfolioError("Upload a portfolio file before saving.");
+      return;
+    }
+
     setSavingPortfolio(true);
     setPortfolioErrors({});
     setPortfolioError("");
     setPortfolioSuccess("");
 
     try {
+      const formData = new FormData();
+      formData.set("title", parsed.data.title);
+      formData.set("description", parsed.data.description ?? "");
+      formData.set("displayOrder", String(parsed.data.displayOrder));
+      if (portfolioFile) {
+        formData.set("file", portfolioFile);
+      }
+
       const response = await fetch(
         editingPortfolioId
           ? `/api/admin/helpers/${editingId}/portfolio/${editingPortfolioId}`
           : `/api/admin/helpers/${editingId}/portfolio`,
         {
           method: editingPortfolioId ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(parsed.data),
+          body: formData,
         },
       );
 
@@ -668,6 +697,9 @@ export function HelperAdminManager({
                       </p>
                       <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-muted">
                         {helper.projectsCompleted}+ projects · {helper.priceTier} · {helper.impressionCount} impressions · {helper.clickCount} clicks · {helper.selectionCount} selections
+                      </p>
+                      <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-muted">
+                        Submitted {helper.submittedPriceAnchor.replace("_PLUS", "+").replace("_", " ")} · Public {helper.priceAnchor.replace("_PLUS", "+").replace("_", " ")} · {helper.priceLockedByAdmin ? "Admin locked" : "Helper-driven"}
                       </p>
                       <p className="mt-2 text-sm leading-7 text-muted">{helper.shortBio}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -849,7 +881,33 @@ export function HelperAdminManager({
                 </div>
               </InputShell>
 
-              <InputShell label="Price Anchor" error={helperErrors.priceAnchor}>
+              <InputShell
+                label="Helper Submitted Price"
+                error={helperErrors.submittedPriceAnchor}
+              >
+                <div className="relative">
+                  <select
+                    value={form.submittedPriceAnchor}
+                    onChange={(event) => updateField("submittedPriceAnchor", event.target.value)}
+                    className={selectClass(helperErrors.submittedPriceAnchor)}
+                  >
+                    {helperPriceAnchorOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
+              </InputShell>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <InputShell
+                label="Public Effective Price"
+                error={helperErrors.priceAnchor}
+                hint="This is the price shown on public helper cards and profiles."
+              >
                 <div className="relative">
                   <select
                     value={form.priceAnchor}
@@ -865,6 +923,15 @@ export function HelperAdminManager({
                   <SelectArrow />
                 </div>
               </InputShell>
+
+              <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
+                <input
+                  type="checkbox"
+                  checked={form.priceLockedByAdmin}
+                  onChange={(event) => updateField("priceLockedByAdmin", event.target.checked)}
+                />
+                Lock public price to admin value
+              </label>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -986,7 +1053,13 @@ export function HelperAdminManager({
                 <div className="relative">
                   <select
                     value={form.status}
-                    onChange={(event) => updateField("status", event.target.value)}
+                    onChange={(event) => {
+                      const nextStatus = event.target.value;
+                      updateField("status", nextStatus);
+                      if (nextStatus !== "ACTIVE") {
+                        updateField("isActive", false);
+                      }
+                    }}
                     className={selectClass(helperErrors.status)}
                   >
                     {helperStatusOptions.map((option) => (
@@ -1019,8 +1092,9 @@ export function HelperAdminManager({
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(event) => updateField("isActive", event.target.checked)}
+                  disabled={form.status !== "ACTIVE"}
                 />
-                Active helper
+                {form.status === "ACTIVE" ? "Active helper" : "Only ACTIVE helpers can be public"}
               </label>
 
               <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
@@ -1269,15 +1343,23 @@ export function HelperAdminManager({
                     />
                   </InputShell>
 
-                  <InputShell label="Image URL" error={portfolioErrors.imageUrl}>
+                  <InputShell
+                    label={editingPortfolioId ? "Replace File" : "Portfolio File"}
+                    error={portfolioErrors.file}
+                    hint={
+                      editingPortfolioId
+                        ? "Leave blank to keep the current file. Supported: PDF, PNG, JPG, JPEG."
+                        : "Required. Supported: PDF, PNG, JPG, JPEG."
+                    }
+                  >
                     <input
-                      value={portfolioForm.imageUrl}
-                      onChange={(event) => updatePortfolioField("imageUrl", event.target.value)}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(event) => updatePortfolioFile(event.target.files?.[0] ?? null)}
                       className={cn(
-                        "w-full rounded-[16px] bg-white px-4 py-3 outline-none",
-                        portfolioErrors.imageUrl ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
+                        "w-full rounded-[16px] bg-white px-4 py-3 outline-none file:mr-4 file:rounded-[14px] file:border-0 file:bg-yellow file:px-4 file:py-2 file:font-black",
+                        portfolioErrors.file ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
                       )}
-                      placeholder="https://..."
                     />
                   </InputShell>
 
@@ -1291,18 +1373,6 @@ export function HelperAdminManager({
                   </InputShell>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <InputShell label="External Link" error={portfolioErrors.externalLink}>
-                      <input
-                        value={portfolioForm.externalLink}
-                        onChange={(event) => updatePortfolioField("externalLink", event.target.value)}
-                        className={cn(
-                          "w-full rounded-[16px] bg-white px-4 py-3 outline-none",
-                          portfolioErrors.externalLink ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
-                        )}
-                        placeholder="https://..."
-                      />
-                    </InputShell>
-
                     <InputShell label="Display Order" error={portfolioErrors.displayOrder}>
                       <input
                         type="number"
@@ -1359,6 +1429,16 @@ export function HelperAdminManager({
                             ) : null}
                           </div>
                           <div className="flex flex-wrap gap-3">
+                            {item.externalLink ? (
+                              <a
+                                href={item.externalLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={buttonStyles({ tone: "ink", size: "sm" })}
+                              >
+                                Open File
+                              </a>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => startPortfolioEdit(item)}

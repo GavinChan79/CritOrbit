@@ -31,14 +31,14 @@ export async function POST(request: Request) {
         ? { impressionCount: { increment: 1 } }
         : { clickCount: { increment: 1 } };
 
-    await prisma.$transaction(
-      helperIds.map((helperId: string) =>
-        prisma.helper.update({
-          where: { id: helperId },
-          data: field,
-        }),
-      ),
-    );
+    await prisma.helper.updateMany({
+      where: {
+        id: { in: helperIds },
+        isActive: true,
+        status: "ACTIVE",
+      },
+      data: field,
+    });
 
     return NextResponse.json({ success: true });
   } catch {

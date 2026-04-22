@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { categoryOptions } from "@/lib/constants";
+import { categoryOptions, helperPriceAnchorOptions } from "@/lib/constants";
 import { buttonStyles, Card, InputShell } from "@/components/ui-primitives";
 
 type HelperProfileFormValues = {
@@ -9,6 +9,9 @@ type HelperProfileFormValues = {
   category: string;
   shortBio: string;
   portfolioNote: string;
+  priceAnchor: string;
+  publicPriceAnchor: string;
+  priceLockedByAdmin: boolean;
   whatsappNumber: string;
   responseTime: string;
   deliveryTime: string;
@@ -117,6 +120,28 @@ export function HelperProfileForm(props: {
         </InputShell>
 
         <div className="grid gap-5 md:grid-cols-3">
+          <InputShell
+            label="Your Starting Price"
+            hint={
+              values.priceLockedByAdmin
+                ? `Admin has locked the public starting price at ${values.publicPriceAnchor.replace("_PLUS", "+").replace("_", " ")}. Your update will be stored for review.`
+                : "This is your submitted starting price. Admin may still review and adjust the public price."
+            }
+          >
+            <select
+              value={values.priceAnchor}
+              onChange={(event) => updateValue("priceAnchor", event.target.value)}
+              className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
+            >
+              {helperPriceAnchorOptions
+                .filter((option) => option.value !== "BELOW_RM100")
+                .map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+            </select>
+          </InputShell>
           <InputShell label="WhatsApp Number">
             <input
               value={values.whatsappNumber}

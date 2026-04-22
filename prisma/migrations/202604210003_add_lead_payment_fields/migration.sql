@@ -1,0 +1,30 @@
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PaymentStatus') THEN
+    CREATE TYPE "PaymentStatus" AS ENUM (
+      'UNPAID',
+      'PAYMENT_LINK_SENT',
+      'PAID',
+      'REFUNDED',
+      'RELEASE_READY',
+      'RELEASED',
+      'PAYMENT_FAILED',
+      'PAYMENT_EXPIRED'
+    );
+  END IF;
+END $$;
+
+ALTER TABLE "Lead"
+  ADD COLUMN IF NOT EXISTS "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'UNPAID',
+  ADD COLUMN IF NOT EXISTS "paymentProvider" TEXT,
+  ADD COLUMN IF NOT EXISTS "paymentAmount" INTEGER,
+  ADD COLUMN IF NOT EXISTS "paymentCurrency" TEXT DEFAULT 'MYR',
+  ADD COLUMN IF NOT EXISTS "paymentLinkUrl" TEXT,
+  ADD COLUMN IF NOT EXISTS "paymentLinkRef" TEXT,
+  ADD COLUMN IF NOT EXISTS "paymentRef" TEXT,
+  ADD COLUMN IF NOT EXISTS "paidAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "releaseReadyAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "releasedAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "releaseRef" TEXT,
+  ADD COLUMN IF NOT EXISTS "paymentRequestedAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "refundedAt" TIMESTAMP(3);

@@ -22,6 +22,9 @@ export default async function HelperProfilePage() {
             category: helper.category,
             shortBio: helper.shortBio,
             portfolioNote: helper.portfolioNote ?? "",
+            priceAnchor: helper.submittedPriceAnchor,
+            publicPriceAnchor: helper.priceAnchor,
+            priceLockedByAdmin: helper.priceLockedByAdmin,
             whatsappNumber: helper.whatsappNumber ?? "",
             responseTime: helper.responseTime ?? "",
             deliveryTime: helper.deliveryTime ?? "",
@@ -34,6 +37,9 @@ export default async function HelperProfilePage() {
             <p>Type: {getHelperTypeLabel(helper.type)}</p>
             <p>Status: {getHelperStatusLabel(helper.status)}</p>
             <p>Category: {getCategoryLabel(helper.category)}</p>
+            <p>Your submitted starting price: From {helper.submittedPriceAnchor.replace("_PLUS", "+").replace("_", " ")}</p>
+            <p>Public starting price: From {helper.priceAnchor.replace("_PLUS", "+").replace("_", " ")}</p>
+            <p>Admin price lock: {helper.priceLockedByAdmin ? "Locked" : "Open to helper updates"}</p>
             <p>Specialties: {specialties.length > 0 ? specialties.map((item) => item.label).join(", ") : "Managed by admin"}</p>
             <p>Email: {helper.email ?? "Not linked"}</p>
           </div>

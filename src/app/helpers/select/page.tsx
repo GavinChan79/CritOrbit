@@ -3,6 +3,7 @@ import { getAuthSession } from "@/lib/auth";
 import { parseSpecialties } from "@/lib/helpers";
 import { getHelperCompletionScore, rankHelpersByConversion } from "@/lib/helper-ranking";
 import { prisma } from "@/lib/prisma";
+import { getPublicHelpers } from "@/lib/public-helpers";
 import { calculateLeadScore } from "@/lib/scoring";
 import { HelperSelectionClient } from "@/components/client-forms";
 import { SectionHeading, SiteHeader } from "@/components/ui";
@@ -31,8 +32,7 @@ export default async function HelperSelectPage({
     redirect("/requirements");
   }
 
-  const helpers = await prisma.helper.findMany({
-    where: { isActive: true, status: "ACTIVE" },
+  const helpers = await getPublicHelpers({
     include: {
       verification: {
         select: {

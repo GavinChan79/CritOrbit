@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
+import { getPaymentStatusLabel } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { logServerDataLoadError } from "@/lib/server-load";
 import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
-import { formatCurrency, formatDate, titleizeEnum } from "@/lib/format";
+import { formatCurrency, formatCurrencyFromSen, formatDate, titleizeEnum } from "@/lib/format";
 import { DeleteLeadButton, LeadManagementForm } from "@/components/client-forms";
 import { buttonStyles, Card, SectionHeading, StatusBadge } from "@/components/ui";
 
@@ -132,6 +133,34 @@ export default async function LeadDetailPage({
           </Card>
 
           <Card className="bg-white">
+            <div className="display-font text-2xl font-black">Secure Payment</div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <Detail label="Provider" value={lead.paymentProvider ?? "-"} />
+              <Detail label="Payment Status" value={getPaymentStatusLabel(lead.paymentStatus)} />
+              <Detail label="Amount" value={formatCurrencyFromSen(lead.paymentAmount)} />
+              <Detail label="Currency" value={lead.paymentCurrency ?? "MYR"} />
+              <Detail label="Payment Link Ref" value={lead.paymentLinkRef ?? "-"} />
+              <Detail label="Payment Ref" value={lead.paymentRef ?? "-"} />
+              <Detail label="Requested" value={lead.paymentRequestedAt ? formatDate(lead.paymentRequestedAt) : "-"} />
+              <Detail label="Paid" value={lead.paidAt ? formatDate(lead.paidAt) : "-"} />
+              <Detail label="Release Ready" value={lead.releaseReadyAt ? formatDate(lead.releaseReadyAt) : "-"} />
+              <Detail label="Released" value={lead.releasedAt ? formatDate(lead.releasedAt) : "-"} />
+              <Detail label="Release Ref" value={lead.releaseRef ?? "-"} />
+              <Detail label="Refunded" value={lead.refundedAt ? formatDate(lead.refundedAt) : "-"} />
+            </div>
+            {lead.paymentLinkUrl ? (
+              <a
+                href={lead.paymentLinkUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`mt-5 ${buttonStyles({ tone: "yellow", size: "md" })}`}
+              >
+                Open Payment Link
+              </a>
+            ) : null}
+          </Card>
+
+          <Card className="bg-white">
             <div className="display-font text-2xl font-black">Assignment details</div>
             <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{lead.description}</p>
           </Card>
@@ -160,6 +189,19 @@ export default async function LeadDetailPage({
             dealClosed: lead.dealClosed,
             dealValue: lead.dealValue,
             notes: lead.notes,
+            paymentStatus: lead.paymentStatus,
+            paymentProvider: lead.paymentProvider,
+            paymentAmount: lead.paymentAmount,
+            paymentCurrency: lead.paymentCurrency,
+            paymentLinkUrl: lead.paymentLinkUrl,
+            paymentLinkRef: lead.paymentLinkRef,
+            paymentRef: lead.paymentRef,
+            paidAt: lead.paidAt ? lead.paidAt.toISOString() : null,
+            releaseReadyAt: lead.releaseReadyAt ? lead.releaseReadyAt.toISOString() : null,
+            releasedAt: lead.releasedAt ? lead.releasedAt.toISOString() : null,
+            releaseRef: lead.releaseRef,
+            paymentRequestedAt: lead.paymentRequestedAt ? lead.paymentRequestedAt.toISOString() : null,
+            refundedAt: lead.refundedAt ? lead.refundedAt.toISOString() : null,
           }}
           helpers={helpers.map((helper) => ({ id: helper.id, name: helper.name }))}
         />

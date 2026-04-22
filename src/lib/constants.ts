@@ -5,7 +5,14 @@ export const ADMIN_WHATSAPP_NUMBER =
   process.env.ADMIN_WHATSAPP_NUMBER ?? "601161241368";
 
 export const helperTypeValues = ["INDIVIDUAL", "TEAM"] as const;
-export const helperStatusValues = ["PENDING", "APPROVED", "REJECTED", "ACTIVE"] as const;
+export const helperStatusValues = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "ACTIVE",
+  "FROZEN",
+  "ARCHIVED",
+] as const;
 export const helperPriceTierValues = ["BUDGET", "STANDARD", "PREMIUM"] as const;
 export const helperExperienceLevelValues = [
   "NO_EXPERIENCE",
@@ -22,7 +29,10 @@ export const helperPriceAnchorValues = [
   "RM300",
   "RM400",
   "RM500",
+  "RM600",
   "RM700",
+  "RM800",
+  "RM900",
   "RM1000_PLUS",
 ] as const;
 
@@ -36,6 +46,8 @@ export const helperStatusLabelMap: Record<(typeof helperStatusValues)[number], s
   APPROVED: "You're approved. Preparing your profile.",
   REJECTED: "Rejected",
   ACTIVE: "Live on platform",
+  FROZEN: "Frozen",
+  ARCHIVED: "Archived",
 };
 
 export const helperPriceTierLabelMap: Record<
@@ -69,7 +81,10 @@ export const helperPriceAnchorLabelMap: Record<
   RM300: "RM300",
   RM400: "RM400",
   RM500: "RM500",
+  RM600: "RM600",
   RM700: "RM700",
+  RM800: "RM800",
+  RM900: "RM900",
   RM1000_PLUS: "RM1000+",
 };
 

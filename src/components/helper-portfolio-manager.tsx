@@ -21,6 +21,7 @@ export function HelperPortfolioManager(props: {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("0");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export function HelperPortfolioManager(props: {
     formData.set("file", file);
     formData.set("title", title);
     formData.set("description", description);
+    formData.set("displayOrder", displayOrder);
 
     setIsUploading(true);
 
@@ -66,6 +68,7 @@ export function HelperPortfolioManager(props: {
 
       setTitle("");
       setDescription("");
+      setDisplayOrder("0");
       setFile(null);
       const fileInput = document.getElementById("helper-portfolio-file") as HTMLInputElement | null;
       if (fileInput) {
@@ -129,7 +132,7 @@ export function HelperPortfolioManager(props: {
       <Card className="bg-white">
         <div className="display-font text-3xl font-black">Upload portfolio work</div>
         <p className="mt-3 text-sm text-muted">
-          Upload one portfolio file at a time. Supported formats: PNG, JPG, JPEG, PDF. Maximum 10MB per file.
+          Upload one portfolio file at a time. Supported formats: PNG, JPG, JPEG, PDF. Maximum 20MB per file.
         </p>
 
         <form className="mt-6 grid gap-5" onSubmit={handleSubmit}>
@@ -146,6 +149,16 @@ export function HelperPortfolioManager(props: {
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={4}
+              className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
+            />
+          </InputShell>
+
+          <InputShell label="Display Order" hint="Lower numbers appear first on your public profile.">
+            <input
+              value={displayOrder}
+              onChange={(event) => setDisplayOrder(event.target.value.replace(/[^\d]/g, ""))}
+              type="number"
+              min="0"
               className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
             />
           </InputShell>
@@ -208,9 +221,9 @@ export function HelperPortfolioManager(props: {
                       href={item.externalLink}
                       target="_blank"
                       rel="noreferrer"
-                      className={`mt-3 ${buttonStyles({ tone: "yellow", size: "sm" })}`}
+                      className={`mt-3 ${buttonStyles({ tone: "ink", size: "sm" })}`}
                     >
-                      Open File
+                      Open Portfolio File
                     </a>
                   ) : null}
                 </div>

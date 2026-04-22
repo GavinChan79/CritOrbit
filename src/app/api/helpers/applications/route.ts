@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { HelperStatus, HelperType, Prisma } from "@prisma/client";
+import { HelperPriceAnchor, HelperStatus, HelperType, Prisma } from "@prisma/client";
 import { sendHelperOnboardingEmail } from "@/lib/email";
 import { getHelperExperienceLevelLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       category: String(formData.get("category") ?? ""),
       experience: String(formData.get("experience") ?? ""),
       portfolioNote: String(formData.get("portfolioNote") ?? ""),
+      priceAnchor: String(formData.get("priceAnchor") ?? "RM100"),
       email: String(formData.get("email") ?? ""),
       whatsappNumber: String(formData.get("whatsappNumber") ?? ""),
       confirmations: {
@@ -89,6 +90,9 @@ export async function POST(request: Request) {
         category: parsed.data.category,
         shortBio: getHelperExperienceLevelLabel(parsed.data.experience),
         experienceLevel: parsed.data.experience,
+        submittedPriceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
+        priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
+        priceLockedByAdmin: false,
         portfolioNote: parsed.data.portfolioNote?.trim(),
         email: parsed.data.email.toLowerCase(),
         whatsappNumber: parsed.data.whatsappNumber,

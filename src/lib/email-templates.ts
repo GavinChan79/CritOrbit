@@ -9,6 +9,10 @@ type EmailTemplateResult = {
   html: string;
 };
 
+type PasswordResetEmailInput = {
+  resetUrl: string;
+};
+
 export function buildHelperApplicationSubmittedEmail(
   input: HelperOnboardingEmailInput,
 ): EmailTemplateResult {
@@ -70,6 +74,28 @@ export function buildHelperOnboardingEmailTemplate(
   }
 
   return buildHelperApplicationRejectedEmail(input);
+}
+
+export function buildPasswordResetEmail(
+  input: PasswordResetEmailInput,
+): EmailTemplateResult {
+  return {
+    subject: "Reset your CritOrbit password",
+    html: `
+      <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#1f1b18;background:#fffaf1;padding:24px;">
+        <div style="max-width:620px;margin:0 auto;background:#ffffff;border:3px solid #1f1b18;border-radius:18px;padding:28px;">
+          <div style="font-size:28px;font-weight:800;margin:0 0 20px;">CritOrbit</div>
+          <p style="margin:0 0 14px;font-size:15px;color:#473f39;">We received a request to reset your password.</p>
+          <p style="margin:0 0 20px;font-size:15px;color:#473f39;">If this was you, use the secure link below. This link expires in 1 hour.</p>
+          <p style="margin:0 0 20px;">
+            <a href="${escapeHtml(input.resetUrl)}" style="display:inline-block;background:#7a5af8;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:700;">Reset Password</a>
+          </p>
+          <p style="margin:0 0 12px;font-size:14px;color:#473f39;">If you did not request this, you can ignore this email safely.</p>
+          <p style="margin:0;font-size:13px;color:#6e645c;word-break:break-all;">${escapeHtml(input.resetUrl)}</p>
+        </div>
+      </div>
+    `,
+  };
 }
 
 function renderEmailTemplate(input: {

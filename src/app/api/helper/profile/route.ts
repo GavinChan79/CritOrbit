@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { HelperPriceAnchor } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getAuthSession, getAccessibleHelperByEmail } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -35,6 +36,10 @@ export async function PATCH(request: Request) {
         category: parsed.data.category,
         shortBio: parsed.data.shortBio.trim(),
         portfolioNote: parsed.data.portfolioNote?.trim(),
+        submittedPriceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
+        ...(helper.priceLockedByAdmin
+          ? {}
+          : { priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor }),
         whatsappNumber: parsed.data.whatsappNumber.trim(),
         responseTime: parsed.data.responseTime.trim(),
         deliveryTime: parsed.data.deliveryTime.trim(),
@@ -45,6 +50,9 @@ export async function PATCH(request: Request) {
         category: true,
         shortBio: true,
         portfolioNote: true,
+        submittedPriceAnchor: true,
+        priceAnchor: true,
+        priceLockedByAdmin: true,
         whatsappNumber: true,
         responseTime: true,
         deliveryTime: true,

@@ -17,7 +17,7 @@ import {
   isFastResponseText,
   parseSpecialties,
 } from "@/lib/helpers";
-import { prisma } from "@/lib/prisma";
+import { getPublicHelperById } from "@/lib/public-helpers";
 import { Card, SectionHeading, SiteHeader, buttonStyles } from "@/components/ui";
 import { HelperDetailActions } from "@/components/helper-detail-actions";
 import { cn } from "@/lib/utils";
@@ -34,12 +34,7 @@ export default async function HelperDetailPage({
   const query = await searchParams;
   const draftId = readQuery(query.draftId);
 
-  const helper = await prisma.helper.findFirst({
-    where: {
-      id: helperId,
-      isActive: true,
-      status: "ACTIVE",
-    },
+  const helper = await getPublicHelperById(helperId, {
     include: {
       verification: {
         select: {

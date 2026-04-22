@@ -16,6 +16,9 @@ export default function LoginPage() {
             <p className="mt-5 text-sm font-semibold">
               Need an account? <Link href="/register" className="underline">Register here</Link>.
             </p>
+            <p className="mt-3 text-sm font-semibold">
+              Forgot your password? <Link href="/forgot-password" className="underline">Reset it here</Link>.
+            </p>
           </div>
         </div>
         <AuthForm mode="login" />

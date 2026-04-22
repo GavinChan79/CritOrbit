@@ -6,6 +6,7 @@ import {
   categoryOptions,
   helperExperienceLevelOptions,
   helperAgreementItems,
+  helperPriceAnchorOptions,
   helperTypeOptions,
 } from "@/lib/constants";
 import {
@@ -43,6 +44,7 @@ export function HelperApplicationForm() {
     category: "INTERIOR_DESIGN",
     experience: "",
     portfolioNote: "",
+    priceAnchor: "RM100",
     email: "",
     whatsappNumber: "",
     confirmations: defaultAgreements,
@@ -103,6 +105,7 @@ export function HelperApplicationForm() {
       category: form.category,
       experience: form.experience,
       portfolioNote: form.portfolioNote,
+      priceAnchor: form.priceAnchor,
       email: form.email,
       whatsappNumber: form.whatsappNumber.replace(/[^\d]/g, ""),
       confirmations: form.confirmations,
@@ -178,6 +181,7 @@ export function HelperApplicationForm() {
       formData.append("category", parsed.data.category);
       formData.append("experience", parsed.data.experience);
       formData.append("portfolioNote", parsed.data.portfolioNote ?? "");
+      formData.append("priceAnchor", parsed.data.priceAnchor);
       formData.append("email", parsed.data.email);
       formData.append("whatsappNumber", parsed.data.whatsappNumber);
       for (const [key, value] of Object.entries(parsed.data.confirmations)) {
@@ -208,6 +212,7 @@ export function HelperApplicationForm() {
         category: "INTERIOR_DESIGN",
         experience: "",
         portfolioNote: "",
+        priceAnchor: "RM100",
         email: "",
         whatsappNumber: "",
         confirmations: defaultAgreements,
@@ -331,6 +336,25 @@ export function HelperApplicationForm() {
           onChange={(event) => setField("portfolioNote", event.target.value)}
           className={inputClass(fieldErrors.portfolioNote)}
         />
+      </InputShell>
+
+      <InputShell label="Starting Price" error={fieldErrors.priceAnchor}>
+        <div className="relative">
+          <select
+            value={form.priceAnchor}
+            onChange={(event) => setField("priceAnchor", event.target.value)}
+            className={selectClass(fieldErrors.priceAnchor)}
+          >
+            {helperPriceAnchorOptions
+              .filter((option) => option.value !== "BELOW_RM100")
+              .map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+          </select>
+          <SelectArrow />
+        </div>
       </InputShell>
 
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">

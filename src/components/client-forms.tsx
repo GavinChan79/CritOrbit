@@ -39,6 +39,7 @@ import {
   statusOptions,
   urgencyOptions,
 } from "@/lib/constants";
+import { formatCurrencyFromSen } from "@/lib/format";
 import { getLeadTemperatureLabel } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 import {
@@ -49,6 +50,15 @@ import {
 } from "@/lib/validators";
 
 type AuthMode = "login" | "register";
+type PaymentStatusValue =
+  | "UNPAID"
+  | "PAYMENT_LINK_SENT"
+  | "PAID"
+  | "REFUNDED"
+  | "RELEASE_READY"
+  | "RELEASED"
+  | "PAYMENT_FAILED"
+  | "PAYMENT_EXPIRED";
 
 function getDeliveryPriority(deliveryTime: string) {
   const normalized = deliveryTime.toLowerCase();
@@ -1140,6 +1150,19 @@ export function LeadManagementForm({
     dealClosed: boolean;
     dealValue: number | null;
     notes: string;
+    paymentStatus: PaymentStatusValue;
+    paymentProvider: string | null;
+    paymentAmount: number | null;
+    paymentCurrency: string | null;
+    paymentLinkUrl: string | null;
+    paymentLinkRef: string | null;
+    paymentRef: string | null;
+    paidAt: string | null;
+    releaseReadyAt: string | null;
+    releasedAt: string | null;
+    releaseRef: string | null;
+    paymentRequestedAt: string | null;
+    refundedAt: string | null;
   };
   helpers: Array<{ id: string; name: string }>;
 }) {
@@ -1147,6 +1170,9 @@ export function LeadManagementForm({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentSaved, setPaymentSaved] = useState("");
+  const [paymentPending, startPaymentTransition] = useTransition();
   const [form, setForm] = useState({
     status: lead.status,
     assignedHelperId: lead.assignedHelperId ?? "",
@@ -1154,6 +1180,13 @@ export function LeadManagementForm({
     dealValue: lead.dealValue ? String(lead.dealValue) : "",
     notes: lead.notes,
   });
+  const [paymentLinkAmount, setPaymentLinkAmount] = useState(
+    lead.paymentAmount ? String(lead.paymentAmount / 100) : "",
+  );
+  const [paymentLinkNote, setPaymentLinkNote] = useState("");
+  const [manualPaymentRef, setManualPaymentRef] = useState(lead.paymentRef ?? "");
+  const [releaseRef, setReleaseRef] = useState(lead.releaseRef ?? "");
+  const [actionNote, setActionNote] = useState("");
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1183,53 +1216,368 @@ export function LeadManagementForm({
     });
   }
 
+  function runPaymentAction(
+    action:
+      | "CREATE_PAYMENT_LINK"
+      | "MARK_AS_PAID"
+      | "MARK_RELEASE_READY"
+      | "MARK_AS_RELEASED"
+      | "MARK_AS_REFUNDED",
+  ) {
+    setPaymentError("");
+    setPaymentSaved("");
+
+    if (action === "MARK_AS_PAID" && !manualPaymentRef.trim() && !actionNote.trim()) {
+      setPaymentError("Add a payment reference or internal note before marking this lead as paid manually.");
+      return;
+    }
+
+    startPaymentTransition(async () => {
+      if (action === "CREATE_PAYMENT_LINK") {
+        const response = await fetch(`/api/admin/leads/${lead.id}/payment-link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: paymentLinkAmount,
+            note: paymentLinkNote || undefined,
+          }),
+        });
+
+        const json = await response.json();
+
+        if (!response.ok) {
+          setPaymentError(json.error ?? "Could not create the payment link.");
+          return;
+        }
+
+        setPaymentSaved(
+          json.reusedExistingLink ? "Existing active payment link returned." : "Payment link created.",
+        );
+        router.refresh();
+        return;
+      }
+
+      const response = await fetch(`/api/admin/leads/${lead.id}/payment-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          paymentRef: manualPaymentRef || undefined,
+          releaseRef: releaseRef || undefined,
+          note: actionNote || undefined,
+        }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        setPaymentError(json.error ?? "Could not update the payment state.");
+        return;
+      }
+
+      setPaymentSaved(getPaymentActionSuccessMessage(action));
+      router.refresh();
+    });
+  }
+
   return (
-    <form onSubmit={submit} className="retro-card space-y-5 bg-white p-6">
-      <SelectField
-        label="Status"
-        value={form.status}
-        options={statusOptions}
-        onChange={(value) => setForm((current) => ({ ...current, status: value as LeadStatus }))}
-      />
-      <SelectField
-        label="Assign Helper"
-        value={form.assignedHelperId}
-        options={[{ value: "", label: "Unassigned" }, ...helpers.map((helper) => ({ value: helper.id, label: helper.name }))]}
-        onChange={(value) => setForm((current) => ({ ...current, assignedHelperId: value }))}
-      />
-      <InputShell label="Deal Value (RM)">
-        <input
-          value={form.dealValue}
-          onChange={(event) => setForm((current) => ({ ...current, dealValue: event.target.value }))}
-          className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
-          placeholder="250"
+    <div className="space-y-5">
+      <form onSubmit={submit} className="retro-card space-y-5 bg-white p-6">
+        <SelectField
+          label="Status"
+          value={form.status}
+          options={statusOptions}
+          onChange={(value) => setForm((current) => ({ ...current, status: value as LeadStatus }))}
         />
-      </InputShell>
-      <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
-        <input
-          type="checkbox"
-          checked={form.dealClosed}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, dealClosed: event.target.checked }))
-          }
+        <SelectField
+          label="Assign Helper"
+          value={form.assignedHelperId}
+          options={[{ value: "", label: "Unassigned" }, ...helpers.map((helper) => ({ value: helper.id, label: helper.name }))]}
+          onChange={(value) => setForm((current) => ({ ...current, assignedHelperId: value }))}
         />
-        Deal Closed
-      </label>
-      <InputShell label="Internal Notes">
-        <textarea
-          rows={5}
-          value={form.notes}
-          onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-          className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
-        />
-      </InputShell>
-      {error ? <p className="text-sm font-bold text-red">{error}</p> : null}
-      {saved ? <p className="text-sm font-bold text-green">Lead updated.</p> : null}
-      <button type="submit" disabled={pending} className={buttonStyles({ tone: "purple", size: "md" })}>
-        {pending ? "Saving..." : "Save Lead"}
-      </button>
-    </form>
+        <InputShell label="Deal Value (RM)">
+          <input
+            value={form.dealValue}
+            onChange={(event) => setForm((current) => ({ ...current, dealValue: event.target.value }))}
+            className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+            placeholder="250"
+          />
+        </InputShell>
+        <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
+          <input
+            type="checkbox"
+            checked={form.dealClosed}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, dealClosed: event.target.checked }))
+            }
+          />
+          Deal Closed
+        </label>
+        <InputShell label="Internal Notes">
+          <textarea
+            rows={5}
+            value={form.notes}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            className="w-full rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 outline-none"
+          />
+        </InputShell>
+        {error ? <p className="text-sm font-bold text-red">{error}</p> : null}
+        {saved ? <p className="text-sm font-bold text-green">Lead updated.</p> : null}
+        <button type="submit" disabled={pending} className={buttonStyles({ tone: "purple", size: "md" })}>
+          {pending ? "Saving..." : "Save Lead"}
+        </button>
+      </form>
+
+      <div className="retro-card space-y-5 bg-white p-6">
+        <div>
+          <div className="display-font text-2xl font-black">Secure Payment</div>
+          <p className="mt-2 text-sm leading-7 text-muted">
+            Payment received by CritOrbit and release managed after completion.
+          </p>
+          <p className="mt-2 rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3 text-sm font-semibold text-ink">
+            For initial rollout, verify paid status in ToyyibPay dashboard if webhook is delayed.
+          </p>
+        </div>
+
+        <div className="rounded-[20px] border-[3px] border-line bg-paper p-4">
+          <div className="text-sm font-black uppercase tracking-[0.14em] text-muted">
+            Payment Lifecycle
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              "UNPAID",
+              "PAYMENT_LINK_SENT",
+              "PAID",
+              "RELEASE_READY",
+              "RELEASED",
+              "REFUNDED",
+              "PAYMENT_FAILED",
+              "PAYMENT_EXPIRED",
+            ].map((status) => (
+              <span
+                key={status}
+                className={cn(
+                  "retro-pill px-3 py-1 text-xs font-black uppercase",
+                  lead.paymentStatus === status ? "bg-purple text-white" : "bg-white text-ink",
+                )}
+              >
+                {getPaymentStatusLabel(status as PaymentStatusValue)}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          <PaymentMetaRow label="Provider" value={lead.paymentProvider ?? "-"} />
+          <PaymentMetaRow label="Amount" value={formatCurrencyFromSen(lead.paymentAmount)} />
+          <PaymentMetaRow label="Payment Status" value={getPaymentStatusLabel(lead.paymentStatus)} />
+          <PaymentMetaRow label="Payment Link" value={lead.paymentLinkUrl ?? "-"} href={lead.paymentLinkUrl ?? undefined} />
+          <PaymentMetaRow label="Payment Link Ref" value={lead.paymentLinkRef ?? "-"} />
+          <PaymentMetaRow label="Payment Ref" value={lead.paymentRef ?? "-"} />
+          <PaymentMetaRow label="Requested At" value={formatDateTime(lead.paymentRequestedAt)} />
+          <PaymentMetaRow label="Paid At" value={formatDateTime(lead.paidAt)} />
+          <PaymentMetaRow label="Release Ready At" value={formatDateTime(lead.releaseReadyAt)} />
+          <PaymentMetaRow label="Released At" value={formatDateTime(lead.releasedAt)} />
+          <PaymentMetaRow label="Release Ref" value={lead.releaseRef ?? "-"} />
+          <PaymentMetaRow label="Refunded At" value={formatDateTime(lead.refundedAt)} />
+        </div>
+
+        <div className="space-y-4 rounded-[20px] border-[3px] border-line bg-cream p-4">
+          <div className="text-sm font-black uppercase tracking-[0.14em] text-muted">
+            Create Payment Link
+          </div>
+          <InputShell label="Amount (RM)" hint="Whole-number RM only. Example: 250">
+            <input
+              value={paymentLinkAmount}
+              onChange={(event) => setPaymentLinkAmount(event.target.value)}
+              className="w-full rounded-[18px] border-[3px] border-line bg-white px-4 py-3 outline-none"
+              inputMode="numeric"
+              placeholder="250"
+            />
+          </InputShell>
+          <div className="rounded-[18px] border-[3px] border-line bg-white px-4 py-3 text-sm font-semibold text-ink">
+            You will charge: {formatPaymentPreview(paymentLinkAmount)}
+          </div>
+          <InputShell label="Optional Note">
+            <textarea
+              rows={3}
+              value={paymentLinkNote}
+              onChange={(event) => setPaymentLinkNote(event.target.value)}
+              className="w-full rounded-[18px] border-[3px] border-line bg-white px-4 py-3 outline-none"
+              placeholder="Secure Payment for approved request"
+            />
+          </InputShell>
+          <button
+            type="button"
+            disabled={paymentPending}
+            onClick={() => runPaymentAction("CREATE_PAYMENT_LINK")}
+            className={buttonStyles({ tone: "purple", size: "md", fullWidth: true })}
+          >
+            {paymentPending ? "Creating link..." : "Create Payment Link"}
+          </button>
+        </div>
+
+        <div className="space-y-4 rounded-[20px] border-[3px] border-line bg-paper p-4">
+          <div className="text-sm font-black uppercase tracking-[0.14em] text-muted">
+            Admin Payment Controls
+          </div>
+          <InputShell
+            label="Payment Ref (manual fallback)"
+            hint="Required for manual paid fallback unless you add an internal note."
+          >
+            <input
+              value={manualPaymentRef}
+              onChange={(event) => setManualPaymentRef(event.target.value)}
+              className="w-full rounded-[18px] border-[3px] border-line bg-white px-4 py-3 outline-none"
+              placeholder="TP5793119399122400030321"
+            />
+          </InputShell>
+          <InputShell label="Release Ref">
+            <input
+              value={releaseRef}
+              onChange={(event) => setReleaseRef(event.target.value)}
+              className="w-full rounded-[18px] border-[3px] border-line bg-white px-4 py-3 outline-none"
+              placeholder="ADMIN_RELEASE_001"
+            />
+          </InputShell>
+          <InputShell label="Internal Action Note" hint="Use this for audit trail during soft launch.">
+            <textarea
+              rows={3}
+              value={actionNote}
+              onChange={(event) => setActionNote(event.target.value)}
+              className="w-full rounded-[18px] border-[3px] border-line bg-white px-4 py-3 outline-none"
+              placeholder="Optional internal note"
+            />
+          </InputShell>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              disabled={paymentPending}
+              onClick={() => runPaymentAction("MARK_AS_PAID")}
+              className={buttonStyles({ tone: "yellow", size: "md" })}
+            >
+              Mark as Paid
+            </button>
+            <button
+              type="button"
+              disabled={paymentPending}
+              onClick={() => runPaymentAction("MARK_RELEASE_READY")}
+              className={buttonStyles({ tone: "pink", size: "md" })}
+            >
+              Mark Release Ready
+            </button>
+            <button
+              type="button"
+              disabled={paymentPending}
+              onClick={() => runPaymentAction("MARK_AS_RELEASED")}
+              className={buttonStyles({ tone: "green", size: "md" })}
+            >
+              Mark as Released
+            </button>
+            <button
+              type="button"
+              disabled={paymentPending}
+              onClick={() => runPaymentAction("MARK_AS_REFUNDED")}
+              className={buttonStyles({ tone: "ink", size: "md" })}
+            >
+              Mark as Refunded
+            </button>
+          </div>
+        </div>
+
+        {paymentError ? <p className="text-sm font-bold text-red">{paymentError}</p> : null}
+        {paymentSaved ? <p className="text-sm font-bold text-green">{paymentSaved}</p> : null}
+      </div>
+    </div>
   );
+}
+
+function PaymentMetaRow({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) {
+  return (
+    <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
+      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-muted">{label}</div>
+      <div className="mt-2 break-all text-sm font-semibold text-ink">
+        {href ? (
+          <a href={href} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+            {value}
+          </a>
+        ) : (
+          value
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("en-MY", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function getPaymentStatusLabel(status: PaymentStatusValue) {
+  const labels: Record<PaymentStatusValue, string> = {
+    UNPAID: "Unpaid",
+    PAYMENT_LINK_SENT: "Payment link sent",
+    PAID: "Payment received by CritOrbit",
+    REFUNDED: "Refunded",
+    RELEASE_READY: "Release managed after completion",
+    RELEASED: "Released",
+    PAYMENT_FAILED: "Payment failed",
+    PAYMENT_EXPIRED: "Payment expired",
+  };
+
+  return labels[status];
+}
+
+function getPaymentActionSuccessMessage(
+  action:
+    | "CREATE_PAYMENT_LINK"
+    | "MARK_AS_PAID"
+    | "MARK_RELEASE_READY"
+    | "MARK_AS_RELEASED"
+    | "MARK_AS_REFUNDED",
+) {
+  const labels = {
+    CREATE_PAYMENT_LINK: "Payment link created.",
+    MARK_AS_PAID: "Payment marked as paid.",
+    MARK_RELEASE_READY: "Lead marked release ready.",
+    MARK_AS_RELEASED: "Lead marked released.",
+    MARK_AS_REFUNDED: "Payment marked refunded.",
+  } as const;
+
+  return labels[action];
+}
+
+function formatPaymentPreview(value: string) {
+  if (!/^\d+$/.test(value.trim())) {
+    return "Enter a whole-number RM amount.";
+  }
+
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric <= 0) {
+    return "Enter a whole-number RM amount.";
+  }
+
+  return new Intl.NumberFormat("en-MY", {
+    style: "currency",
+    currency: "MYR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numeric);
 }
 
 export function DeleteLeadButton({ leadId }: { leadId: string }) {

@@ -1,5 +1,6 @@
 import {
   buildHelperOnboardingEmailTemplate,
+  buildPasswordResetEmail,
   type HelperOnboardingEmailTemplate,
 } from "@/lib/email-templates";
 
@@ -83,6 +84,26 @@ export async function sendHelperOnboardingEmail(
 
   return sendEmail({
     to: recipient.email,
+    subject: email.subject,
+    html: email.html,
+  });
+}
+
+export async function sendPasswordResetEmail(input: {
+  to?: string | null;
+  resetUrl: string;
+}) {
+  if (!input.to) {
+    console.warn("[email] Password reset email skipped: missing recipient.");
+    return { status: "skipped", provider: "resend", reason: "missing_recipient" } as const;
+  }
+
+  const email = buildPasswordResetEmail({
+    resetUrl: input.resetUrl,
+  });
+
+  return sendEmail({
+    to: input.to,
     subject: email.subject,
     html: email.html,
   });

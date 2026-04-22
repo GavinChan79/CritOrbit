@@ -1,7 +1,5 @@
-import { LeadStatus } from "@prisma/client";
-
 type HelperLeadSummaryInput = {
-  status: LeadStatus;
+  status: "NEW" | "CONTACTED" | "ASSIGNED" | "COMPLETED";
   dealClosed: boolean;
   dealValue: number | null;
 };
@@ -22,7 +20,7 @@ type HelperProfileCompletionInput = {
 };
 
 export function getHelperAssignedLeadSummary(leads: HelperLeadSummaryInput[]) {
-  const completedJobs = leads.filter((lead) => lead.status === LeadStatus.COMPLETED);
+  const completedJobs = leads.filter((lead) => lead.status === "COMPLETED");
   const totalDealValue = completedJobs.reduce((total, lead) => {
     if (!lead.dealClosed || !lead.dealValue) {
       return total;

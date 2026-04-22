@@ -27,6 +27,8 @@ enum HelperStatus {
   APPROVED
   REJECTED
   ACTIVE
+  FROZEN
+  ARCHIVED
 }
 
 enum HelperPriceTier {
@@ -51,7 +53,10 @@ enum HelperPriceAnchor {
   RM300
   RM400
   RM500
+  RM600
   RM700
+  RM800
+  RM900
   RM1000_PLUS
 }
 
@@ -107,6 +112,17 @@ enum LeadStatus {
   COMPLETED
 }
 
+enum PaymentStatus {
+  UNPAID
+  PAYMENT_LINK_SENT
+  PAID
+  REFUNDED
+  RELEASE_READY
+  RELEASED
+  PAYMENT_FAILED
+  PAYMENT_EXPIRED
+}
+
 enum LeadTemperature {
   COLD
   WARM
@@ -130,6 +146,19 @@ model User {
   createdAt    DateTime @default(now())
   leads        Lead[]
   leadDrafts   LeadDraft[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model Helper {
@@ -144,7 +173,9 @@ model Helper {
   deliveryTime     String?
   repeatClients    Int?
   priceTier        HelperPriceTier @default(STANDARD)
+  submittedPriceAnchor HelperPriceAnchor @default(RM100)
   priceAnchor      HelperPriceAnchor @default(RM100)
+  priceLockedByAdmin Boolean      @default(false)
   impressionCount  Int            @default(0)
   clickCount       Int            @default(0)
   selectionCount   Int            @default(0)
@@ -234,6 +265,19 @@ model Lead {
   lifecycleStage   LeadLifecycleStage @default(LEAD)
   whatsappClicked  Boolean            @default(false)
   status           LeadStatus         @default(NEW)
+  paymentStatus    PaymentStatus      @default(UNPAID)
+  paymentProvider  String?
+  paymentAmount    Int?
+  paymentCurrency  String?            @default("MYR")
+  paymentLinkUrl   String?
+  paymentLinkRef   String?
+  paymentRef       String?
+  paidAt           DateTime?
+  releaseReadyAt   DateTime?
+  releasedAt       DateTime?
+  releaseRef       String?
+  paymentRequestedAt DateTime?
+  refundedAt       DateTime?
   dealClosed       Boolean            @default(false)
   notes            String             @default("")
   dealValue        Int?

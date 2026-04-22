@@ -7,6 +7,7 @@ import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
 import { leadMatchPayloadSchema } from "@/lib/validators";
 import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
 import { titleizeEnum } from "@/lib/format";
+import { getPublicHelperById } from "@/lib/public-helpers";
 
 export async function POST(request: Request) {
   try {
@@ -30,9 +31,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Draft request not found." }, { status: 404 });
     }
 
-    const helper = await prisma.helper.findUnique({ where: { id: parsed.data.selectedHelperId } });
+    const helper = await getPublicHelperById(parsed.data.selectedHelperId);
 
-    if (!helper || !helper.isActive || helper.status !== "ACTIVE") {
+    if (!helper) {
       return NextResponse.json({ error: "Selected helper not found." }, { status: 404 });
     }
 

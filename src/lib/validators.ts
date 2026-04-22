@@ -111,7 +111,9 @@ export const helperSchema = z.object({
     .union([z.coerce.number().int().min(0, "Repeat clients must be 0 or more."), z.null(), z.undefined()])
     .transform((value) => (value === undefined ? null : value)),
   priceTier: z.enum(helperPriceTierValues),
+  submittedPriceAnchor: z.enum(helperPriceAnchorValues),
   priceAnchor: z.enum(helperPriceAnchorValues),
+  priceLockedByAdmin: z.boolean(),
   status: z.enum(helperStatusValues),
   category: z.enum(categoryValues),
   shortBio: z.string().min(12, "Add a short bio."),
@@ -169,6 +171,7 @@ export const helperApplicationSchema = z.object({
     .trim()
     .optional()
     .transform((value) => value || undefined),
+  priceAnchor: z.enum(helperPriceAnchorValues),
   email: z.email("Enter a valid email address."),
   whatsappNumber: z
     .string()
@@ -208,6 +211,9 @@ export const helperSelfProfileSchema = z.object({
   category: z.enum(categoryValues),
   shortBio: z.string().min(12, "Add a short bio."),
   portfolioNote: z.string().trim().optional().transform((value) => value || undefined),
+  priceAnchor: z.enum(helperPriceAnchorValues),
+  publicPriceAnchor: z.enum(helperPriceAnchorValues).optional(),
+  priceLockedByAdmin: z.boolean().optional(),
   whatsappNumber: z
     .string()
     .trim()
@@ -218,18 +224,37 @@ export const helperSelfProfileSchema = z.object({
 
 export const helperPortfolioSchema = z.object({
   title: z.string().min(2, "Portfolio title is required."),
-  imageUrl: z.url("Enter a valid image URL."),
   description: z.string().trim().optional().transform((value) => value || undefined),
-  externalLink: z
-    .union([z.string().trim().url("Enter a valid external link."), z.literal(""), z.undefined()])
-    .transform((value) => (value ? value : undefined)),
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or more."),
 });
 
 export const helperPortfolioUploadSchema = z.object({
   title: z.string().trim().optional().transform((value) => value || undefined),
   description: z.string().trim().optional().transform((value) => value || undefined),
+  displayOrder: z
+    .union([z.coerce.number().int().min(0, "Display order must be 0 or more."), z.undefined()])
+    .transform((value) => value ?? 0),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Enter a valid email address."),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Reset token is required."),
+    password: z.string().min(8, "Use at least 8 characters."),
+    confirmPassword: z.string().min(8, "Use at least 8 characters."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.password !== value.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["confirmPassword"],
+        message: "Passwords do not match.",
+      });
+    }
+  });
 
 export const helperVerificationStatusSchema = z.object({
   status: z.enum(["VERIFIED", "REJECTED"]),
@@ -244,4 +269,27 @@ export const adminLeadUpdateSchema = z.object({
     .union([z.number(), z.null()])
     .refine((value) => value === null || (Number.isFinite(value) && value >= 0), "Enter a valid deal value."),
   notes: z.string(),
+});
+
+export const adminLeadPaymentLinkSchema = z.object({
+  amount: z.union([
+    z.coerce.number().int().positive("Enter a valid whole-number RM amount."),
+    z
+      .string()
+      .trim()
+      .regex(/^\d+$/, "Enter a valid whole-number RM amount."),
+  ]),
+  note: z.string().trim().optional().transform((value) => value || undefined),
+});
+
+export const adminLeadPaymentActionSchema = z.object({
+  action: z.enum([
+    "MARK_AS_PAID",
+    "MARK_RELEASE_READY",
+    "MARK_AS_RELEASED",
+    "MARK_AS_REFUNDED",
+  ]),
+  paymentRef: z.string().trim().optional().transform((value) => value || undefined),
+  releaseRef: z.string().trim().optional().transform((value) => value || undefined),
+  note: z.string().trim().optional().transform((value) => value || undefined),
 });

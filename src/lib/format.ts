@@ -12,6 +12,19 @@ export function formatCurrency(value?: number | null) {
   }).format(value);
 }
 
+export function formatCurrencyFromSen(value?: number | null) {
+  if (!value) {
+    return "Flexible";
+  }
+
+  return new Intl.NumberFormat("en-MY", {
+    style: "currency",
+    currency: "MYR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value / 100);
+}
+
 export function formatDate(date: Date | string) {
   return format(new Date(date), "dd MMM yyyy");
 }

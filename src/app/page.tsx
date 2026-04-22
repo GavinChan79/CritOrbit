@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { APP_NAME, APP_POWERED_BY, APP_TAGLINE } from "@/lib/constants";
 import {
   getCategoryLabel,
@@ -24,14 +23,14 @@ import {
   getHelperConversionTierLabel,
   rankHelpersByConversion,
 } from "@/lib/helper-ranking";
+import { getPublicHelpers } from "@/lib/public-helpers";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 export default async function HomePage() {
   noStore();
 
-  const helpers = await prisma.helper.findMany({
-    where: { isActive: true, status: "ACTIVE" },
+  const helpers = await getPublicHelpers({
     include: {
       verification: {
         select: {

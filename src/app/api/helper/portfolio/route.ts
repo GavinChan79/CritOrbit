@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     const payload = {
       title: String(formData.get("title") ?? ""),
       description: String(formData.get("description") ?? ""),
+      displayOrder: Number(formData.get("displayOrder") ?? 0),
     };
     const parsed = helperPortfolioUploadSchema.safeParse(payload);
 
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
           imageUrl: getPortfolioPreviewImageUrl(storedFile.id, file.type, file.name),
           description: parsed.data.description?.trim(),
           externalLink: getApplicationFileDownloadPath(storedFile.id),
-          displayOrder: currentCount,
+          displayOrder: parsed.data.displayOrder ?? currentCount,
           sourceApplicationFileId: storedFile.id,
         },
         select: {

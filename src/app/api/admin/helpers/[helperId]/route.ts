@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { Prisma, UserRole } from "@prisma/client";
+import { HelperPriceAnchor, Prisma, UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
 import {
   getApplicationFileDownloadPath,
@@ -48,6 +48,9 @@ export async function PATCH(
       where: { id: helperId },
       data: {
         ...parsed.data,
+        submittedPriceAnchor: parsed.data.submittedPriceAnchor as HelperPriceAnchor,
+        priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
+        isActive: parsed.data.status === "ACTIVE" ? parsed.data.isActive : false,
       },
     });
 
