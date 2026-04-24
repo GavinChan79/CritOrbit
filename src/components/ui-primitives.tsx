@@ -210,7 +210,7 @@ export function buttonStyles({
   };
 
   return cn(
-    "display-font inline-flex items-center justify-center rounded-[18px] border-[3px] border-line font-black transition enabled:hover:translate-x-[2px] enabled:hover:translate-y-[2px] enabled:hover:shadow-none enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple/30 disabled:cursor-not-allowed disabled:opacity-75 disabled:shadow-none disabled:saturate-75",
+    "display-font inline-flex items-center justify-center rounded-[18px] border-[3px] border-line font-black no-underline transition enabled:hover:translate-x-[2px] enabled:hover:translate-y-[2px] enabled:hover:shadow-none enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple/30 disabled:cursor-not-allowed disabled:opacity-75 disabled:saturate-75",
     tones[tone],
     sizes[size],
     fullWidth && "w-full",

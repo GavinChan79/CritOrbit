@@ -221,7 +221,7 @@ export function HelperPortfolioManager(props: {
                       href={item.externalLink}
                       target="_blank"
                       rel="noreferrer"
-                      className={`mt-3 ${buttonStyles({ tone: "ink", size: "sm" })}`}
+                      className={`mt-3 inline-flex ${buttonStyles({ tone: "ink", size: "sm" })}`}
                     >
                       Open Portfolio File
                     </a>

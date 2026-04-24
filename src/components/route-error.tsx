@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonStyles } from "@/components/ui-primitives";
+
 type RouteErrorProps = {
   title: string;
   description: string;
@@ -14,7 +16,7 @@ export function RouteError({ title, description, reset }: RouteErrorProps) {
       <button
         type="button"
         onClick={reset}
-        className="mt-6 inline-flex rounded-[18px] border-[3px] border-line bg-[#7a5af8] px-5 py-3 text-sm font-black text-white shadow-[5px_5px_0_var(--line)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+        className={`mt-6 ${buttonStyles({ tone: "purple", size: "md" })}`}
       >
         Try Again
       </button>

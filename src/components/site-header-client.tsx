@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { LogoutButton } from "@/components/logout-button";
+import { buttonStyles } from "@/components/ui-primitives";
 
 type SiteHeaderClientProps = {
   isAuthenticated: boolean;
@@ -87,7 +88,7 @@ export function SiteHeaderClient({
             ) : null}
             <Link
               href="/requirements"
-              className="display-font inline-flex w-full items-center justify-center rounded-[18px] border-[3px] border-line bg-[#7a5af8] px-4 py-2 text-sm font-black text-white shadow-[5px_5px_0_var(--line)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none [text-shadow:0_1px_0_rgba(0,0,0,0.12)]"
+              className={buttonStyles({ tone: "purple", size: "sm", fullWidth: true })}
               onClick={closeMenu}
             >
               Get Help Now {"\u2192"}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/logout-button";
+import { buttonStyles } from "@/components/ui-primitives";
 import { APP_NAME, adminSidebarLinks } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ export function AdminSidebar() {
       <div className="mt-5 flex flex-col gap-3">
         <Link
           href="/"
-          className="inline-flex w-full items-center justify-center rounded-[18px] border-[3px] border-line bg-yellow px-4 py-2 text-sm font-black uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--line)] transition hover:bg-pink"
+          className={cn(buttonStyles({ tone: "yellow", size: "sm", fullWidth: true }), "tracking-[0.08em]")}
         >
           Back to Home
         </Link>
@@ -32,8 +33,10 @@ export function AdminSidebar() {
               key={link.href}
               href={link.href}
               className={cn(
-                "block rounded-[18px] border-[3px] border-line px-4 py-3 font-black uppercase tracking-[0.08em] shadow-[4px_4px_0_var(--line)] transition",
-                active ? "bg-purple text-white" : "bg-white hover:bg-yellow",
+                "block rounded-[18px] border-[3px] border-line px-4 py-3 font-black uppercase tracking-[0.08em] shadow-[5px_5px_0_var(--line)] transition no-underline",
+                active
+                  ? "bg-purple text-white visited:text-white hover:text-white active:text-white"
+                  : "bg-white text-ink visited:text-ink hover:bg-yellow hover:text-ink active:text-ink",
               )}
             >
               {link.label}
