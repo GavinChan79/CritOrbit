@@ -100,6 +100,7 @@ export async function PATCH(
     }
 
     revalidatePath("/admin/helpers");
+    revalidatePath("/admin/helpers/archived");
     revalidatePath("/admin/applications");
     revalidatePath("/admin/helper-stats");
     revalidatePath("/helpers/select");
@@ -114,5 +115,81 @@ export async function PATCH(
     }
 
     return NextResponse.json({ error: "Failed to update helper." }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ helperId: string }> },
+) {
+  const session = await getAuthSession();
+  const { helperId } = await params;
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+
+  if (session.user.role !== UserRole.ADMIN) {
+    return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+  }
+
+  try {
+    const helper = await prisma.helper.findUnique({
+      where: { id: helperId },
+      select: {
+        status: true,
+        _count: {
+          select: {
+            selectedForLeads: true,
+            assignedLeads: true,
+            applicationFiles: true,
+            portfolioItems: true,
+          },
+        },
+      },
+    });
+
+    if (!helper) {
+      return NextResponse.json({ error: "Helper not found." }, { status: 404 });
+    }
+
+    if (helper.status !== "ARCHIVED") {
+      return NextResponse.json(
+        { error: "Only archived helpers can be permanently deleted." },
+        { status: 400 },
+      );
+    }
+
+    const hasHistoricalRecords =
+      helper._count.selectedForLeads > 0 ||
+      helper._count.assignedLeads > 0 ||
+      helper._count.applicationFiles > 0 ||
+      helper._count.portfolioItems > 0;
+
+    if (hasHistoricalRecords) {
+      return NextResponse.json(
+        {
+          error:
+            "This helper has historical records and cannot be permanently deleted. It can only remain archived.",
+        },
+        { status: 400 },
+      );
+    }
+
+    await prisma.helper.delete({
+      where: { id: helperId },
+    });
+
+    revalidatePath("/admin/helpers");
+    revalidatePath("/admin/helpers/archived");
+    revalidatePath("/admin/applications");
+    revalidatePath("/admin/helper-stats");
+    revalidatePath("/helpers/select");
+    revalidatePath(`/helpers/${helperId}`);
+    revalidatePath("/");
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Failed to permanently delete helper." }, { status: 500 });
   }
 }

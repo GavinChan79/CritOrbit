@@ -176,7 +176,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         {message ? (
           <p className="text-sm font-semibold text-green">
             {message || "Password updated successfully."} Redirecting you to login...{" "}
-            <Link href="/login" className="underline">
+            <Link href="/login" className="font-black text-ink underline decoration-2 underline-offset-2">
               Go to login
             </Link>
           </p>
@@ -200,7 +200,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             href="/login"
             className={cn(
               buttonStyles({ tone: "ink", size: "md" }),
-              "bg-ink text-white visited:text-white hover:text-white active:text-white [text-shadow:none]",
+              "bg-ink text-white visited:text-white hover:text-white active:text-white",
             )}
           >
             Go to Login Now

@@ -1,13 +1,20 @@
 import { HelperAdminManager } from "@/components/helper-admin-manager";
 import { AdminHelperVerificationManager } from "@/components/admin-helper-verification-manager";
 import { SectionHeading } from "@/components/ui";
+import Link from "next/link";
 import { parseSpecialties } from "@/lib/helpers";
 import { getAdminHelperVerificationFilePath } from "@/lib/helper-verification";
 import { prisma } from "@/lib/prisma";
 import { logServerDataLoadError } from "@/lib/server-load";
+import { buttonStyles } from "@/components/ui-primitives";
 
 async function getAdminHelpers() {
   return prisma.helper.findMany({
+    where: {
+      status: {
+        not: "ARCHIVED",
+      },
+    },
     select: {
       id: true,
       name: true,
@@ -85,6 +92,9 @@ export default async function AdminHelpersPage({
       />
 
       <div className="mt-6 flex flex-wrap gap-3">
+        <Link href="/admin/helpers/archived" className={buttonStyles({ tone: "ink", size: "sm" })}>
+          View Archived Helpers
+        </Link>
         {[
           { value: "all", label: "All" },
           { value: "pending", label: "Pending" },

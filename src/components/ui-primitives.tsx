@@ -81,7 +81,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "retro-pill inline-flex items-center gap-2 px-3 py-1 text-xs font-black uppercase tracking-[0.18em]",
+        "retro-pill inline-flex items-center gap-2 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] shadow-[2px_2px_0_var(--line)]",
         tones[tone],
         className,
       )}
@@ -144,7 +144,7 @@ export function MetricCard({
     <Card className="gap-3">
       <div
         className={cn(
-          "retro-pill inline-flex w-fit px-3 py-1 text-xs font-black uppercase",
+          "retro-pill inline-flex w-fit px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0_var(--line)]",
           accents[tone],
         )}
       >
@@ -176,7 +176,7 @@ export function InputShell({
       {error ? (
         <span className="block text-xs font-semibold text-[#E24B4A]">{error}</span>
       ) : null}
-      {!error && hint ? <span className="block text-xs text-muted">{hint}</span> : null}
+      {!error && hint ? <span className="block text-xs font-medium text-muted">{hint}</span> : null}
     </label>
   );
 }
@@ -191,11 +191,16 @@ export function buttonStyles({
   fullWidth?: boolean;
 }) {
   const tones = {
-    purple: "bg-[#7a5af8] text-white",
-    yellow: "bg-yellow text-ink",
-    pink: "bg-pink text-ink",
-    ink: "bg-ink text-white",
-    green: "bg-green text-white",
+    purple:
+      "bg-purple text-white visited:text-white enabled:hover:bg-[#45239a] enabled:hover:text-white enabled:active:bg-[#351b77] enabled:active:text-white",
+    yellow:
+      "bg-yellow text-ink visited:text-ink enabled:hover:bg-[#f2b14a] enabled:hover:text-ink enabled:active:bg-[#df9f38] enabled:active:text-ink",
+    pink:
+      "bg-pink text-ink visited:text-ink enabled:hover:bg-[#ea6b96] enabled:hover:text-ink enabled:active:bg-[#d95984] enabled:active:text-ink",
+    ink:
+      "bg-ink text-white visited:text-white enabled:hover:bg-[#151311] enabled:hover:text-white enabled:active:bg-[#0f0d0c] enabled:active:text-white",
+    green:
+      "bg-green text-white visited:text-white enabled:hover:bg-[#007c4c] enabled:hover:text-white enabled:active:bg-[#006841] enabled:active:text-white",
   };
 
   const sizes = {
@@ -205,10 +210,10 @@ export function buttonStyles({
   };
 
   return cn(
-    "display-font inline-flex items-center justify-center rounded-[18px] border-[3px] border-line font-black transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:translate-x-[2px] active:translate-y-[2px] active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple/25",
+    "display-font inline-flex items-center justify-center rounded-[18px] border-[3px] border-line font-black transition enabled:hover:translate-x-[2px] enabled:hover:translate-y-[2px] enabled:hover:shadow-none enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-purple/30 disabled:cursor-not-allowed disabled:opacity-75 disabled:shadow-none disabled:saturate-75",
     tones[tone],
     sizes[size],
     fullWidth && "w-full",
-    "shadow-[5px_5px_0_var(--line)] [text-shadow:0_1px_0_rgba(0,0,0,0.12)]",
+    "shadow-[5px_5px_0_var(--line)]",
   );
 }

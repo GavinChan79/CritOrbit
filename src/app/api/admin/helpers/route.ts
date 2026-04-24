@@ -45,6 +45,7 @@ export async function POST(request: Request) {
     });
 
     revalidatePath("/admin/helpers");
+    revalidatePath("/admin/helpers/archived");
     revalidatePath("/admin/applications");
     revalidatePath("/helpers/select");
     revalidatePath("/become-helper");

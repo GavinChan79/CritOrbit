@@ -155,6 +155,7 @@ export function HelperAdminManager({
   const [savingHelper, setSavingHelper] = useState(false);
   const [savingPortfolio, setSavingPortfolio] = useState(false);
   const [deletingPortfolioId, setDeletingPortfolioId] = useState<string | null>(null);
+  const [archivingHelperId, setArchivingHelperId] = useState<string | null>(null);
   const taskTypeOptions = getTaskTypeOptionsForCategory(form.category);
   const editingHelper = useMemo(
     () => helpers.find((helper) => helper.id === editingId) ?? null,
@@ -616,6 +617,46 @@ export function HelperAdminManager({
     }
   }
 
+  async function archiveHelper(helper: HelperRecord) {
+    const confirmed = window.confirm(
+      `Archive helper "${helper.name}"? It will be removed from the main roster and hidden from public pages.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setArchivingHelperId(helper.id);
+    setHelperError("");
+    setHelperSuccess("");
+
+    try {
+      const response = await fetch(`/api/admin/helpers/${helper.id}/archive`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "archive" }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        setHelperError(json.error ?? "Could not archive helper.");
+        return;
+      }
+
+      if (editingId === helper.id) {
+        startCreate();
+      }
+
+      setHelperSuccess("Helper archived and removed from the main roster.");
+      router.refresh();
+    } catch {
+      setHelperError("Could not archive helper.");
+    } finally {
+      setArchivingHelperId(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-[28px] border-[3px] border-line bg-white p-5 shadow-[6px_6px_0_var(--line)] md:flex-row md:items-center md:justify-between">
@@ -729,13 +770,23 @@ export function HelperAdminManager({
                         </div>
                       ) : null}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => loadHelper(helper)}
-                      className={buttonStyles({ tone: "yellow", size: "sm" })}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => loadHelper(helper)}
+                        className={buttonStyles({ tone: "yellow", size: "sm" })}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => archiveHelper(helper)}
+                        disabled={archivingHelperId === helper.id}
+                        className={buttonStyles({ tone: "ink", size: "sm" })}
+                      >
+                        {archivingHelperId === helper.id ? "Archiving..." : "Remove Helper"}
+                      </button>
+                    </div>
                   </div>
                 </Card>
               );

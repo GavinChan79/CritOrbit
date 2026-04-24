@@ -1689,7 +1689,7 @@ function SelectField({
         disabled={disabled}
         className={cn(
           "w-full rounded-[18px] bg-cream px-4 py-3 outline-none",
-          disabled && "cursor-not-allowed opacity-60",
+          disabled && "cursor-not-allowed bg-[#ece4d0] text-muted",
           error ? "border-[1.5px] border-[#E24B4A]" : "border-[3px] border-line",
         )}
       >
