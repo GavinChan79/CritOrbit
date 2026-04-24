@@ -6,16 +6,15 @@ import { LogoutButton } from "@/components/logout-button";
 
 type SiteHeaderClientProps = {
   isAuthenticated: boolean;
-  showAdminDashboard: boolean;
+  dashboardPath: string | null;
 };
 
 export function SiteHeaderClient({
   isAuthenticated,
-  showAdminDashboard,
+  dashboardPath,
 }: SiteHeaderClientProps) {
   const [open, setOpen] = useState(false);
-  const authHref = showAdminDashboard ? "/admin" : "/login";
-  const authLabel = showAdminDashboard ? "Dashboard" : "Login";
+  const showDashboard = Boolean(isAuthenticated && dashboardPath);
 
   function closeMenu() {
     setOpen(false);
@@ -24,9 +23,9 @@ export function SiteHeaderClient({
   return (
     <div className="md:hidden">
       <div className="flex items-center gap-3">
-        {showAdminDashboard ? (
-          <Link href={authHref} className="text-sm font-semibold" onClick={closeMenu}>
-            {authLabel}
+        {showDashboard && dashboardPath ? (
+          <Link href={dashboardPath} className="text-sm font-semibold" onClick={closeMenu}>
+            Dashboard
           </Link>
         ) : null}
         {isAuthenticated ? (
@@ -37,11 +36,11 @@ export function SiteHeaderClient({
             size="sm"
             className="px-3 py-2 text-sm"
           />
-        ) : !showAdminDashboard ? (
-          <Link href={authHref} className="text-sm font-semibold" onClick={closeMenu}>
-            {authLabel}
+        ) : (
+          <Link href="/login" className="text-sm font-semibold" onClick={closeMenu}>
+            Login
           </Link>
-        ) : null}
+        )}
         <button
           type="button"
           aria-expanded={open}
@@ -72,8 +71,8 @@ export function SiteHeaderClient({
             <Link href="/#faqs" className="text-sm font-semibold" onClick={closeMenu}>
               FAQs
             </Link>
-            {showAdminDashboard ? (
-              <Link href="/admin" className="text-sm font-semibold" onClick={closeMenu}>
+            {showDashboard && dashboardPath ? (
+              <Link href={dashboardPath} className="text-sm font-semibold" onClick={closeMenu}>
                 Dashboard
               </Link>
             ) : null}

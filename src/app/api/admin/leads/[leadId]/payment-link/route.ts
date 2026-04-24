@@ -11,6 +11,7 @@ import {
   normalizePaymentAmountInput,
   validateToyyibPayConfig,
 } from "@/lib/payments";
+import { ToyyibPayProviderError } from "@/lib/payments/toyyibpay";
 import { prisma } from "@/lib/prisma";
 import { adminLeadPaymentLinkSchema } from "@/lib/validators";
 
@@ -154,7 +155,15 @@ export async function POST(
       lead: updatedLead,
     });
   } catch (error) {
-    console.error("[payments] failed to create payment link", error);
-    return NextResponse.json({ error: "Failed to create payment link." }, { status: 500 });
+    console.error("[payments][toyyibpay] failed to create payment link", error);
+
+    if (error instanceof ToyyibPayProviderError) {
+      return NextResponse.json({ error: error.safeMessage }, { status: 502 });
+    }
+
+    return NextResponse.json(
+      { error: "Payment provider temporarily unavailable. Please try again shortly." },
+      { status: 500 },
+    );
   }
 }

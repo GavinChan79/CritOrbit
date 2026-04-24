@@ -28,6 +28,35 @@ type ToyyibPayCreateBillResponse = Array<{
   billCode?: string;
 }>;
 
+export class ToyyibPayProviderError extends Error {
+  code:
+    | "CONFIG_INVALID"
+    | "ACCOUNT_UNVERIFIED"
+    | "CATEGORY_REJECTED"
+    | "PROVIDER_UNAVAILABLE"
+    | "INVALID_RESPONSE";
+  safeMessage: string;
+  providerStatus?: number;
+  providerBody?: string;
+
+  constructor(
+    code: ToyyibPayProviderError["code"],
+    safeMessage: string,
+    options?: {
+      cause?: unknown;
+      providerStatus?: number;
+      providerBody?: string;
+    },
+  ) {
+    super(safeMessage, options?.cause ? { cause: options.cause } : undefined);
+    this.name = "ToyyibPayProviderError";
+    this.code = code;
+    this.safeMessage = safeMessage;
+    this.providerStatus = options?.providerStatus;
+    this.providerBody = options?.providerBody;
+  }
+}
+
 export function validateToyyibPayConfig(): ToyyibPayConfigValidation {
   const userSecretKey = process.env.TOYYIBPAY_USER_SECRET_KEY?.trim();
   const categoryCode = process.env.TOYYIBPAY_CATEGORY_CODE?.trim();
@@ -67,7 +96,8 @@ export function getToyyibPayConfig(): ToyyibPayConfig {
   const validation = validateToyyibPayConfig();
 
   if (!validation.isValid || !validation.config) {
-    throw new Error(
+    throw new ToyyibPayProviderError(
+      "CONFIG_INVALID",
       `ToyyibPay configuration is incomplete. Missing: ${validation.missing.join(", ")}`,
     );
   }
@@ -97,35 +127,99 @@ export async function createToyyibPayPaymentLink(
     billExpiryDays: "3",
   });
 
-  const response = await fetch(`${config.baseUrl}/index.php/api/createBill`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: payload.toString(),
+  console.info("[payments][toyyibpay] createBill request", {
+    leadId: input.leadId,
+    amount: input.amount,
+    categoryCode: config.categoryCode,
+    billName: payload.get("billName"),
+    billDescriptionLength: payload.get("billDescription")?.length ?? 0,
+    callbackUrl: config.callbackUrl,
+    returnUrl: config.returnUrl,
+    hasCustomerEmail: Boolean(input.customerEmail),
+    hasCustomerPhone: Boolean(normalizePhone(input.customerPhone)),
   });
 
-  const responseText = await response.text();
+  let response: Response;
+  let responseText = "";
+
+  try {
+    response = await fetch(`${config.baseUrl}/index.php/api/createBill`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: payload.toString(),
+    });
+    responseText = await response.text();
+  } catch (error) {
+    console.error("[payments][toyyibpay] createBill network failure", {
+      leadId: input.leadId,
+      error,
+    });
+    throw new ToyyibPayProviderError(
+      "PROVIDER_UNAVAILABLE",
+      "ToyyibPay is temporarily unavailable. Please try again shortly.",
+      { cause: error },
+    );
+  }
 
   if (!response.ok) {
-    throw new Error(`ToyyibPay bill creation failed with status ${response.status}.`);
+    const safeBody = toSafeProviderBody(responseText);
+    console.error("[payments][toyyibpay] createBill failed", {
+      leadId: input.leadId,
+      status: response.status,
+      body: safeBody,
+    });
+    throw new ToyyibPayProviderError(
+      classifyToyyibPayFailure(safeBody),
+      getToyyibPaySafeMessage(classifyToyyibPayFailure(safeBody)),
+      {
+        providerStatus: response.status,
+        providerBody: safeBody,
+      },
+    );
   }
 
   let parsed: ToyyibPayCreateBillResponse;
   try {
     parsed = JSON.parse(responseText) as ToyyibPayCreateBillResponse;
   } catch (error) {
-    throw new Error(
-      error instanceof Error
-        ? `ToyyibPay returned invalid JSON: ${error.message}`
-        : "ToyyibPay returned invalid JSON.",
+    const safeBody = toSafeProviderBody(responseText);
+    console.error("[payments][toyyibpay] createBill invalid JSON", {
+      leadId: input.leadId,
+      status: response.status,
+      body: safeBody,
+      error,
+    });
+    throw new ToyyibPayProviderError(
+      "INVALID_RESPONSE",
+      "ToyyibPay returned an invalid response. Please verify the account and category configuration.",
+      {
+        cause: error,
+        providerStatus: response.status,
+        providerBody: safeBody,
+      },
     );
   }
 
   const billCode = parsed[0]?.BillCode || parsed[0]?.billCode;
 
   if (!billCode) {
-    throw new Error("ToyyibPay did not return a bill code.");
+    const safeBody = toSafeProviderBody(responseText);
+    console.error("[payments][toyyibpay] createBill missing bill code", {
+      leadId: input.leadId,
+      status: response.status,
+      body: safeBody,
+    });
+    const failureCode = classifyToyyibPayFailure(safeBody);
+    throw new ToyyibPayProviderError(
+      failureCode,
+      getToyyibPaySafeMessage(failureCode),
+      {
+        providerStatus: response.status,
+        providerBody: safeBody,
+      },
+    );
   }
 
   return {
@@ -225,4 +319,54 @@ function normalizeToyyibPayAmount(value?: string) {
   }
 
   return Math.round(numeric * 100);
+}
+
+function toSafeProviderBody(value: string) {
+  return value.replace(/\s+/g, " ").trim().slice(0, 500);
+}
+
+function classifyToyyibPayFailure(
+  safeBody: string,
+): ToyyibPayProviderError["code"] {
+  const normalized = safeBody.toLowerCase();
+
+  if (
+    normalized.includes("verify") ||
+    normalized.includes("not approved") ||
+    normalized.includes("not active")
+  ) {
+    return "ACCOUNT_UNVERIFIED";
+  }
+
+  if (
+    normalized.includes("category") ||
+    normalized.includes("categorycode") ||
+    normalized.includes("invalid category")
+  ) {
+    return "CATEGORY_REJECTED";
+  }
+
+  if (!normalized) {
+    return "PROVIDER_UNAVAILABLE";
+  }
+
+  return "INVALID_RESPONSE";
+}
+
+function getToyyibPaySafeMessage(
+  code: ToyyibPayProviderError["code"],
+) {
+  switch (code) {
+    case "CONFIG_INVALID":
+      return "ToyyibPay configuration is invalid. Check the payment environment variables.";
+    case "ACCOUNT_UNVERIFIED":
+      return "ToyyibPay account is not approved for bill creation yet. Check the ToyyibPay account verification status.";
+    case "CATEGORY_REJECTED":
+      return "ToyyibPay rejected the category or bill setup. Verify the category code and account category settings.";
+    case "PROVIDER_UNAVAILABLE":
+      return "ToyyibPay is temporarily unavailable. Please try again shortly.";
+    case "INVALID_RESPONSE":
+    default:
+      return "ToyyibPay rejected the bill request. Check the ToyyibPay account or category setup.";
+  }
 }

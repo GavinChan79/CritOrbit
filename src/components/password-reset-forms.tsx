@@ -196,7 +196,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
           <Link href="/forgot-password" className={buttonStyles({ tone: "yellow", size: "md" })}>
             Request New Link
           </Link>
-          <Link href="/login" className={buttonStyles({ tone: "ink", size: "md" })}>
+          <Link
+            href="/login"
+            className={cn(
+              buttonStyles({ tone: "ink", size: "md" }),
+              "bg-ink text-white visited:text-white hover:text-white active:text-white [text-shadow:none]",
+            )}
+          >
             Go to Login Now
           </Link>
         </div>

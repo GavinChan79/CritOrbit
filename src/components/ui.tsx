@@ -1,8 +1,9 @@
 import "server-only";
 
 import Link from "next/link";
+import { UserRole } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
-import { getAuthSession } from "@/lib/auth";
+import { getAccessibleHelperByEmail, getAuthSession } from "@/lib/auth";
 import { LogoutButton } from "@/components/logout-button";
 import { SiteHeaderClient } from "@/components/site-header-client";
 import { buttonStyles } from "@/components/ui-primitives";
@@ -25,9 +26,11 @@ export async function SiteHeader() {
   noStore();
   try {
     const session = await getAuthSession();
+    const dashboardPath = await getDashboardPath(session?.user);
+
     return renderSiteHeader({
       isAuthenticated: Boolean(session?.user),
-      showAdminDashboard: session?.user?.role === "ADMIN",
+      dashboardPath,
       showLogout: Boolean(session?.user),
     });
   } catch (error) {
@@ -35,19 +38,39 @@ export async function SiteHeader() {
     logServerDataLoadError("site-header-session", error);
     return renderSiteHeader({
       isAuthenticated: false,
-      showAdminDashboard: false,
+      dashboardPath: null,
       showLogout: false,
     });
   }
 }
 
+async function getDashboardPath(
+  user?: { role?: UserRole; email?: string | null } | null,
+) {
+  if (!user) {
+    return null;
+  }
+
+  if (user.role === UserRole.ADMIN) {
+    return "/admin";
+  }
+
+  const helper = await getAccessibleHelperByEmail(user.email);
+
+  if (helper) {
+    return "/helper";
+  }
+
+  return "/dashboard";
+}
+
 function renderSiteHeader({
   isAuthenticated,
-  showAdminDashboard,
+  dashboardPath,
   showLogout,
 }: {
   isAuthenticated: boolean;
-  showAdminDashboard: boolean;
+  dashboardPath: string | null;
   showLogout: boolean;
 }) {
   return (
@@ -61,7 +84,7 @@ function renderSiteHeader({
           <Link href="/requirements">Find a Helper</Link>
           <Link href="/become-helper">Become a Helper</Link>
           <Link href="/#faqs">FAQs</Link>
-          {showAdminDashboard ? <Link href="/admin">Dashboard</Link> : null}
+          {dashboardPath ? <Link href={dashboardPath}>Dashboard</Link> : null}
           {!isAuthenticated ? <Link href="/login">Login</Link> : null}
           {showLogout ? (
             <LogoutButton callbackUrl="/" label="Logout" tone="ink" size="sm" />
@@ -74,7 +97,7 @@ function renderSiteHeader({
         </div>
         <SiteHeaderClient
           isAuthenticated={isAuthenticated}
-          showAdminDashboard={showAdminDashboard}
+          dashboardPath={dashboardPath}
         />
       </div>
     </header>
