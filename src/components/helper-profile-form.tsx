@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { categoryOptions, helperPriceAnchorOptions } from "@/lib/constants";
+import {
+  categoryOptions,
+  helperDeliveryTimeOptions,
+  helperPriceAnchorOptions,
+  helperResponseTimeOptions,
+} from "@/lib/constants";
 import { buttonStyles, Card, InputShell } from "@/components/ui-primitives";
 
 type HelperProfileFormValues = {
@@ -36,6 +41,9 @@ export function HelperProfileForm(props: {
       [key]: value,
     }));
   }
+
+  const selectClass =
+    "w-full appearance-none rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 pr-11 text-ink outline-none";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,7 +98,7 @@ export function HelperProfileForm(props: {
             <select
               value={values.category}
               onChange={(event) => updateValue("category", event.target.value)}
-              className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
+              className={selectClass}
             >
               {categoryOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -131,7 +139,7 @@ export function HelperProfileForm(props: {
             <select
               value={values.priceAnchor}
               onChange={(event) => updateValue("priceAnchor", event.target.value)}
-              className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
+              className={selectClass}
             >
               {helperPriceAnchorOptions
                 .filter((option) => option.value !== "BELOW_RM100")
@@ -150,18 +158,30 @@ export function HelperProfileForm(props: {
             />
           </InputShell>
           <InputShell label="Response Time">
-            <input
+            <select
               value={values.responseTime}
               onChange={(event) => updateValue("responseTime", event.target.value)}
-              className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
-            />
+              className={selectClass}
+            >
+              {helperResponseTimeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </InputShell>
           <InputShell label="Delivery Time">
-            <input
+            <select
               value={values.deliveryTime}
               onChange={(event) => updateValue("deliveryTime", event.target.value)}
-              className="w-full rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
-            />
+              className={selectClass}
+            >
+              {helperDeliveryTimeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </InputShell>
         </div>
 

@@ -41,8 +41,8 @@ export async function PATCH(request: Request) {
           ? {}
           : { priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor }),
         whatsappNumber: parsed.data.whatsappNumber.trim(),
-        responseTime: parsed.data.responseTime.trim(),
-        deliveryTime: parsed.data.deliveryTime.trim(),
+        responseTime: parsed.data.responseTime,
+        deliveryTime: parsed.data.deliveryTime,
       },
       select: {
         id: true,

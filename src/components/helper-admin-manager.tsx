@@ -16,6 +16,8 @@ import {
   helperStatusOptions,
   helperTypeOptions,
   getTaskTypeOptionsForCategory,
+  normalizeHelperDeliveryTime,
+  normalizeHelperResponseTime,
 } from "@/lib/constants";
 import {
   getCategoryLabel,
@@ -109,7 +111,7 @@ const emptyForm = (): HelperFormState => ({
   projectsCompleted: "0",
   experienceLevel: "NO_EXPERIENCE",
   responseTime: "Within 1 hour",
-  deliveryTime: "24-48h",
+  deliveryTime: "2-3 days",
   repeatClients: "",
   priceTier: "STANDARD",
   submittedPriceAnchor: "RM100",
@@ -230,8 +232,8 @@ export function HelperAdminManager({
       isVerified: helper.isVerified,
       projectsCompleted: String(helper.projectsCompleted),
       experienceLevel: helper.experienceLevel,
-      responseTime: helper.responseTime ?? "",
-      deliveryTime: helper.deliveryTime ?? "",
+      responseTime: normalizeHelperResponseTime(helper.responseTime),
+      deliveryTime: normalizeHelperDeliveryTime(helper.deliveryTime),
       repeatClients: helper.repeatClients ? String(helper.repeatClients) : "",
       priceTier: helper.priceTier,
       submittedPriceAnchor: helper.submittedPriceAnchor,

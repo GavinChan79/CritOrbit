@@ -1,4 +1,8 @@
 import { requireApprovedHelper } from "@/lib/auth";
+import {
+  normalizeHelperDeliveryTime,
+  normalizeHelperResponseTime,
+} from "@/lib/constants";
 import { getCategoryLabel, getHelperStatusLabel, getHelperTypeLabel, parseSpecialties } from "@/lib/helpers";
 import { Card, SectionHeading } from "@/components/ui";
 import { HelperProfileForm } from "@/components/helper-profile-form";
@@ -26,8 +30,8 @@ export default async function HelperProfilePage() {
             publicPriceAnchor: helper.priceAnchor,
             priceLockedByAdmin: helper.priceLockedByAdmin,
             whatsappNumber: helper.whatsappNumber ?? "",
-            responseTime: helper.responseTime ?? "",
-            deliveryTime: helper.deliveryTime ?? "",
+            responseTime: normalizeHelperResponseTime(helper.responseTime),
+            deliveryTime: normalizeHelperDeliveryTime(helper.deliveryTime),
           }}
         />
 

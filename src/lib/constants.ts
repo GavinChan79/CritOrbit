@@ -117,19 +117,35 @@ export const helperResponseTimeOptions = [
   "Within 15 minutes",
   "Within 30 minutes",
   "Within 1 hour",
-  "Within 2 hours",
-  "Within 6 hours",
+  "Within 3 hours",
+  "Same day",
   "Within 24 hours",
 ] as const;
 
 export const helperDeliveryTimeOptions = [
   "Same day",
-  "24-48h",
+  "24 hours",
+  "1-2 days",
   "2-3 days",
   "3-5 days",
-  "5-7 days",
-  "Flexible timeline",
+  "1 week+",
 ] as const;
+
+export function normalizeHelperResponseTime(value?: string | null) {
+  return helperResponseTimeOptions.includes(
+    value as (typeof helperResponseTimeOptions)[number],
+  )
+    ? (value as (typeof helperResponseTimeOptions)[number])
+    : "Same day";
+}
+
+export function normalizeHelperDeliveryTime(value?: string | null) {
+  return helperDeliveryTimeOptions.includes(
+    value as (typeof helperDeliveryTimeOptions)[number],
+  )
+    ? (value as (typeof helperDeliveryTimeOptions)[number])
+    : "2-3 days";
+}
 
 export const helperSpecialtyPresetOptions = [
   {

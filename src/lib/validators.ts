@@ -218,8 +218,8 @@ export const helperSelfProfileSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{9,15}$/, "Use digits only for WhatsApp number."),
-  responseTime: z.string().trim().min(2, "Add a response time."),
-  deliveryTime: z.string().trim().min(2, "Add a delivery time."),
+  responseTime: z.enum(helperResponseTimeOptions),
+  deliveryTime: z.enum(helperDeliveryTimeOptions),
 });
 
 export const helperPortfolioSchema = z.object({
