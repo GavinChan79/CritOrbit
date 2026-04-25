@@ -15,6 +15,8 @@ async function getApplications() {
       type: true,
       teamSize: true,
       category: true,
+      experienceLevel: true,
+      submittedPriceAnchor: true,
       status: true,
       shortBio: true,
       portfolioNote: true,

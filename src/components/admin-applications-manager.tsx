@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { buttonStyles, Card, EmptyState } from "@/components/ui-primitives";
 import {
   getCategoryLabel,
+  getHelperExperienceLevelLabel,
   getHelperStatusLabel,
   getHelperTypeLabel,
 } from "@/lib/helpers";
@@ -16,6 +17,8 @@ type ApplicationRecord = {
   type: string;
   teamSize: number | null;
   category: string;
+  experienceLevel: string;
+  submittedPriceAnchor: string;
   status: string;
   shortBio: string;
   portfolioNote: string | null;
@@ -44,6 +47,7 @@ export function AdminApplicationsManager({
   const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [busyId, setBusyId] = useState("");
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     setItems(applications);
@@ -161,6 +165,7 @@ export function AdminApplicationsManager({
         const portfolioFiles = application.applicationFiles.filter((file) => file.kind === "PORTFOLIO");
         const identityFront = application.applicationFiles.find((file) => file.kind === "IDENTITY_FRONT");
         const identityBack = application.applicationFiles.find((file) => file.kind === "IDENTITY_BACK");
+        const isExpanded = expandedId === application.id;
 
         return (
           <Card key={application.id} className="bg-white">
@@ -193,68 +198,92 @@ export function AdminApplicationsManager({
                   Experience snippet: {application.shortBio.slice(0, 90)}
                   {application.shortBio.length > 90 ? "..." : ""}
                 </div>
-                {application.portfolioNote ? (
-                  <p className="mt-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm leading-7 text-muted">
-                    <span className="font-black text-ink">Portfolio:</span>{" "}
-                    {application.portfolioNote}
-                  </p>
-                ) : null}
-                <div className="mt-3 text-sm text-muted">
-                  <div>
-                    Email:{" "}
-                    <span className="font-black text-ink">
-                      {application.email ?? "-"}
-                    </span>
-                  </div>
-                  <div>
-                    WhatsApp:{" "}
-                    <span className="font-black text-ink">
-                      {application.whatsappNumber ?? "-"}
-                    </span>
-                  </div>
-                  <div>
-                    Agreement:{" "}
-                    <span className="font-black text-ink">
-                      {application.agreedToTerms
-                        ? `Accepted${application.agreedAt ? ` on ${formatDate(application.agreedAt)}` : ""}`
-                        : "Not accepted"}
-                    </span>
-                  </div>
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedId((current) =>
+                        current === application.id ? null : application.id,
+                      )
+                    }
+                    className={buttonStyles({ tone: "yellow", size: "sm" })}
+                  >
+                    {isExpanded ? "Hide Full Details" : "View Full Details"}
+                  </button>
                 </div>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[18px] border-[3px] border-line bg-cream p-4 text-sm text-muted">
-                    <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
-                      Portfolio Files
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {portfolioFiles.length ? (
-                        portfolioFiles.map((file) => (
-                          <a
-                            key={file.id}
-                            href={`/api/helper-application-files/${file.id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block rounded-[14px] border-[3px] border-line bg-white px-3 py-2 font-semibold text-ink"
-                          >
-                            {file.fileName}
-                          </a>
-                        ))
-                      ) : (
-                        <p>No portfolio files uploaded.</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="rounded-[18px] border-[3px] border-line bg-cream p-4 text-sm text-muted">
-                    <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
-                      Identity Certification
-                    </div>
-                    <div className="mt-3 space-y-2">
+
+                {isExpanded ? (
+                  <div className="mt-4 space-y-4">
+                    <ApplicationSection title="Basic Info">
+                      <ApplicationField label="Name" value={application.name} />
+                      <ApplicationField label="Email" value={application.email ?? "-"} />
+                      <ApplicationField label="WhatsApp" value={application.whatsappNumber ?? "-"} />
+                      <ApplicationField
+                        label="Helper Type"
+                        value={getHelperTypeLabel(application.type)}
+                      />
+                      <ApplicationField
+                        label="Category"
+                        value={getCategoryLabel(application.category)}
+                      />
+                    </ApplicationSection>
+
+                    <ApplicationSection title="Experience">
+                      <ApplicationField
+                        label="Experience Level"
+                        value={getHelperExperienceLevelLabel(application.experienceLevel)}
+                      />
+                      <ApplicationField
+                        label="Description"
+                        value={application.shortBio || "-"}
+                        multiline
+                      />
+                    </ApplicationSection>
+
+                    <ApplicationSection title="Pricing">
+                      <ApplicationField
+                        label="Starting Price"
+                        value={application.submittedPriceAnchor.replace("_PLUS", "+").replace("_", " ")}
+                      />
+                    </ApplicationSection>
+
+                    <ApplicationSection title="Portfolio">
+                      <ApplicationField
+                        label="Text"
+                        value={application.portfolioNote ?? "-"}
+                        multiline
+                      />
+                      <div className="rounded-[14px] border-[3px] border-line bg-white px-4 py-3">
+                        <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                          Files
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {portfolioFiles.length ? (
+                            portfolioFiles.map((file) => (
+                              <a
+                                key={file.id}
+                                href={`/api/helper-application-files/${file.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block rounded-[14px] border-[3px] border-line bg-cream px-3 py-2 font-semibold text-ink"
+                              >
+                                {file.fileName}
+                              </a>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted">No portfolio files uploaded.</p>
+                          )}
+                        </div>
+                      </div>
+                    </ApplicationSection>
+
+                    <ApplicationSection title="Identity">
                       {[identityFront, identityBack].map((file, index) => (
                         <div
                           key={file?.id ?? `${application.id}-${index}`}
-                          className="rounded-[14px] border-[3px] border-line bg-white px-3 py-2"
+                          className="rounded-[14px] border-[3px] border-line bg-white px-4 py-3"
                         >
-                          <div className="font-black text-ink">
+                          <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
                             {index === 0 ? "IC Front" : "IC Back"}
                           </div>
                           {file ? (
@@ -262,18 +291,29 @@ export function AdminApplicationsManager({
                               href={`/api/helper-application-files/${file.id}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="mt-1 inline-block font-semibold text-purple underline-offset-4 hover:underline"
+                              className="mt-2 inline-block font-semibold text-purple underline decoration-2 underline-offset-2"
                             >
                               Open {file.fileName}
                             </a>
                           ) : (
-                            <div className="mt-1">Missing file</div>
+                            <div className="mt-2 text-sm text-muted">Missing file</div>
                           )}
                         </div>
                       ))}
-                    </div>
+                    </ApplicationSection>
+
+                    <ApplicationSection title="Agreement">
+                      <ApplicationField
+                        label="Agreement Status"
+                        value={
+                          application.agreedToTerms
+                            ? `Accepted${application.agreedAt ? ` on ${formatDate(application.agreedAt)}` : ""}`
+                            : "Not accepted"
+                        }
+                      />
+                    </ApplicationSection>
                   </div>
-                </div>
+                ) : null}
               </div>
 
               <div className="rounded-[22px] border-[3px] border-line bg-cream p-4 text-sm text-muted">
@@ -313,6 +353,48 @@ export function AdminApplicationsManager({
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function ApplicationSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[18px] border-[3px] border-line bg-cream p-4">
+      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+        {title}
+      </div>
+      <div className="mt-3 space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function ApplicationField({
+  label,
+  value,
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="rounded-[14px] border-[3px] border-line bg-white px-4 py-3">
+      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+        {label}
+      </div>
+      <div
+        className={`mt-2 text-sm font-semibold text-ink ${
+          multiline ? "whitespace-pre-wrap leading-7" : ""
+        }`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
