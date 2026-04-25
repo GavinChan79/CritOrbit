@@ -200,7 +200,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             href="/login"
             className={cn(
               buttonStyles({ tone: "ink", size: "md" }),
-              "bg-ink text-white visited:text-white hover:text-white active:text-white",
+              "!bg-ink !text-white visited:!text-white hover:!text-white active:!text-white",
             )}
           >
             Go to Login Now

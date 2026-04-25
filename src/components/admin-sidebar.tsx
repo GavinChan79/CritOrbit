@@ -35,7 +35,7 @@ export function AdminSidebar() {
               className={cn(
                 "block rounded-[18px] border-[3px] border-line px-4 py-3 font-black uppercase tracking-[0.08em] shadow-[5px_5px_0_var(--line)] transition no-underline",
                 active
-                  ? "bg-purple text-white visited:text-white hover:text-white active:text-white"
+                  ? "bg-purple !text-white visited:!text-white hover:!text-white active:!text-white"
                   : "bg-white text-ink visited:text-ink hover:bg-yellow hover:text-ink active:text-ink",
               )}
             >

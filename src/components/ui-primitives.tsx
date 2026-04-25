@@ -70,12 +70,12 @@ export function Badge({
   className?: string;
 }) {
   const tones = {
-    yellow: "bg-yellow text-ink",
-    pink: "bg-pink text-ink",
-    green: "bg-green text-white",
-    blue: "bg-blue text-white",
-    purple: "bg-purple text-white",
-    ink: "bg-ink text-white",
+    yellow: "bg-yellow/50 text-ink",
+    pink: "bg-pink/35 text-ink",
+    green: "bg-green/20 text-ink",
+    blue: "bg-blue/18 text-ink",
+    purple: "bg-purple/18 text-ink",
+    ink: "bg-ink/12 text-ink",
   };
 
   return (
@@ -134,10 +134,10 @@ export function MetricCard({
   tone?: "purple" | "pink" | "yellow" | "green";
 }) {
   const accents = {
-    purple: "bg-purple text-white",
-    pink: "bg-pink text-ink",
-    yellow: "bg-yellow text-ink",
-    green: "bg-green text-white",
+    purple: "bg-purple/18 text-ink",
+    pink: "bg-pink/35 text-ink",
+    yellow: "bg-yellow/50 text-ink",
+    green: "bg-green/20 text-ink",
   };
 
   return (
@@ -192,15 +192,15 @@ export function buttonStyles({
 }) {
   const tones = {
     purple:
-      "bg-purple text-white visited:text-white enabled:hover:bg-[#45239a] enabled:hover:text-white enabled:active:bg-[#351b77] enabled:active:text-white",
+      "bg-purple !text-white visited:!text-white enabled:hover:bg-[#45239a] enabled:hover:!text-white enabled:active:bg-[#351b77] enabled:active:!text-white disabled:!text-white",
     yellow:
-      "bg-yellow text-ink visited:text-ink enabled:hover:bg-[#f2b14a] enabled:hover:text-ink enabled:active:bg-[#df9f38] enabled:active:text-ink",
+      "bg-yellow !text-ink visited:!text-ink enabled:hover:bg-[#f2b14a] enabled:hover:!text-ink enabled:active:bg-[#df9f38] enabled:active:!text-ink disabled:!text-ink",
     pink:
-      "bg-pink text-ink visited:text-ink enabled:hover:bg-[#ea6b96] enabled:hover:text-ink enabled:active:bg-[#d95984] enabled:active:text-ink",
+      "bg-pink !text-ink visited:!text-ink enabled:hover:bg-[#ea6b96] enabled:hover:!text-ink enabled:active:bg-[#d95984] enabled:active:!text-ink disabled:!text-ink",
     ink:
-      "bg-ink text-white visited:text-white enabled:hover:bg-[#151311] enabled:hover:text-white enabled:active:bg-[#0f0d0c] enabled:active:text-white",
+      "bg-ink !text-white visited:!text-white enabled:hover:bg-[#151311] enabled:hover:!text-white enabled:active:bg-[#0f0d0c] enabled:active:!text-white disabled:!text-white",
     green:
-      "bg-green text-white visited:text-white enabled:hover:bg-[#007c4c] enabled:hover:text-white enabled:active:bg-[#006841] enabled:active:text-white",
+      "bg-green !text-white visited:!text-white enabled:hover:bg-[#007c4c] enabled:hover:!text-white enabled:active:bg-[#006841] enabled:active:!text-white disabled:!text-white",
   };
 
   const sizes = {
