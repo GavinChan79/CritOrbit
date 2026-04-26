@@ -12,6 +12,12 @@ import {
   taskTypeValues,
 } from "@/lib/constants";
 import { isTaskTypeAllowedForCategory } from "@/lib/helpers";
+import {
+  getHelperApplicationFileSizeLimit,
+  helperApplicationUploadKinds,
+  isAllowedApplicationFile,
+  isHelperApplicationBlobPathname,
+} from "@/lib/helper-applications";
 
 const baseRequirementSchema = z.object({
   category: z.enum(categoryValues),
@@ -217,6 +223,101 @@ export const helperApplicationSchema = z.object({
 
 export const helperApplicationDecisionSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
+});
+
+export const helperApplicationUploadedFileSchema = z
+  .object({
+    url: z.url("Uploaded file URL is invalid."),
+    pathname: z
+      .string()
+      .min(1, "Uploaded file pathname is required.")
+      .refine(
+        (value) => isHelperApplicationBlobPathname(value),
+        "Uploaded file pathname is invalid.",
+      ),
+    filename: z.string().min(1, "Uploaded file name is required."),
+    contentType: z.string().min(1, "Uploaded file type is required."),
+    size: z.coerce
+      .number()
+      .int()
+      .positive("Uploaded file size must be greater than 0."),
+    kind: z.enum(helperApplicationUploadKinds),
+  })
+  .superRefine((value, ctx) => {
+    if (!isAllowedApplicationFile(value.filename, value.contentType)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["filename"],
+        message: "Uploaded file type is not supported.",
+      });
+    }
+
+    if (value.size > getHelperApplicationFileSizeLimit(value.kind)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["size"],
+        message:
+          value.kind === "PORTFOLIO"
+            ? "Each portfolio file must be under 20MB."
+            : "Each IC file must be under 10MB.",
+      });
+    }
+  });
+
+export const helperApplicationSubmissionSchema = helperApplicationSchema.extend({
+  portfolioFiles: z
+    .array(helperApplicationUploadedFileSchema)
+    .min(1, "Upload at least one portfolio file.")
+    .max(5, "Upload up to 5 portfolio files.")
+    .superRefine((files, ctx) => {
+      files.forEach((file, index) => {
+        if (file.kind !== "PORTFOLIO") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [index, "kind"],
+            message: "Portfolio uploads must be tagged as portfolio files.",
+          });
+        }
+      });
+    }),
+  identityFrontFile: helperApplicationUploadedFileSchema
+    .optional()
+    .nullable(),
+  identityBackFile: helperApplicationUploadedFileSchema
+    .optional()
+    .nullable(),
+}).superRefine((value, ctx) => {
+  const hasFront = Boolean(value.identityFrontFile);
+  const hasBack = Boolean(value.identityBackFile);
+
+  if (hasFront !== hasBack) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["identityFrontFile"],
+      message: "Upload both IC Front and IC Back, or leave both blank.",
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["identityBackFile"],
+      message: "Upload both IC Front and IC Back, or leave both blank.",
+    });
+  }
+
+  if (value.identityFrontFile && value.identityFrontFile.kind !== "IDENTITY_FRONT") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["identityFrontFile", "kind"],
+      message: "IC Front upload is invalid.",
+    });
+  }
+
+  if (value.identityBackFile && value.identityBackFile.kind !== "IDENTITY_BACK") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["identityBackFile", "kind"],
+      message: "IC Back upload is invalid.",
+    });
+  }
 });
 
 export const helperSelfProfileSchema = z.object({

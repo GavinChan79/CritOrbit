@@ -12,6 +12,17 @@ const allowedApplicationMimeTypes = [
 
 export const maxPortfolioFiles = 5;
 export const maxApplicationFileSizeBytes = 20 * 1024 * 1024;
+export const maxPortfolioApplicationFileSizeBytes = 20 * 1024 * 1024;
+export const maxIdentityApplicationFileSizeBytes = 10 * 1024 * 1024;
+export const helperApplicationUploadPrefix = "helper-applications/";
+export const helperApplicationUploadKinds = [
+  "PORTFOLIO",
+  "IDENTITY_FRONT",
+  "IDENTITY_BACK",
+] as const;
+
+export type HelperApplicationUploadKind =
+  (typeof helperApplicationUploadKinds)[number];
 
 export function getHelperApplicationMessage(
   status: HelperApplicationNotificationStatus,
@@ -129,6 +140,36 @@ export function isAllowedApplicationFile(fileName: string, mimeType: string) {
 
 export function sanitizeApplicationFileName(fileName: string) {
   return fileName.replace(/[^\w.\- ]/g, "_");
+}
+
+export function isValidHelperApplicationUploadKind(
+  value: string,
+): value is HelperApplicationUploadKind {
+  return (
+    helperApplicationUploadKinds as readonly string[]
+  ).includes(value);
+}
+
+export function getHelperApplicationFileSizeLimit(kind: HelperApplicationUploadKind) {
+  return kind === "PORTFOLIO"
+    ? maxPortfolioApplicationFileSizeBytes
+    : maxIdentityApplicationFileSizeBytes;
+}
+
+export function buildHelperApplicationUploadPathname(params: {
+  uploadKey: string;
+  kind: HelperApplicationUploadKind;
+  fileName: string;
+}) {
+  const folder =
+    params.kind === "PORTFOLIO" ? "portfolio" : "identity";
+  const safeFileName = sanitizeApplicationFileName(params.fileName);
+
+  return `${helperApplicationUploadPrefix}${params.uploadKey}/${folder}/${Date.now()}-${safeFileName}`;
+}
+
+export function isHelperApplicationBlobPathname(pathname: string) {
+  return pathname.startsWith(helperApplicationUploadPrefix);
 }
 
 export function getApplicationFileTitle(fileName: string, fallback: string) {

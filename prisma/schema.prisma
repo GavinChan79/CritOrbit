@@ -214,6 +214,8 @@ model HelperApplicationFile {
   mimeType   String
   sizeBytes  Int
   content    Bytes
+  blobUrl    String?
+  blobPathname String?
   createdAt  DateTime                  @default(now())
   updatedAt  DateTime                  @updatedAt
   helper     Helper                    @relation(fields: [helperId], references: [id], onDelete: Cascade)

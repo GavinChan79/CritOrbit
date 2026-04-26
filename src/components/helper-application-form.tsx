@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { buttonStyles, InputShell } from "@/components/ui-primitives";
 import {
   categoryOptions,
-  helperExperienceLevelOptions,
   helperAgreementItems,
+  helperExperienceLevelOptions,
   helperPriceAnchorOptions,
   helperTypeOptions,
 } from "@/lib/constants";
 import {
+  buildHelperApplicationUploadPathname,
+  isAllowedApplicationFile,
+  maxIdentityApplicationFileSizeBytes,
+  maxPortfolioApplicationFileSizeBytes,
   maxPortfolioFiles,
+  sanitizeApplicationFileName,
+  type HelperApplicationUploadKind,
 } from "@/lib/helper-applications";
 import { cn } from "@/lib/utils";
 import { helperApplicationSchema } from "@/lib/validators";
@@ -23,6 +30,19 @@ type AgreementState = {
   serviceTerms: boolean;
 };
 
+type UploadedApplicationFile = {
+  clientId: string;
+  kind: HelperApplicationUploadKind;
+  filename: string;
+  contentType: string;
+  size: number;
+  pathname: string;
+  url: string;
+  progress: number;
+  status: "uploading" | "uploaded" | "error";
+  errorMessage?: string;
+};
+
 const defaultAgreements: AgreementState = {
   originalWork: false,
   noScamGhosting: false,
@@ -31,15 +51,12 @@ const defaultAgreements: AgreementState = {
   serviceTerms: false,
 };
 
-const maxPortfolioFileSizeBytes = 2 * 1024 * 1024;
-const maxIdentityFileSizeBytes = 5 * 1024 * 1024;
-const maxClientTotalUploadBytes = 8 * 1024 * 1024;
-
 export function HelperApplicationForm() {
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [uploadKey, setUploadKey] = useState(createUploadKey);
   const [form, setForm] = useState({
     name: "",
     type: "INDIVIDUAL",
@@ -52,12 +69,22 @@ export function HelperApplicationForm() {
     whatsappNumber: "",
     confirmations: defaultAgreements,
   });
-  const [portfolioFiles, setPortfolioFiles] = useState<File[]>([]);
-  const [identityFrontFile, setIdentityFrontFile] = useState<File | null>(null);
-  const [identityBackFile, setIdentityBackFile] = useState<File | null>(null);
+  const [portfolioUploads, setPortfolioUploads] = useState<UploadedApplicationFile[]>([]);
+  const [identityFrontUpload, setIdentityFrontUpload] =
+    useState<UploadedApplicationFile | null>(null);
+  const [identityBackUpload, setIdentityBackUpload] =
+    useState<UploadedApplicationFile | null>(null);
+
   const allAgreementsAccepted = Object.values(form.confirmations).every(Boolean);
+  const hasUploadingFiles = useMemo(
+    () =>
+      [...portfolioUploads, identityFrontUpload, identityBackUpload]
+        .filter((file): file is UploadedApplicationFile => Boolean(file))
+        .some((file) => file.status === "uploading"),
+    [identityBackUpload, identityFrontUpload, portfolioUploads],
+  );
   const totalUploadMegabytes = formatMegabytes(
-    getTotalUploadBytes(portfolioFiles, identityFrontFile, identityBackFile),
+    getTotalUploadBytes(portfolioUploads, identityFrontUpload, identityBackUpload),
   );
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -67,68 +94,46 @@ export function HelperApplicationForm() {
     setSuccess("");
   }
 
-  function appendPortfolioFiles(nextFiles: FileList | null) {
+  async function appendPortfolioFiles(nextFiles: FileList | null) {
     const incomingFiles = Array.from(nextFiles ?? []);
 
     if (incomingFiles.length === 0) {
       return;
     }
 
-    const oversizeFile = incomingFiles.find((file) => file.size > maxPortfolioFileSizeBytes);
+    setError("");
+    setSuccess("");
+    setFieldErrors((current) => ({ ...current, portfolioFiles: "" }));
 
-    if (oversizeFile) {
-      setFieldErrors((current) => ({
-        ...current,
-        portfolioFiles: "Each portfolio file must be under 2MB",
-      }));
-      setError("Each portfolio file must be under 2MB");
-      setSuccess("");
+    const currentCount = portfolioUploads.filter((file) => file.status !== "error").length;
+    if (currentCount + incomingFiles.length > maxPortfolioFiles) {
+      const message = `Upload up to ${maxPortfolioFiles} portfolio files.`;
+      setFieldErrors((current) => ({ ...current, portfolioFiles: message }));
+      setError(message);
       return;
     }
 
-    setPortfolioFiles((current) => {
-      const merged = [...current];
-
-      for (const file of incomingFiles) {
-        const alreadyAdded = merged.some(
-          (existing) =>
-            existing.name === file.name &&
-            existing.size === file.size &&
-            existing.lastModified === file.lastModified,
-        );
-
-        if (!alreadyAdded && merged.length < maxPortfolioFiles) {
-          merged.push(file);
-        }
+    for (const file of incomingFiles) {
+      const validationError = validateFile(file, "PORTFOLIO");
+      if (validationError) {
+        setFieldErrors((current) => ({ ...current, portfolioFiles: validationError }));
+        setError(validationError);
+        continue;
       }
 
-      const totalBytes = getTotalUploadBytes(merged, identityFrontFile, identityBackFile);
-
-      if (totalBytes > maxClientTotalUploadBytes) {
-        setFieldErrors((currentErrors) => ({
-          ...currentErrors,
-          portfolioFiles: "Total upload size too large. Please reduce file size.",
-        }));
-        setError("Total upload size too large. Please reduce file size.");
-        setSuccess("");
-        return current;
-      }
-
-      return merged;
-    });
-    setFieldErrors((current) => ({ ...current, portfolioFiles: "" }));
-    setError("");
-    setSuccess("");
+      await uploadApplicationFile(file, "PORTFOLIO");
+    }
   }
 
-  function updateIdentityFile(side: "front" | "back", file: File | null) {
+  async function updateIdentityFile(side: "front" | "back", file: File | null) {
+    const kind = side === "front" ? "IDENTITY_FRONT" : "IDENTITY_BACK";
     const fieldKey = side === "front" ? "identityFrontFile" : "identityBackFile";
 
     if (!file) {
       if (side === "front") {
-        setIdentityFrontFile(null);
+        setIdentityFrontUpload(null);
       } else {
-        setIdentityBackFile(null);
+        setIdentityBackUpload(null);
       }
       setFieldErrors((current) => ({ ...current, [fieldKey]: "" }));
       setError("");
@@ -136,37 +141,152 @@ export function HelperApplicationForm() {
       return;
     }
 
-    if (file.size > maxIdentityFileSizeBytes) {
-      setFieldErrors((current) => ({
-        ...current,
-        [fieldKey]: "Each IC file must be under 5MB",
-      }));
-      setError("Each IC file must be under 5MB");
+    const validationError = validateFile(file, kind);
+    if (validationError) {
+      setFieldErrors((current) => ({ ...current, [fieldKey]: validationError }));
+      setError(validationError);
       setSuccess("");
       return;
-    }
-
-    const nextFrontFile = side === "front" ? file : identityFrontFile;
-    const nextBackFile = side === "back" ? file : identityBackFile;
-    const totalBytes = getTotalUploadBytes(portfolioFiles, nextFrontFile, nextBackFile);
-
-    if (totalBytes > maxClientTotalUploadBytes) {
-      setFieldErrors((current) => ({
-        ...current,
-        [fieldKey]: "Total upload size too large. Please reduce file size.",
-      }));
-      setError("Total upload size too large. Please reduce file size.");
-      setSuccess("");
-      return;
-    }
-
-    if (side === "front") {
-      setIdentityFrontFile(file);
-    } else {
-      setIdentityBackFile(file);
     }
 
     setFieldErrors((current) => ({ ...current, [fieldKey]: "" }));
+    setError("");
+    setSuccess("");
+    await uploadApplicationFile(file, kind);
+  }
+
+  async function uploadApplicationFile(
+    file: File,
+    kind: HelperApplicationUploadKind,
+  ) {
+    const clientId = `${kind}-${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`;
+    const baseEntry: UploadedApplicationFile = {
+      clientId,
+      kind,
+      filename: sanitizeApplicationFileName(file.name),
+      contentType: file.type || "application/octet-stream",
+      size: file.size,
+      pathname: "",
+      url: "",
+      progress: 0,
+      status: "uploading",
+    };
+
+    setUploadState(kind, baseEntry);
+
+    try {
+      const pathname = buildHelperApplicationUploadPathname({
+        uploadKey,
+        kind,
+        fileName: file.name,
+      });
+      const blob = await upload(pathname, file, {
+        access: "private",
+        handleUploadUrl: "/api/uploads/helper-application",
+        clientPayload: JSON.stringify({
+          kind,
+          uploadKey,
+          filename: file.name,
+        }),
+        multipart: file.size > 5 * 1024 * 1024,
+        onUploadProgress: ({ percentage }) => {
+          setUploadProgress(kind, clientId, percentage);
+        },
+      });
+
+      setUploadState(kind, {
+        ...baseEntry,
+        pathname: blob.pathname,
+        url: blob.url,
+        progress: 100,
+        status: "uploaded",
+      });
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "File upload failed. Please try again.";
+
+      setUploadState(kind, {
+        ...baseEntry,
+        status: "error",
+        progress: 0,
+        errorMessage: message,
+      });
+      setFieldErrors((current) => ({
+        ...current,
+        [kind === "PORTFOLIO" ? "portfolioFiles" : kind === "IDENTITY_FRONT" ? "identityFrontFile" : "identityBackFile"]:
+          message,
+      }));
+      setError(message);
+      setSuccess("");
+    }
+  }
+
+  function setUploadState(kind: HelperApplicationUploadKind, nextEntry: UploadedApplicationFile) {
+    if (kind === "PORTFOLIO") {
+      setPortfolioUploads((current) => {
+        const existingIndex = current.findIndex((file) => file.clientId === nextEntry.clientId);
+        if (existingIndex === -1) {
+          return [...current, nextEntry];
+        }
+
+        const next = [...current];
+        next[existingIndex] = nextEntry;
+        return next;
+      });
+      return;
+    }
+
+    if (kind === "IDENTITY_FRONT") {
+      setIdentityFrontUpload(nextEntry);
+      return;
+    }
+
+    setIdentityBackUpload(nextEntry);
+  }
+
+  function setUploadProgress(
+    kind: HelperApplicationUploadKind,
+    clientId: string,
+    progress: number,
+  ) {
+    if (kind === "PORTFOLIO") {
+      setPortfolioUploads((current) =>
+        current.map((file) =>
+          file.clientId === clientId ? { ...file, progress } : file,
+        ),
+      );
+      return;
+    }
+
+    if (kind === "IDENTITY_FRONT") {
+      setIdentityFrontUpload((current) =>
+        current?.clientId === clientId ? { ...current, progress } : current,
+      );
+      return;
+    }
+
+    setIdentityBackUpload((current) =>
+      current?.clientId === clientId ? { ...current, progress } : current,
+    );
+  }
+
+  function removePortfolioUpload(clientId: string) {
+    setPortfolioUploads((current) => current.filter((file) => file.clientId !== clientId));
+    setFieldErrors((current) => ({ ...current, portfolioFiles: "" }));
+    setError("");
+    setSuccess("");
+  }
+
+  function removeIdentityUpload(side: "front" | "back") {
+    if (side === "front") {
+      setIdentityFrontUpload(null);
+      setFieldErrors((current) => ({ ...current, identityFrontFile: "" }));
+    } else {
+      setIdentityBackUpload(null);
+      setFieldErrors((current) => ({ ...current, identityBackFile: "" }));
+    }
     setError("");
     setSuccess("");
   }
@@ -207,106 +327,74 @@ export function HelperApplicationForm() {
       return;
     }
 
-    if (portfolioFiles.length === 0) {
+    if (hasUploadingFiles) {
+      setError("Please wait for all files to finish uploading before submitting.");
+      setPending(false);
+      return;
+    }
+
+    const uploadedPortfolioFiles = portfolioUploads.filter(
+      (file): file is UploadedApplicationFile =>
+        file.status === "uploaded" && file.kind === "PORTFOLIO",
+    );
+
+    if (uploadedPortfolioFiles.length === 0) {
       setFieldErrors({ portfolioFiles: "Upload at least one portfolio file." });
       setError("Upload at least one portfolio file.");
       setPending(false);
       return;
     }
 
-    if (portfolioFiles.length > maxPortfolioFiles) {
+    if (uploadedPortfolioFiles.length > maxPortfolioFiles) {
       setFieldErrors({ portfolioFiles: `Upload up to ${maxPortfolioFiles} portfolio files.` });
       setError(`Upload up to ${maxPortfolioFiles} portfolio files.`);
       setPending(false);
       return;
     }
 
-    const oversizePortfolio = portfolioFiles.find(
-      (file) => file.size > maxPortfolioFileSizeBytes,
-    );
-    if (oversizePortfolio) {
-      setFieldErrors({ portfolioFiles: "Each portfolio file must be under 2MB" });
-      setError("Each portfolio file must be under 2MB");
-      setPending(false);
-      return;
-    }
+    const uploadedIdentityFront =
+      identityFrontUpload?.status === "uploaded" ? identityFrontUpload : null;
+    const uploadedIdentityBack =
+      identityBackUpload?.status === "uploaded" ? identityBackUpload : null;
 
-    if (Boolean(identityFrontFile) !== Boolean(identityBackFile)) {
+    if (Boolean(uploadedIdentityFront) !== Boolean(uploadedIdentityBack)) {
       setFieldErrors({
-        identityFrontFile: identityFrontFile ? "" : "Upload both IC files or leave both blank.",
-        identityBackFile: identityBackFile ? "" : "Upload both IC files or leave both blank.",
+        identityFrontFile: uploadedIdentityFront ? "" : "Upload both IC files or leave both blank.",
+        identityBackFile: uploadedIdentityBack ? "" : "Upload both IC files or leave both blank.",
       });
       setError("Upload both IC files or leave both blank.");
       setPending(false);
       return;
     }
 
-    const identityFiles = [identityFrontFile, identityBackFile].filter(
-      (file): file is File => Boolean(file),
-    );
-    const oversizeIdentity = identityFiles.find(
-      (file) => file.size > maxIdentityFileSizeBytes,
-    );
-    if (oversizeIdentity) {
-      setError("Each IC file must be under 5MB");
-      setFieldErrors({
-        identityFrontFile:
-          identityFrontFile?.size && identityFrontFile.size > maxIdentityFileSizeBytes
-            ? "Each IC file must be under 5MB"
-            : "",
-        identityBackFile:
-          identityBackFile?.size && identityBackFile.size > maxIdentityFileSizeBytes
-            ? "Each IC file must be under 5MB"
-            : "",
-      });
-      setPending(false);
-      return;
-    }
+    const failedUpload = [
+      ...portfolioUploads,
+      identityFrontUpload,
+      identityBackUpload,
+    ]
+      .filter((file): file is UploadedApplicationFile => Boolean(file))
+      .find((file) => file.status === "error");
 
-    const totalUploadBytes = getTotalUploadBytes(
-      portfolioFiles,
-      identityFrontFile,
-      identityBackFile,
-    );
-
-    if (totalUploadBytes > maxClientTotalUploadBytes) {
-      setFieldErrors({
-        portfolioFiles: "Total upload size too large. Please reduce file size.",
-        identityFrontFile: "Total upload size too large. Please reduce file size.",
-        identityBackFile: "Total upload size too large. Please reduce file size.",
-      });
-      setError("Total upload size too large. Please reduce file size.");
+    if (failedUpload) {
+      setError("Please remove failed uploads or upload the file again before submitting.");
       setPending(false);
       return;
     }
 
     try {
-      const formData = new FormData();
-      formData.append("name", parsed.data.name);
-      formData.append("type", parsed.data.type);
-      if (parsed.data.teamSize) {
-        formData.append("teamSize", String(parsed.data.teamSize));
-      }
-      formData.append("category", parsed.data.category);
-      formData.append("experience", parsed.data.experience);
-      formData.append("portfolioNote", parsed.data.portfolioNote ?? "");
-      formData.append("priceAnchor", parsed.data.priceAnchor);
-      formData.append("email", parsed.data.email);
-      formData.append("whatsappNumber", parsed.data.whatsappNumber);
-      for (const [key, value] of Object.entries(parsed.data.confirmations)) {
-        formData.append(`confirmations.${key}`, String(value));
-      }
-      portfolioFiles.forEach((file) => formData.append("portfolioFiles", file));
-      if (identityFrontFile) {
-        formData.append("identityFrontFile", identityFrontFile);
-      }
-      if (identityBackFile) {
-        formData.append("identityBackFile", identityBackFile);
-      }
-
       const response = await fetch("/api/helpers/applications", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...parsed.data,
+          portfolioFiles: uploadedPortfolioFiles.map(serializeUploadedFile),
+          identityFrontFile: uploadedIdentityFront
+            ? serializeUploadedFile(uploadedIdentityFront)
+            : null,
+          identityBackFile: uploadedIdentityBack
+            ? serializeUploadedFile(uploadedIdentityBack)
+            : null,
+        }),
       });
       const responseText = await response.text();
       const json = safeJsonParse(responseText);
@@ -330,9 +418,10 @@ export function HelperApplicationForm() {
         whatsappNumber: "",
         confirmations: defaultAgreements,
       });
-      setPortfolioFiles([]);
-      setIdentityFrontFile(null);
-      setIdentityBackFile(null);
+      setPortfolioUploads([]);
+      setIdentityFrontUpload(null);
+      setIdentityBackUpload(null);
+      setUploadKey(createUploadKey());
     } catch {
       setError("Could not submit your application. Please review the form and try again.");
     } finally {
@@ -415,7 +504,9 @@ export function HelperApplicationForm() {
         <InputShell label="WhatsApp Number" error={fieldErrors.whatsappNumber}>
           <input
             value={form.whatsappNumber}
-            onChange={(event) => setField("whatsappNumber", event.target.value.replace(/[^\d]/g, ""))}
+            onChange={(event) =>
+              setField("whatsappNumber", event.target.value.replace(/[^\d]/g, ""))
+            }
             className={inputClass(fieldErrors.whatsappNumber)}
             placeholder="60123456789"
           />
@@ -473,7 +564,7 @@ export function HelperApplicationForm() {
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
         <div className="display-font text-2xl font-black">Portfolio Files</div>
         <p className="mt-2 text-sm text-muted">
-          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 2MB per file. Recommended to compress images.
+          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 20MB per file.
         </p>
         <div className="mt-4">
           <InputShell label="Portfolio Uploads" error={fieldErrors.portfolioFiles}>
@@ -482,37 +573,29 @@ export function HelperApplicationForm() {
               accept=".png,.jpg,.jpeg,.pdf"
               multiple
               onChange={(event) => {
-                appendPortfolioFiles(event.target.files);
+                void appendPortfolioFiles(event.target.files);
                 event.target.value = "";
               }}
               className={inputClass(fieldErrors.portfolioFiles)}
             />
           </InputShell>
-          {portfolioFiles.length ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {portfolioFiles.map((file, index) => (
-                <button
-                  key={`${file.name}-${file.lastModified}`}
-                  type="button"
-                  onClick={() =>
-                    setPortfolioFiles((current) =>
-                      current.filter((_, fileIndex) => fileIndex !== index),
-                    )
+          {portfolioUploads.length ? (
+            <div className="mt-3 space-y-2">
+              {portfolioUploads.map((file) => (
+                <UploadFileRow
+                  key={file.clientId}
+                  file={file}
+                  onRemove={
+                    file.status === "uploading"
+                      ? undefined
+                      : () => removePortfolioUpload(file.clientId)
                   }
-                  className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase"
-                >
-                  {file.name} ×
-                </button>
+                />
               ))}
             </div>
           ) : null}
-          <p
-            className={cn(
-              "mt-3 text-xs font-semibold",
-              totalUploadMegabytes > 6.4 ? "text-red" : "text-muted",
-            )}
-          >
-            Uploaded: {totalUploadMegabytes.toFixed(1)} MB / 8 MB
+          <p className="mt-3 text-xs font-semibold text-muted">
+            Uploaded: {totalUploadMegabytes.toFixed(1)} MB total
           </p>
         </div>
       </div>
@@ -527,7 +610,9 @@ export function HelperApplicationForm() {
             <input
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
-              onChange={(event) => updateIdentityFile("front", event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                void updateIdentityFile("front", event.target.files?.[0] ?? null)
+              }
               className={inputClass(fieldErrors.identityFrontFile)}
             />
           </InputShell>
@@ -535,14 +620,38 @@ export function HelperApplicationForm() {
             <input
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
-              onChange={(event) => updateIdentityFile("back", event.target.files?.[0] ?? null)}
+              onChange={(event) =>
+                void updateIdentityFile("back", event.target.files?.[0] ?? null)
+              }
               className={inputClass(fieldErrors.identityBackFile)}
             />
           </InputShell>
         </div>
-        <p className="mt-4 text-sm text-muted">
-          Max 5MB per file. Recommended to compress images.
-        </p>
+        <p className="mt-4 text-sm text-muted">Max 10MB per file.</p>
+        <div className="mt-4 space-y-2">
+          {identityFrontUpload ? (
+            <UploadFileRow
+              file={identityFrontUpload}
+              label="IC Front"
+              onRemove={
+                identityFrontUpload.status === "uploading"
+                  ? undefined
+                  : () => removeIdentityUpload("front")
+              }
+            />
+          ) : null}
+          {identityBackUpload ? (
+            <UploadFileRow
+              file={identityBackUpload}
+              label="IC Back"
+              onRemove={
+                identityBackUpload.status === "uploading"
+                  ? undefined
+                  : () => removeIdentityUpload("back")
+              }
+            />
+          ) : null}
+        </div>
         <p className="mt-4 text-sm leading-7 text-muted">
           To protect both users and helpers and to maintain a reliable system, we will only use the information for internal verification purposes, and it will not be shared externally.
         </p>
@@ -594,8 +703,16 @@ export function HelperApplicationForm() {
       {error ? <p className="text-sm font-bold text-red">{error}</p> : null}
       {success ? <p className="text-sm font-bold text-green">{success}</p> : null}
 
-      <button type="submit" disabled={pending} className={buttonStyles({ tone: "purple", size: "lg" })}>
-        {pending ? "Submitting..." : "Submit Helper Application"}
+      <button
+        type="submit"
+        disabled={pending || hasUploadingFiles}
+        className={buttonStyles({ tone: "purple", size: "lg" })}
+      >
+        {pending
+          ? "Submitting..."
+          : hasUploadingFiles
+            ? "Uploading files..."
+            : "Submit Helper Application"}
       </button>
     </form>
   );
@@ -608,6 +725,45 @@ const agreementKeyOrder: Array<keyof AgreementState> = [
   "deadlinesCommunication",
   "serviceTerms",
 ];
+
+function UploadFileRow({
+  file,
+  label,
+  onRemove,
+}: {
+  file: UploadedApplicationFile;
+  label?: string;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[16px] border-[3px] border-line bg-white px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-black text-ink">
+          {label ? `${label}: ` : ""}
+          {file.filename}
+        </div>
+        <div className="mt-1 text-xs font-semibold text-muted">
+          {formatMegabytes(file.size).toFixed(1)} MB
+          {" · "}
+          {file.status === "uploading"
+            ? `Uploading ${Math.round(file.progress)}%`
+            : file.status === "uploaded"
+              ? "Uploaded"
+              : file.errorMessage ?? "Upload failed"}
+        </div>
+      </div>
+      {onRemove ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          className={buttonStyles({ tone: "ink", size: "sm" })}
+        >
+          Remove
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 function inputClass(error?: string) {
   return cn(
@@ -644,17 +800,57 @@ function safeJsonParse(value: string): { error?: string; message?: string } {
 }
 
 function getTotalUploadBytes(
-  portfolioFiles: File[],
-  identityFrontFile: File | null,
-  identityBackFile: File | null,
+  portfolioFiles: UploadedApplicationFile[],
+  identityFrontFile: UploadedApplicationFile | null,
+  identityBackFile: UploadedApplicationFile | null,
 ) {
   return (
-    portfolioFiles.reduce((total, file) => total + file.size, 0) +
-    (identityFrontFile?.size ?? 0) +
-    (identityBackFile?.size ?? 0)
+    portfolioFiles
+      .filter((file) => file.status !== "error")
+      .reduce((total, file) => total + file.size, 0) +
+    (identityFrontFile?.status === "error" ? 0 : identityFrontFile?.size ?? 0) +
+    (identityBackFile?.status === "error" ? 0 : identityBackFile?.size ?? 0)
   );
 }
 
 function formatMegabytes(bytes: number) {
   return bytes / (1024 * 1024);
+}
+
+function createUploadKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `helperapp-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function validateFile(file: File, kind: HelperApplicationUploadKind) {
+  if (!isAllowedApplicationFile(file.name, file.type || "")) {
+    return "Only PDF, PNG, JPG, and JPEG files are supported.";
+  }
+
+  const sizeLimit =
+    kind === "PORTFOLIO"
+      ? maxPortfolioApplicationFileSizeBytes
+      : maxIdentityApplicationFileSizeBytes;
+
+  if (file.size > sizeLimit) {
+    return kind === "PORTFOLIO"
+      ? "Each portfolio file must be under 20MB"
+      : "Each IC file must be under 10MB";
+  }
+
+  return "";
+}
+
+function serializeUploadedFile(file: UploadedApplicationFile) {
+  return {
+    url: file.url,
+    pathname: file.pathname,
+    filename: file.filename,
+    contentType: file.contentType,
+    size: file.size,
+    kind: file.kind,
+  };
 }

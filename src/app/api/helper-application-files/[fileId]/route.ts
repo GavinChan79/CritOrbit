@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { get } from "@vercel/blob";
 import { UserRole } from "@prisma/client";
 import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -16,6 +17,7 @@ export async function GET(
       fileName: true,
       mimeType: true,
       content: true,
+      blobPathname: true,
       kind: true,
       helper: {
         select: {
@@ -47,6 +49,38 @@ export async function GET(
 
   if (!isAdmin && !isHelperOwner && !isPublicPortfolioFile) {
     return NextResponse.json({ error: "Access denied." }, { status: 403 });
+  }
+
+  if (file.blobPathname) {
+    const blob = await get(file.blobPathname, {
+      access: "private",
+      ifNoneMatch: request.headers.get("if-none-match") ?? undefined,
+    });
+
+    if (!blob) {
+      return NextResponse.json({ error: "File not found." }, { status: 404 });
+    }
+
+    if (blob.statusCode === 304) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          ETag: blob.blob.etag,
+          "Cache-Control":
+            isAdmin || isHelperOwner ? "private, no-cache" : "public, max-age=3600",
+        },
+      });
+    }
+
+    return new NextResponse(blob.stream, {
+      headers: {
+        "Content-Type": blob.blob.contentType,
+        "Content-Disposition": `inline; filename="${file.fileName}"`,
+        ETag: blob.blob.etag,
+        "Cache-Control":
+          isAdmin || isHelperOwner ? "private, no-cache" : "public, max-age=3600",
+      },
+    });
   }
 
   return new NextResponse(Buffer.from(file.content), {
