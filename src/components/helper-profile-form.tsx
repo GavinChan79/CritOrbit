@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   categoryOptions,
+  getDefaultTaskTypeForCategory,
+  getTaskTypeOptionsForCategory,
   helperDeliveryTimeOptions,
   helperPriceAnchorOptions,
   helperResponseTimeOptions,
+  helperSpecialtyPresetOptions,
+  maxHelperSpecialties,
 } from "@/lib/constants";
 import { buttonStyles, Card, InputShell } from "@/components/ui-primitives";
+import { slugifySpecialtyLabel, type HelperSpecialty } from "@/lib/helpers";
 
 type HelperProfileFormValues = {
   name: string;
@@ -20,7 +25,10 @@ type HelperProfileFormValues = {
   whatsappNumber: string;
   responseTime: string;
   deliveryTime: string;
+  specialties: HelperSpecialty[];
 };
+
+const customSpecialtyValue = "__custom__";
 
 export function HelperProfileForm(props: {
   initialValues: HelperProfileFormValues;
@@ -42,8 +50,133 @@ export function HelperProfileForm(props: {
     }));
   }
 
+  function updateSpecialty(index: number, patch: Partial<HelperSpecialty>) {
+    setValues((current) => ({
+      ...current,
+      specialties: current.specialties.map((specialty, specialtyIndex) =>
+        specialtyIndex === index ? { ...specialty, ...patch } : specialty,
+      ),
+    }));
+    setStatus(null);
+  }
+
+  function addSpecialty() {
+    if (values.specialties.length >= maxHelperSpecialties) {
+      setStatus({
+        tone: "error",
+        message: `You can add up to ${maxHelperSpecialties} specialties.`,
+      });
+      return;
+    }
+
+    setValues((current) => ({
+      ...current,
+      specialties: [
+        ...current.specialties,
+        {
+          code: "",
+          label: "",
+          taskTypes: [getDefaultTaskTypeForCategory(current.category)],
+        },
+      ],
+    }));
+    setStatus(null);
+  }
+
+  function removeSpecialty(index: number) {
+    setValues((current) => ({
+      ...current,
+      specialties:
+        current.specialties.length === 1
+          ? [
+              {
+                code: "",
+                label: "",
+                taskTypes: [getDefaultTaskTypeForCategory(current.category)],
+              },
+            ]
+          : current.specialties.filter((_, specialtyIndex) => specialtyIndex !== index),
+    }));
+    setStatus(null);
+  }
+
+  function applySpecialtyPreset(index: number, presetValue: string) {
+    if (presetValue === customSpecialtyValue) {
+      setValues((current) => ({
+        ...current,
+        specialties: current.specialties.map((specialty, specialtyIndex) =>
+          specialtyIndex === index
+            ? {
+                ...specialty,
+                label: specialty.label || "",
+                code: specialty.label ? slugifySpecialtyLabel(specialty.label) : "",
+              }
+            : specialty,
+        ),
+      }));
+      setStatus(null);
+      return;
+    }
+
+    const preset = helperSpecialtyPresetOptions.find((item) => item.value === presetValue);
+    if (!preset) {
+      return;
+    }
+
+    const duplicate = values.specialties.some(
+      (specialty, specialtyIndex) =>
+        specialtyIndex !== index && specialty.code.toLowerCase() === preset.value,
+    );
+
+    if (duplicate) {
+      setStatus({
+        tone: "error",
+        message: "That specialty is already added.",
+      });
+      return;
+    }
+
+    updateSpecialty(index, {
+      code: preset.value,
+      label: preset.label,
+      taskTypes: [...preset.defaultTaskTypes],
+    });
+  }
+
+  function updateCustomSpecialtyLabel(index: number, label: string) {
+    updateSpecialty(index, {
+      label,
+      code: slugifySpecialtyLabel(label),
+    });
+  }
+
+  function toggleTaskType(index: number, taskType: string) {
+    setValues((current) => ({
+      ...current,
+      specialties: current.specialties.map((specialty, specialtyIndex) => {
+        if (specialtyIndex !== index) {
+          return specialty;
+        }
+
+        const exists = specialty.taskTypes.includes(taskType);
+        const nextTaskTypes = exists
+          ? specialty.taskTypes.filter((value) => value !== taskType)
+          : [...specialty.taskTypes, taskType];
+
+        return {
+          ...specialty,
+          taskTypes: nextTaskTypes.length
+            ? nextTaskTypes
+            : [getDefaultTaskTypeForCategory(current.category)],
+        };
+      }),
+    }));
+    setStatus(null);
+  }
+
   const selectClass =
     "w-full appearance-none rounded-[18px] border-[3px] border-line bg-paper px-4 py-3 pr-11 text-ink outline-none";
+  const taskTypeOptions = getTaskTypeOptionsForCategory(values.category);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -183,6 +316,117 @@ export function HelperProfileForm(props: {
               ))}
             </select>
           </InputShell>
+        </div>
+
+        <div className="space-y-4 rounded-[22px] border-[3px] border-line bg-cream p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="display-font text-2xl font-black">Specialties / Tags</div>
+              <p className="mt-2 text-sm text-muted">
+                Pick up to {maxHelperSpecialties} specialties so students see your strongest capabilities clearly.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addSpecialty}
+              className={buttonStyles({ tone: "yellow", size: "sm" })}
+            >
+              Add Specialty
+            </button>
+          </div>
+
+          {values.specialties.map((specialty, index) => {
+            const availablePresets = helperSpecialtyPresetOptions.filter(
+              (preset) =>
+                (preset.categories as readonly string[]).includes(values.category) &&
+                !values.specialties.some(
+                  (currentSpecialty, specialtyIndex) =>
+                    specialtyIndex !== index &&
+                    currentSpecialty.code.toLowerCase() === preset.value,
+                ),
+            );
+            const matchedPreset = helperSpecialtyPresetOptions.find(
+              (preset) => preset.value === specialty.code,
+            );
+            const selectedPresetValue = matchedPreset?.value ?? customSpecialtyValue;
+
+            return (
+              <div
+                key={`${specialty.code || "specialty"}-${index}`}
+                className="rounded-[18px] border-[3px] border-line bg-white p-4"
+              >
+                <div className="grid gap-4 md:grid-cols-2">
+                  <InputShell label="Specialty Preset">
+                    <select
+                      value={selectedPresetValue}
+                      onChange={(event) => applySpecialtyPreset(index, event.target.value)}
+                      className={selectClass}
+                    >
+                      {matchedPreset ? (
+                        <option value={matchedPreset.value}>{matchedPreset.label}</option>
+                      ) : null}
+                      {availablePresets.map((preset) => (
+                        <option key={preset.value} value={preset.value}>
+                          {preset.label}
+                        </option>
+                      ))}
+                      <option value={customSpecialtyValue}>Custom Specialty</option>
+                    </select>
+                  </InputShell>
+
+                  <InputShell label="Label">
+                    <input
+                      value={specialty.label}
+                      onChange={(event) =>
+                        matchedPreset ? undefined : updateCustomSpecialtyLabel(index, event.target.value)
+                      }
+                      disabled={Boolean(matchedPreset)}
+                      className="w-full rounded-[16px] border-[3px] border-line bg-paper px-4 py-3 outline-none"
+                      placeholder={matchedPreset ? matchedPreset.label : "Financial Modeling"}
+                    />
+                  </InputShell>
+                </div>
+
+                <div className="mt-3 rounded-[16px] border-[3px] border-line bg-paper px-4 py-3 text-sm text-muted">
+                  <span className="font-black text-ink">Code:</span>{" "}
+                  {specialty.code || "Will be generated automatically"}
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
+                    Task Types
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {taskTypeOptions.map((option) => {
+                      const active = specialty.taskTypes.includes(option.value);
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => toggleTaskType(index, option.value)}
+                          className={
+                            active
+                              ? "retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white"
+                              : "retro-pill bg-white px-3 py-1 text-xs font-black uppercase text-ink"
+                          }
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => removeSpecialty(index)}
+                  className={`mt-4 ${buttonStyles({ tone: "ink", size: "sm" })}`}
+                >
+                  Remove Specialty
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center">

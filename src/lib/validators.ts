@@ -5,6 +5,7 @@ import {
   helperPriceAnchorValues,
   helperPriceTierValues,
   helperTrustLevelValues,
+  maxHelperSpecialties,
   helperResponseTimeOptions,
   helperDeliveryTimeOptions,
   helperStatusValues,
@@ -134,7 +135,10 @@ export const helperSchema = z.object({
     .optional(),
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or more."),
   isActive: z.boolean(),
-  specialties: z.array(helperSpecialtySchema).min(1, "Add at least one specialty."),
+  specialties: z
+    .array(helperSpecialtySchema)
+    .min(1, "Add at least one specialty.")
+    .max(maxHelperSpecialties, `You can add up to ${maxHelperSpecialties} specialties.`),
 }).superRefine((value, ctx) => {
   if (value.type === "TEAM" && !value.teamSize) {
     ctx.addIssue({
@@ -334,6 +338,23 @@ export const helperSelfProfileSchema = z.object({
     .regex(/^\d{9,15}$/, "Use digits only for WhatsApp number."),
   responseTime: z.enum(helperResponseTimeOptions),
   deliveryTime: z.enum(helperDeliveryTimeOptions),
+  specialties: z
+    .array(helperSpecialtySchema)
+    .min(1, "Add at least one specialty.")
+    .max(maxHelperSpecialties, `You can add up to ${maxHelperSpecialties} specialties.`),
+}).superRefine((value, ctx) => {
+  const seenCodes = new Set<string>();
+  value.specialties.forEach((specialty, index) => {
+    const normalizedCode = specialty.code.trim().toLowerCase();
+    if (seenCodes.has(normalizedCode)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["specialties", index, "label"],
+        message: "Duplicate specialties are not allowed.",
+      });
+    }
+    seenCodes.add(normalizedCode);
+  });
 });
 
 export const helperPortfolioSchema = z.object({

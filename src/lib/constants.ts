@@ -148,6 +148,8 @@ export const helperDeliveryTimeOptions = [
   "1 week+",
 ] as const;
 
+export const maxHelperSpecialties = 8;
+
 export function normalizeHelperResponseTime(value?: string | null) {
   return helperResponseTimeOptions.includes(
     value as (typeof helperResponseTimeOptions)[number],
@@ -163,81 +165,6 @@ export function normalizeHelperDeliveryTime(value?: string | null) {
     ? (value as (typeof helperDeliveryTimeOptions)[number])
     : "2-3 days";
 }
-
-export const helperSpecialtyPresetOptions = [
-  {
-    value: "space-planning",
-    label: "Space Planning",
-    category: "INTERIOR_DESIGN",
-    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
-  },
-  {
-    value: "3d-rendering",
-    label: "3D Rendering",
-    category: "INTERIOR_DESIGN",
-    defaultTaskTypes: ["RENDERING", "PRESENTATION_BOARD"],
-  },
-  {
-    value: "material-board",
-    label: "Material Board",
-    category: "INTERIOR_DESIGN",
-    defaultTaskTypes: ["PRESENTATION_BOARD", "PORTFOLIO"],
-  },
-  {
-    value: "architectural-drawing",
-    label: "Architectural Drawing",
-    category: "ARCHITECTURE",
-    defaultTaskTypes: ["LAYOUT", "PORTFOLIO"],
-  },
-  {
-    value: "concept-rendering",
-    label: "Concept Rendering",
-    category: "ARCHITECTURE",
-    defaultTaskTypes: ["RENDERING", "PRESENTATION_BOARD"],
-  },
-  {
-    value: "portfolio-curation",
-    label: "Portfolio Curation",
-    category: "ARCHITECTURE",
-    defaultTaskTypes: ["PORTFOLIO", "PRESENTATION_BOARD"],
-  },
-  {
-    value: "financial-analysis",
-    label: "Financial Analysis",
-    category: "FINANCE",
-    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "REPORT"],
-  },
-  {
-    value: "calculation-model",
-    label: "Calculation Model",
-    category: "FINANCE",
-    defaultTaskTypes: ["CALCULATION_MODEL", "REPORT"],
-  },
-  {
-    value: "case-study-strategy",
-    label: "Case Study Strategy",
-    category: "BUSINESS",
-    defaultTaskTypes: ["CASE_STUDY", "REPORT"],
-  },
-  {
-    value: "slides-storytelling",
-    label: "Slides Storytelling",
-    category: "BUSINESS",
-    defaultTaskTypes: ["PRESENTATION_SLIDES", "REPORT"],
-  },
-  {
-    value: "market-research",
-    label: "Market Research",
-    category: "MARKETING",
-    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
-  },
-  {
-    value: "essay-structuring",
-    label: "Essay Structuring",
-    category: "ETHICS",
-    defaultTaskTypes: ["ESSAY", "REPORT"],
-  },
-] as const;
 
 export const categoryValues = [
   "INTERIOR_DESIGN",
@@ -262,6 +189,351 @@ export const categoryLabelMap: Record<(typeof categoryValues)[number], string> =
   ETHICS: "Ethics",
   MARKETING: "Marketing",
 };
+
+export const helperSpecialtyPresetOptions = [
+  {
+    value: "case-study-strategy",
+    label: "Case Study Strategy",
+    categories: ["BUSINESS", "MARKETING", "CORPORATE_GOVERNANCE", "ECONOMICS"],
+    defaultTaskTypes: ["CASE_STUDY", "REPORT"],
+  },
+  {
+    value: "business-strategy",
+    label: "Business Strategy",
+    categories: ["BUSINESS", "MARKETING", "CORPORATE_GOVERNANCE"],
+    defaultTaskTypes: ["CASE_STUDY", "REPORT"],
+  },
+  {
+    value: "market-analysis",
+    label: "Market Analysis",
+    categories: ["BUSINESS", "MARKETING", "ECONOMICS"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "swot-pestle-analysis",
+    label: "SWOT / PESTLE Analysis",
+    categories: ["BUSINESS", "MARKETING", "CORPORATE_GOVERNANCE"],
+    defaultTaskTypes: ["CASE_STUDY", "REPORT"],
+  },
+  {
+    value: "report-writing",
+    label: "Report Writing",
+    categories: ["BUSINESS", "MARKETING", "CORPORATE_GOVERNANCE", "ETHICS", "ECONOMICS"],
+    defaultTaskTypes: ["REPORT", "RESEARCH_ANALYSIS"],
+  },
+  {
+    value: "academic-writing",
+    label: "Academic Writing",
+    categories: ["BUSINESS", "MARKETING", "CORPORATE_GOVERNANCE", "ETHICS", "ECONOMICS"],
+    defaultTaskTypes: ["ESSAY", "REPORT"],
+  },
+  {
+    value: "essay-structuring",
+    label: "Essay Structuring",
+    categories: ["BUSINESS", "ETHICS", "CORPORATE_GOVERNANCE"],
+    defaultTaskTypes: ["ESSAY", "REPORT"],
+  },
+  {
+    value: "literature-review",
+    label: "Literature Review",
+    categories: ["BUSINESS", "MARKETING", "ETHICS", "ECONOMICS", "CORPORATE_GOVERNANCE"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "fyp-research",
+    label: "FYP Research",
+    categories: ["BUSINESS", "MARKETING", "ETHICS", "ECONOMICS", "CORPORATE_GOVERNANCE", "FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "thesis-writing",
+    label: "Thesis Writing",
+    categories: ["BUSINESS", "MARKETING", "ETHICS", "ECONOMICS", "CORPORATE_GOVERNANCE", "FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "proofreading-editing",
+    label: "Proofreading & Editing",
+    categories: categoryValues,
+    defaultTaskTypes: ["REPORT", "ESSAY"],
+  },
+  {
+    value: "referencing-apa-harvard",
+    label: "Referencing (APA / Harvard)",
+    categories: categoryValues,
+    defaultTaskTypes: ["REPORT", "ESSAY"],
+  },
+  {
+    value: "financial-analysis",
+    label: "Financial Analysis",
+    categories: ["FINANCE", "INVESTMENT", "ECONOMICS"],
+    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "financial-modeling",
+    label: "Financial Modeling",
+    categories: ["FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "FINANCIAL_ANALYSIS"],
+  },
+  {
+    value: "dcf-valuation",
+    label: "DCF Valuation",
+    categories: ["FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "CALCULATION_MODEL"],
+  },
+  {
+    value: "ratio-analysis",
+    label: "Ratio Analysis",
+    categories: ["FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "investment-analysis",
+    label: "Investment Analysis",
+    categories: ["INVESTMENT", "FINANCE", "ECONOMICS"],
+    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "corporate-finance",
+    label: "Corporate Finance",
+    categories: ["FINANCE", "INVESTMENT", "CORPORATE_GOVERNANCE"],
+    defaultTaskTypes: ["CASE_STUDY", "FINANCIAL_ANALYSIS"],
+  },
+  {
+    value: "accounting-fundamentals",
+    label: "Accounting Fundamentals",
+    categories: ["FINANCE"],
+    defaultTaskTypes: ["REPORT", "CASE_STUDY"],
+  },
+  {
+    value: "financial-statements",
+    label: "Financial Statements",
+    categories: ["FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["FINANCIAL_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "cost-accounting",
+    label: "Cost Accounting",
+    categories: ["FINANCE"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "REPORT"],
+  },
+  {
+    value: "management-accounting",
+    label: "Management Accounting",
+    categories: ["FINANCE", "BUSINESS"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "REPORT"],
+  },
+  {
+    value: "audit-assurance",
+    label: "Audit & Assurance",
+    categories: ["FINANCE", "CORPORATE_GOVERNANCE"],
+    defaultTaskTypes: ["REPORT", "CASE_STUDY"],
+  },
+  {
+    value: "taxation-basics",
+    label: "Taxation Basics",
+    categories: ["FINANCE"],
+    defaultTaskTypes: ["REPORT", "CASE_STUDY"],
+  },
+  {
+    value: "excel-financial-models",
+    label: "Excel Financial Models",
+    categories: ["FINANCE", "INVESTMENT", "BUSINESS"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "FINANCIAL_ANALYSIS"],
+  },
+  {
+    value: "data-analysis",
+    label: "Data Analysis",
+    categories: ["FINANCE", "INVESTMENT", "ECONOMICS", "BUSINESS", "MARKETING"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "statistical-analysis",
+    label: "Statistical Analysis",
+    categories: ["ECONOMICS", "FINANCE", "INVESTMENT", "BUSINESS", "MARKETING"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "CALCULATION_MODEL"],
+  },
+  {
+    value: "spss-r-python-analysis",
+    label: "SPSS / R / Python Analysis",
+    categories: ["ECONOMICS", "FINANCE", "INVESTMENT", "BUSINESS", "MARKETING"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "CALCULATION_MODEL"],
+  },
+  {
+    value: "regression-analysis",
+    label: "Regression Analysis",
+    categories: ["ECONOMICS", "FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "RESEARCH_ANALYSIS"],
+  },
+  {
+    value: "forecasting-models",
+    label: "Forecasting Models",
+    categories: ["ECONOMICS", "FINANCE", "INVESTMENT", "BUSINESS"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "FINANCIAL_ANALYSIS"],
+  },
+  {
+    value: "excel-advanced",
+    label: "Excel Advanced",
+    categories: ["FINANCE", "INVESTMENT", "ECONOMICS", "BUSINESS", "MARKETING"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "REPORT"],
+  },
+  {
+    value: "quantitative-methods",
+    label: "Quantitative Methods",
+    categories: ["ECONOMICS", "FINANCE", "INVESTMENT", "BUSINESS"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "RESEARCH_ANALYSIS"],
+  },
+  {
+    value: "operations-research",
+    label: "Operations Research",
+    categories: ["BUSINESS", "ECONOMICS", "FINANCE"],
+    defaultTaskTypes: ["CALCULATION_MODEL", "REPORT"],
+  },
+  {
+    value: "presentation-slides-design",
+    label: "Presentation Slides Design",
+    categories: categoryValues,
+    defaultTaskTypes: ["PRESENTATION_SLIDES", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "slides-storytelling",
+    label: "Slides Storytelling",
+    categories: categoryValues,
+    defaultTaskTypes: ["PRESENTATION_SLIDES", "REPORT"],
+  },
+  {
+    value: "pitch-deck-structuring",
+    label: "Pitch Deck Structuring",
+    categories: ["BUSINESS", "MARKETING", "FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["PRESENTATION_SLIDES", "REPORT"],
+  },
+  {
+    value: "visual-layout-design",
+    label: "Visual Layout Design",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE", "BUSINESS", "MARKETING"],
+    defaultTaskTypes: ["PRESENTATION_BOARD", "PRESENTATION_SLIDES"],
+  },
+  {
+    value: "infographic-design",
+    label: "Infographic Design",
+    categories: ["BUSINESS", "MARKETING", "FINANCE", "ECONOMICS"],
+    defaultTaskTypes: ["PRESENTATION_SLIDES", "REPORT"],
+  },
+  {
+    value: "powerpoint-animation",
+    label: "PowerPoint Animation",
+    categories: categoryValues,
+    defaultTaskTypes: ["PRESENTATION_SLIDES", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "2d-drawing-autocad",
+    label: "2D Drawing (AutoCAD)",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "3d-modeling",
+    label: "3D Modeling",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["RENDERING", "LAYOUT"],
+  },
+  {
+    value: "3d-modeling-sketchup-revit",
+    label: "3D Modeling (SketchUp / Revit)",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["RENDERING", "LAYOUT"],
+  },
+  {
+    value: "3d-rendering",
+    label: "3D Rendering",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["RENDERING", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "3d-rendering-vray-lumion",
+    label: "3D Rendering (V-Ray / Lumion)",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["RENDERING", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "detail-drawings",
+    label: "Detail Drawings",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "technical-drawings",
+    label: "Technical Drawings",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "space-planning",
+    label: "Space Planning",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "layout-planning",
+    label: "Layout Planning",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["LAYOUT", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "concept-development",
+    label: "Concept Development",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["PRESENTATION_BOARD", "REPORT"],
+  },
+  {
+    value: "moodboard-design",
+    label: "Moodboard Design",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["PRESENTATION_BOARD", "PORTFOLIO"],
+  },
+  {
+    value: "presentation-boards",
+    label: "Presentation Boards",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["PRESENTATION_BOARD", "PORTFOLIO"],
+  },
+  {
+    value: "portfolio-layout",
+    label: "Portfolio Layout",
+    categories: ["INTERIOR_DESIGN", "ARCHITECTURE"],
+    defaultTaskTypes: ["PORTFOLIO", "PRESENTATION_BOARD"],
+  },
+  {
+    value: "custom-requests",
+    label: "Custom Requests",
+    categories: categoryValues,
+    defaultTaskTypes: ["OTHERS", "REPORT"],
+  },
+  {
+    value: "urgent-tasks-handling",
+    label: "Urgent Tasks Handling",
+    categories: categoryValues,
+    defaultTaskTypes: ["OTHERS", "REPORT"],
+  },
+  {
+    value: "research-support",
+    label: "Research Support",
+    categories: ["BUSINESS", "MARKETING", "ETHICS", "ECONOMICS", "CORPORATE_GOVERNANCE", "FINANCE", "INVESTMENT"],
+    defaultTaskTypes: ["RESEARCH_ANALYSIS", "REPORT"],
+  },
+  {
+    value: "formatting-cleanup",
+    label: "Formatting & Cleanup",
+    categories: categoryValues,
+    defaultTaskTypes: ["REPORT", "PRESENTATION_SLIDES"],
+  },
+  {
+    value: "custom-specialty",
+    label: "Custom Specialty",
+    categories: categoryValues,
+    defaultTaskTypes: ["OTHERS"],
+  },
+] as const;
 
 export const categoryOptions = categoryValues.map((value) => ({
   value,

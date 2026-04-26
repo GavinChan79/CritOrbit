@@ -32,6 +32,7 @@ export default async function HelperProfilePage() {
             whatsappNumber: helper.whatsappNumber ?? "",
             responseTime: normalizeHelperResponseTime(helper.responseTime),
             deliveryTime: normalizeHelperDeliveryTime(helper.deliveryTime),
+            specialties,
           }}
         />
 
@@ -44,7 +45,7 @@ export default async function HelperProfilePage() {
             <p>Your submitted starting price: From {helper.submittedPriceAnchor.replace("_PLUS", "+").replace("_", " ")}</p>
             <p>Public starting price: From {helper.priceAnchor.replace("_PLUS", "+").replace("_", " ")}</p>
             <p>Admin price lock: {helper.priceLockedByAdmin ? "Locked" : "Open to helper updates"}</p>
-            <p>Specialties: {specialties.length > 0 ? specialties.map((item) => item.label).join(", ") : "Managed by admin"}</p>
+            <p>Specialties: {specialties.length > 0 ? specialties.map((item) => item.label).join(", ") : "Add your specialties below"}</p>
             <p>Email: {helper.email ?? "Not linked"}</p>
           </div>
         </Card>

@@ -16,6 +16,7 @@ import {
   helperStatusOptions,
   helperTrustLevelOptions,
   helperTypeOptions,
+  maxHelperSpecialties,
   getTaskTypeOptionsForCategory,
   normalizeHelperDeliveryTime,
   normalizeHelperResponseTime,
@@ -364,6 +365,11 @@ export function HelperAdminManager({
   }
 
   function addSpecialty() {
+    if (form.specialties.length >= maxHelperSpecialties) {
+      setHelperError(`You can add up to ${maxHelperSpecialties} specialties.`);
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       specialties: [...current.specialties, emptySpecialty(current.category)],
@@ -1247,7 +1253,7 @@ export function HelperAdminManager({
                   {(() => {
                     const availablePresets = helperSpecialtyPresetOptions.filter(
                       (preset) =>
-                        preset.category === form.category &&
+                        (preset.categories as readonly string[]).includes(form.category) &&
                         !form.specialties.some(
                           (currentSpecialty, specialtyIndex) =>
                             specialtyIndex !== index &&

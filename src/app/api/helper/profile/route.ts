@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { HelperPriceAnchor } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getAuthSession, getAccessibleHelperByEmail } from "@/lib/auth";
+import { normalizeHelperSpecialties } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
 import { helperSelfProfileSchema } from "@/lib/validators";
 
@@ -20,7 +21,14 @@ export async function PATCH(request: Request) {
 
   try {
     const json = await request.json();
-    const parsed = helperSelfProfileSchema.safeParse(json);
+    const parsed = helperSelfProfileSchema.safeParse({
+      ...json,
+      specialties: normalizeHelperSpecialties(
+        typeof json === "object" && json !== null && "specialties" in json
+          ? (json as { specialties?: unknown }).specialties
+          : undefined,
+      ),
+    });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -43,6 +51,7 @@ export async function PATCH(request: Request) {
         whatsappNumber: parsed.data.whatsappNumber.trim(),
         responseTime: parsed.data.responseTime,
         deliveryTime: parsed.data.deliveryTime,
+        specialties: parsed.data.specialties,
       },
       select: {
         id: true,
@@ -56,6 +65,7 @@ export async function PATCH(request: Request) {
         whatsappNumber: true,
         responseTime: true,
         deliveryTime: true,
+        specialties: true,
       },
     });
 
