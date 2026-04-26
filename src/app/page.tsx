@@ -5,6 +5,7 @@ import {
   getCategoryLabel,
   getHelperBookedTimeLabel,
   getHelperCardSpecialties,
+  getHelperDisplayTags,
   getHelperDeliveryTime,
   getHelperLastActiveLabel,
   getHelperPastWorksLabel,
@@ -12,7 +13,7 @@ import {
   getHelperPriceTierLabel,
   getHelperReplyLine,
   getHelperResponseSpeed,
-  getHelperTrustedByLabel,
+  getStudentsHelpedLabel,
   getHelperTrustLevelLabel,
   getHelperTypeLabel,
   getHelperUrgencySignals,
@@ -25,6 +26,7 @@ import {
   rankHelpersByConversion,
 } from "@/lib/helper-ranking";
 import { getPublicHelpers } from "@/lib/public-helpers";
+import { TrackEventOnMount } from "@/components/event-tracker";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +85,10 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-cream">
       <SiteHeader />
+      <TrackEventOnMount
+        eventType="VIEW_HELPER_LIST"
+        metadata={{ surface: "homepage", helperIds: sortedHelpers.map((helper) => helper.id) }}
+      />
       <main>
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
@@ -284,24 +290,28 @@ export default async function HomePage() {
                 trustLevel: helper.trustLevel,
                 deliveryTime: helper.deliveryTime,
               });
-              const trustedByLabel = getHelperTrustedByLabel({
-                type: helper.type,
-                teamSize: helper.teamSize,
-                isVerified: helper.isVerified,
-                trustLevel: helper.trustLevel,
-                projectsCompleted: helper.projectsCompleted,
-                selectionCount: helper.selectionCount,
-                portfolioItems: helper.portfolioItems,
-                specialties: parseSpecialties(helper.specialties),
-              });
               const portfolioLabel = getHelperPastWorksLabel(helper.portfolioItems.length);
               const bookedTimeLabel = getHelperBookedTimeLabel({
                 type: helper.type,
                 selectionCount: helper.selectionCount,
                 clickCount: helper.clickCount,
+                lastBookedAt: helper.lastBookedAt,
+              });
+              const studentsHelpedLabel = getStudentsHelpedLabel({
+                type: helper.type,
+                studentsHelpedCount: helper.studentsHelpedCount,
+                projectsCompleted: helper.projectsCompleted,
               });
               const profileImage = helper.portfolioItems[0]?.imageUrl;
               const fastResponse = isFastResponseText(responseSpeed);
+              const displayTags = getHelperDisplayTags({
+                type: helper.type,
+                trustLevel: helper.trustLevel,
+                isVerified: helper.isVerified,
+                responseTime: helper.responseTime,
+                deliveryTime: helper.deliveryTime,
+                priceTier: helper.priceTier,
+              });
               const demandLabel = helper.conversionTier === "TOP_PICK" ? "\uD83D\uDD25 High demand today" : null;
               const slotsLabel = helper.conversionTier === "TOP_PICK" ? "\u26A0\uFE0F Limited slots available" : null;
               const tierLabel = getHelperConversionTierLabel(helper.conversionTier);
@@ -430,10 +440,10 @@ export default async function HomePage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
-                        {trustedByLabel} {"\u2022"} {bookedTimeLabel}
-                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
+                        {studentsHelpedLabel} {"\u2022"} {bookedTimeLabel}
+                        </div>
                       <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
                         {getHelperReplyLine(responseSpeed)}
                       </div>
@@ -468,6 +478,14 @@ export default async function HomePage() {
                           className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink"
                         >
                           {signal}
+                        </span>
+                      ))}
+                      {displayTags.map((tag) => (
+                        <span
+                          key={`${helper.id}-${tag}`}
+                          className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase"
+                        >
+                          {tag}
                         </span>
                       ))}
                     </div>

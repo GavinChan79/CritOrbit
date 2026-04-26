@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   getCategoryLabel,
   getHelperBookedTimeLabel,
+  getHelperDisplayTags,
   getHelperDeliveryTime,
   getHelperDetailPitch,
   getHelperPastWorksLabel,
@@ -11,7 +12,7 @@ import {
   getHelperPriceTierLabel,
   getHelperProjectsCompleted,
   getHelperResponseSpeed,
-  getHelperTrustedByLabel,
+  getStudentsHelpedLabel,
   getHelperTrustLevelLabel,
   getHelperTypeLabel,
   getHelperUrgencySignals,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/helpers";
 import { getPublicHelperById } from "@/lib/public-helpers";
 import { Card, SectionHeading, SiteHeader, buttonStyles } from "@/components/ui";
+import { TrackEventOnMount } from "@/components/event-tracker";
 import { HelperDetailActions } from "@/components/helper-detail-actions";
 import { cn } from "@/lib/utils";
 
@@ -89,21 +91,17 @@ export default async function HelperDetailPage({
     trustLevel: helper.trustLevel,
     deliveryTime: helper.deliveryTime,
   });
-  const trustedByLabel = getHelperTrustedByLabel({
-    type: helper.type,
-    teamSize: helper.teamSize,
-    isVerified: helper.isVerified,
-    trustLevel: helper.trustLevel,
-    projectsCompleted: helper.projectsCompleted,
-    portfolioItems: helper.portfolioItems,
-    selectionCount: null,
-    specialties,
-  });
   const portfolioLabel = getHelperPastWorksLabel(helper.portfolioItems.length);
   const bookedTimeLabel = getHelperBookedTimeLabel({
     type: helper.type,
     selectionCount: null,
     clickCount: null,
+    lastBookedAt: helper.lastBookedAt,
+  });
+  const studentsHelpedLabel = getStudentsHelpedLabel({
+    type: helper.type,
+    studentsHelpedCount: helper.studentsHelpedCount,
+    projectsCompleted: helper.projectsCompleted,
   });
   const profilePreviewImage = helper.portfolioItems[0]?.imageUrl;
   const tagline =
@@ -111,11 +109,25 @@ export default async function HelperDetailPage({
       ? "Studio support for urgent, presentation-ready student work."
       : "Reliable assignment support with clear communication and fast turnaround.";
   const fastResponse = isFastResponseText(responseSpeed);
+  const displayTags = getHelperDisplayTags({
+    type: helper.type,
+    trustLevel: helper.trustLevel,
+    isVerified: helper.isVerified,
+    responseTime: helper.responseTime,
+    deliveryTime: helper.deliveryTime,
+    priceTier: helper.priceTier,
+  });
   const trustLabel = getHelperTrustLevelLabel(helper);
 
   return (
     <div className="min-h-screen bg-cream">
       <SiteHeader />
+      <TrackEventOnMount
+        eventType="VIEW_HELPER_PROFILE"
+        helperId={helper.id}
+        draftId={draftId || undefined}
+        metadata={{ surface: "helper-profile" }}
+      />
       <main className="mx-auto max-w-6xl px-4 py-12 md:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <Link
@@ -214,7 +226,7 @@ export default async function HelperDetailPage({
                     Trust
                   </div>
                   <div className="mt-2 text-sm font-black text-ink">
-                    {trustedByLabel}
+                    {studentsHelpedLabel}
                   </div>
                 </div>
                 <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3">
@@ -283,6 +295,14 @@ export default async function HelperDetailPage({
                 <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase">
                   {portfolioLabel}
                 </span>
+                {displayTags.map((tag) => (
+                  <span
+                    key={`${helper.id}-${tag}`}
+                    className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {urgencySignals.map((signal) => (

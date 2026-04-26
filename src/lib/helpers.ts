@@ -1,3 +1,4 @@
+import { formatDistanceToNowStrict } from "date-fns";
 import {
   categoryLabelMap,
   helperExperienceLevelLabelMap,
@@ -77,6 +78,8 @@ type HelperConversionProfileInput = {
   repeatClients?: number | null;
   priceTier?: string | null;
   priceAnchor?: string | null;
+  studentsHelpedCount?: number | null;
+  lastBookedAt?: Date | string | null;
   portfolioItems?: Array<unknown>;
   specialties?: HelperSpecialty[];
 };
@@ -443,10 +446,7 @@ export function isFastResponseText(responseSpeed: string) {
 }
 
 export function getHelperTrustedByLabel(input: HelperConversionProfileInput) {
-  const trustedCount =
-    (input.selectionCount ?? 0) >= 5
-      ? input.selectionCount ?? 0
-      : getHelperProjectsCompleted(input);
+  const trustedCount = getStudentsHelpedCount(input);
 
   if (trustedCount > 0) {
     return `Trusted by ${trustedCount} student${trustedCount === 1 ? "" : "s"}`;
@@ -464,6 +464,19 @@ export function getHelperPastWorksLabel(portfolioCount: number) {
 }
 
 export function getHelperBookedTimeLabel(input: HelperConversionProfileInput) {
+  if (input.lastBookedAt) {
+    const bookedDate =
+      input.lastBookedAt instanceof Date
+        ? input.lastBookedAt
+        : new Date(input.lastBookedAt);
+
+    if (!Number.isNaN(bookedDate.getTime())) {
+      return `Last booked ${formatDistanceToNowStrict(bookedDate, {
+        addSuffix: true,
+      })}`;
+    }
+  }
+
   const selectionCount = input.selectionCount ?? 0;
   const clickCount = input.clickCount ?? 0;
 
@@ -476,6 +489,51 @@ export function getHelperBookedTimeLabel(input: HelperConversionProfileInput) {
   }
 
   return input.type === "TEAM" ? "Last booked 4 hours ago" : "Last booked 6 hours ago";
+}
+
+export function getStudentsHelpedCount(input: HelperConversionProfileInput) {
+  if ((input.studentsHelpedCount ?? 0) > 0) {
+    return input.studentsHelpedCount ?? 0;
+  }
+
+  return getHelperProjectsCompleted(input);
+}
+
+export function getStudentsHelpedLabel(input: HelperConversionProfileInput) {
+  const count = getStudentsHelpedCount(input);
+
+  if (count > 0) {
+    return `${count} student${count === 1 ? "" : "s"} helped`;
+  }
+
+  return "Students helped";
+}
+
+export function getHelperDisplayTags(input: HelperConversionProfileInput) {
+  const tags: string[] = [];
+  const responseSpeed = getHelperResponseSpeed(input);
+  const deliveryTime = getHelperDeliveryTime(input);
+
+  if (isFastResponseText(responseSpeed)) {
+    tags.push("Fast Response");
+  }
+
+  if (
+    deliveryTime.toLowerCase().includes("24 hours") ||
+    deliveryTime.toLowerCase().includes("same day")
+  ) {
+    tags.push("24h Delivery");
+  }
+
+  if (
+    input.trustLevel === "TRUSTED_HELPER" ||
+    input.trustLevel === "VERIFIED_HELPER" ||
+    input.priceTier === "PREMIUM"
+  ) {
+    tags.push("Free Revision");
+  }
+
+  return tags;
 }
 
 export function getHelperReplyLine(responseSpeed: string) {

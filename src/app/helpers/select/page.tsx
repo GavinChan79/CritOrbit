@@ -114,6 +114,8 @@ export default async function HelperSelectPage({
               priceAnchor: helper.priceAnchor,
               clickCount: helper.clickCount,
               selectionCount: helper.selectionCount,
+              studentsHelpedCount: helper.studentsHelpedCount,
+              lastBookedAt: helper.lastBookedAt?.toISOString() ?? null,
               category: helper.category,
               displayOrder: helper.displayOrder,
               specialties: parseSpecialties(helper.specialties),

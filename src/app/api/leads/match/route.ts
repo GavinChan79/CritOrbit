@@ -96,7 +96,10 @@ export async function POST(request: Request) {
 
     await prisma.helper.update({
       where: { id: helper.id },
-      data: helperCounterUpdate,
+      data: {
+        ...helperCounterUpdate,
+        lastBookedAt: new Date(),
+      },
     });
 
     if (!lead.whatsappClicked) {

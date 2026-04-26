@@ -10,6 +10,7 @@ import {
   getHelperCardSpecialties,
   getCategoryLabel,
   getHelperBookedTimeLabel,
+  getHelperDisplayTags,
   getHelperDeliveryTime,
   getHelperPastWorksLabel,
   getHelperPriceAnchor,
@@ -18,7 +19,7 @@ import {
   getHelperReplyLine,
   getHelperUrgencySignals,
   getHelperResponseSpeed,
-  getHelperTrustedByLabel,
+  getStudentsHelpedLabel,
   getHelperTrustLevelLabel,
   getHelperTypeLabel,
   helperMatchesRequest,
@@ -33,6 +34,7 @@ import {
   rankHelpersByConversion,
   type HelperConversionTier,
 } from "@/lib/helper-ranking";
+import { trackEvent } from "@/lib/events";
 import {
   APP_NAME,
   categoryOptions,
@@ -378,6 +380,17 @@ export function RequirementForm() {
         return;
       }
 
+      trackEvent({
+        eventType: "FORM_SUBMIT",
+        draftId: json.draftId,
+        metadata: {
+          surface: "requirements",
+          category: parsed.data.category,
+          taskType: parsed.data.taskType,
+          urgency: parsed.data.urgency,
+        },
+      });
+
       router.push(`/helpers/select?draftId=${json.draftId}`);
       router.refresh();
     });
@@ -513,6 +526,8 @@ export function HelperSelectionClient({
     priceAnchor: string;
     clickCount: number;
     selectionCount: number;
+    studentsHelpedCount: number;
+    lastBookedAt: string | null;
     category: string;
     displayOrder: number;
     specialties: HelperSpecialty[];
@@ -638,6 +653,19 @@ export function HelperSelectionClient({
     });
   }, [visibleTrackingIds]);
 
+  useEffect(() => {
+    trackEvent({
+      eventType: "VIEW_HELPER_LIST",
+      draftId: request.draftId,
+      metadata: {
+        surface: "helper-selection",
+        categoryFilter,
+        taskFilter,
+        helperIds: visibleHelpers.map((helper) => helper.id),
+      },
+    });
+  }, [categoryFilter, request.draftId, taskFilter, visibleHelpers]);
+
   async function handleMatch(helperId: string) {
     if (loadingId) {
       return;
@@ -662,7 +690,16 @@ export function HelperSelectionClient({
       return;
     }
 
-    console.log("lead payload", payload);
+    trackEvent({
+      eventType: "CLICK_GET_HELP",
+      helperId,
+      draftId: request.draftId,
+      metadata: {
+        surface: "helper-selection",
+        category: request.category,
+        taskType: request.taskType,
+      },
+    });
 
     const response = await fetch("/api/leads/match", {
       method: "POST",
@@ -678,10 +715,29 @@ export function HelperSelectionClient({
       return;
     }
 
+    trackEvent({
+      eventType: "WHATSAPP_REDIRECT",
+      helperId,
+      draftId: request.draftId,
+      metadata: {
+        surface: "helper-selection",
+        leadId: json.leadId ?? null,
+      },
+    });
+
     window.location.assign(json.whatsappUrl);
   }
 
   function trackHelperClick(helperId: string) {
+    trackEvent({
+      eventType: "CLICK_HELPER_CARD",
+      helperId,
+      draftId: request.draftId,
+      metadata: {
+        surface: "helper-selection",
+      },
+    });
+
     void fetch("/api/helpers/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -727,22 +783,26 @@ export function HelperSelectionClient({
       priceAnchor: helper.priceAnchor,
     });
     const portfolioCountLabel = getHelperPastWorksLabel(helper.portfolioItems.length);
-    const trustedByLabel = getHelperTrustedByLabel({
+    const studentsHelpedLabel = getStudentsHelpedLabel({
       type: helper.type,
-      teamSize: helper.teamSize,
-      isVerified: helper.isVerified,
-      trustLevel: helper.trustLevel,
+      studentsHelpedCount: helper.studentsHelpedCount,
       projectsCompleted: helper.projectsCompleted,
-      selectionCount: helper.selectionCount,
-      portfolioItems: helper.portfolioItems,
-      specialties: helper.specialties,
     });
     const bookedTimeLabel = getHelperBookedTimeLabel({
       type: helper.type,
       selectionCount: helper.selectionCount,
       clickCount: helper.clickCount,
+      lastBookedAt: helper.lastBookedAt,
     });
     const fastResponse = isFastResponseText(responseSpeed);
+    const displayTags = getHelperDisplayTags({
+      type: helper.type,
+      trustLevel: helper.trustLevel,
+      isVerified: helper.isVerified,
+      responseTime: helper.responseTime,
+      deliveryTime: helper.deliveryTime,
+      priceTier: helper.priceTier,
+    });
     const urgencySignals = getHelperUrgencySignals({
       type: helper.type,
       teamSize: helper.teamSize,
@@ -936,7 +996,7 @@ export function HelperSelectionClient({
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
-                    {trustedByLabel} {"\u2022"} {bookedTimeLabel}
+                    {studentsHelpedLabel} {"\u2022"} {bookedTimeLabel}
                   </div>
                   <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
                     {getHelperReplyLine(responseSpeed)}
@@ -988,6 +1048,14 @@ export function HelperSelectionClient({
                         {signal}
                       </span>
                     ))}
+                  {displayTags.map((tag) => (
+                    <span
+                      key={`${helper.id}-${tag}`}
+                      className="retro-pill bg-white px-3 py-1 text-muted"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
 
                 {recommended ? (

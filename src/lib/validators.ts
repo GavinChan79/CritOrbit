@@ -19,6 +19,7 @@ import {
   isAllowedApplicationFile,
   isHelperApplicationBlobPathname,
 } from "@/lib/helper-applications";
+import { eventTypeValues } from "@/lib/events";
 
 const baseRequirementSchema = z.object({
   category: z.enum(categoryValues),
@@ -427,4 +428,11 @@ export const adminLeadPaymentActionSchema = z.object({
   paymentRef: z.string().trim().optional().transform((value) => value || undefined),
   releaseRef: z.string().trim().optional().transform((value) => value || undefined),
   note: z.string().trim().optional().transform((value) => value || undefined),
+});
+
+export const eventLogSchema = z.object({
+  eventType: z.enum(eventTypeValues),
+  helperId: z.string().trim().optional().transform((value) => value || undefined),
+  draftId: z.string().trim().optional().transform((value) => value || undefined),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { buttonStyles } from "@/components/ui-primitives";
+import { trackEvent } from "@/lib/events";
 import { leadMatchPayloadSchema } from "@/lib/validators";
 
 export function HelperDetailActions({
@@ -38,6 +39,15 @@ export function HelperDetailActions({
     setLoading(true);
     setError("");
 
+    trackEvent({
+      eventType: "CLICK_GET_HELP",
+      helperId,
+      draftId,
+      metadata: {
+        surface: "helper-profile",
+      },
+    });
+
     const response = await fetch("/api/leads/match", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -51,6 +61,16 @@ export function HelperDetailActions({
       setError(json.error ?? "Could not create the lead.");
       return;
     }
+
+    trackEvent({
+      eventType: "WHATSAPP_REDIRECT",
+      helperId,
+      draftId,
+      metadata: {
+        surface: "helper-profile",
+        leadId: json.leadId ?? null,
+      },
+    });
 
     window.location.assign(json.whatsappUrl);
   }
@@ -77,7 +97,19 @@ export function HelperDetailActions({
           </>
         ) : (
           <>
-            <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "md" })}>
+            <Link
+              href="/requirements"
+              onClick={() =>
+                trackEvent({
+                  eventType: "CLICK_GET_HELP",
+                  helperId,
+                  metadata: {
+                    surface: "helper-profile",
+                  },
+                })
+              }
+              className={buttonStyles({ tone: "purple", size: "md" })}
+            >
               Get Help Now \u2192
             </Link>
             <Link href="/#helpers" className={buttonStyles({ tone: "yellow", size: "md" })}>

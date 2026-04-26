@@ -15,7 +15,7 @@ import {
 import { AdminTestEmailButton } from "@/components/admin-test-email-button";
 
 export default async function AdminOverviewPage() {
-  const [allLeadsResult, recentLeadsResult] = await Promise.allSettled([
+  const [allLeadsResult, recentLeadsResult, eventSummaryResult, recentEventsResult] = await Promise.allSettled([
     prisma.lead.findMany({
       select: {
         status: true,
@@ -48,6 +48,26 @@ export default async function AdminOverviewPage() {
       orderBy: { createdAt: "desc" },
       take: 6,
     }),
+    prisma.eventLog.groupBy({
+      by: ["eventType"],
+      _count: {
+        _all: true,
+      },
+      orderBy: {
+        eventType: "asc",
+      },
+    }),
+    prisma.eventLog.findMany({
+      select: {
+        id: true,
+        eventType: true,
+        helperId: true,
+        draftId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
   ]);
 
   if (allLeadsResult.status === "rejected") {
@@ -58,11 +78,30 @@ export default async function AdminOverviewPage() {
     logServerDataLoadError("admin-overview-recent-leads", recentLeadsResult.reason);
   }
 
+  if (eventSummaryResult.status === "rejected") {
+    logServerDataLoadError("admin-overview-event-summary", eventSummaryResult.reason);
+  }
+
+  if (recentEventsResult.status === "rejected") {
+    logServerDataLoadError("admin-overview-recent-events", recentEventsResult.reason);
+  }
+
   const allLeads = allLeadsResult.status === "fulfilled" ? allLeadsResult.value : [];
   const recentLeads =
     recentLeadsResult.status === "fulfilled" ? recentLeadsResult.value : [];
+  const eventSummary: Array<{ eventType: string; _count: { _all: number } }> =
+    eventSummaryResult.status === "fulfilled" ? eventSummaryResult.value : [];
+  const recentEvents: Array<{
+    id: string;
+    eventType: string;
+    helperId: string | null;
+    draftId: string | null;
+    createdAt: Date;
+  }> = recentEventsResult.status === "fulfilled" ? recentEventsResult.value : [];
   const funnelUnavailable = allLeadsResult.status === "rejected";
   const recentLeadsUnavailable = recentLeadsResult.status === "rejected";
+  const eventsUnavailable =
+    eventSummaryResult.status === "rejected" || recentEventsResult.status === "rejected";
 
   const funnel = calculateLeadFunnel(allLeads);
 
@@ -112,6 +151,67 @@ export default async function AdminOverviewPage() {
       </div>
 
       <AdminTestEmailButton />
+
+      <div className="mt-10 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="bg-white">
+          <div className="display-font text-3xl font-black">Event funnel</div>
+          <p className="mt-2 text-sm text-muted">
+            Lightweight visibility into helper discovery, profile views, CTA clicks, WhatsApp handoff, and form submits.
+          </p>
+          {eventsUnavailable ? (
+            <div className="mt-5 rounded-[20px] border-[3px] border-line bg-cream px-5 py-4 text-sm font-semibold text-ink">
+              Event tracking data could not load right now. The rest of the dashboard remains available.
+            </div>
+          ) : null}
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {eventSummary.length === 0 ? (
+              <EmptyState
+                title="No event activity yet"
+                description="Event totals will appear here once helper discovery traffic starts flowing."
+              />
+            ) : eventSummary.map((entry) => (
+              <PipelineStat
+                key={entry.eventType}
+                label={entry.eventType.replaceAll("_", " ")}
+                value={String(entry._count._all)}
+              />
+            ))}
+          </div>
+        </Card>
+
+        <Card className="bg-cream">
+          <div className="display-font text-3xl font-black">Recent event logs</div>
+          <p className="mt-2 text-sm text-muted">
+            A quick operational view of the latest customer-side funnel actions.
+          </p>
+          <div className="mt-6 space-y-3">
+            {recentEvents.length === 0 ? (
+              <EmptyState
+                title="No recent events"
+                description="Recent helper list views, card clicks, and redirects will show up here."
+              />
+            ) : recentEvents.map((event) => (
+              <div
+                key={event.id}
+                className="rounded-[18px] border-[3px] border-line bg-white px-4 py-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="display-font text-xl font-black">
+                    {event.eventType.replaceAll("_", " ")}
+                  </div>
+                  <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
+                    {formatDate(event.createdAt)}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-muted">
+                  Helper {event.helperId ? event.helperId.slice(0, 8) : "-"} · Draft{" "}
+                  {event.draftId ? event.draftId.slice(0, 8) : "-"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
 
       <div className="mt-10 retro-card bg-white p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         isVerified:
           parsed.data.trustLevel === "VERIFIED_HELPER" ||
           parsed.data.trustLevel === "TRUSTED_HELPER",
+        studentsHelpedCount: parsed.data.projectsCompleted,
         submittedPriceAnchor: parsed.data.submittedPriceAnchor as HelperPriceAnchor,
         priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
         isActive: parsed.data.status === "ACTIVE" ? parsed.data.isActive : false,

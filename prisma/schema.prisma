@@ -186,6 +186,8 @@ model Helper {
   impressionCount  Int            @default(0)
   clickCount       Int            @default(0)
   selectionCount   Int            @default(0)
+  studentsHelpedCount Int         @default(0)
+  lastBookedAt     DateTime?
   status           HelperStatus   @default(ACTIVE)
   category         HelperCategory
   specialties      Json
@@ -314,4 +316,17 @@ model LeadDraft {
   user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
+}
+
+model EventLog {
+  id        String   @id @default(cuid())
+  eventType String
+  helperId  String?
+  draftId   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([helperId, createdAt])
+  @@index([draftId, createdAt])
 }

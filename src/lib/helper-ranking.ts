@@ -10,6 +10,7 @@ export type HelperRankingInput = {
   trustLevel?: string | null;
   responseTime?: string | null;
   projectsCompleted?: number | null;
+  studentsHelpedCount?: number | null;
   portfolioItemsCount?: number;
   completionScore?: number;
 };
@@ -37,7 +38,7 @@ export function getHelperConversionScore(input: HelperRankingInput) {
     score += 10;
   }
 
-  const completedJobs = input.projectsCompleted ?? 0;
+  const completedJobs = input.studentsHelpedCount ?? input.projectsCompleted ?? 0;
   if (completedJobs > 20) {
     score += 30;
   } else if (completedJobs >= 6) {
@@ -99,8 +100,8 @@ export function rankHelpersByConversion<T extends HelperRankingInput>(
         return right.conversionScore - left.conversionScore;
       }
 
-      const leftProjects = left.projectsCompleted ?? 0;
-      const rightProjects = right.projectsCompleted ?? 0;
+      const leftProjects = left.studentsHelpedCount ?? left.projectsCompleted ?? 0;
+      const rightProjects = right.studentsHelpedCount ?? right.projectsCompleted ?? 0;
       if (leftProjects !== rightProjects) {
         return rightProjects - leftProjects;
       }
