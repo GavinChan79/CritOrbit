@@ -13,6 +13,7 @@ import {
   getHelperReplyLine,
   getHelperResponseSpeed,
   getHelperTrustedByLabel,
+  getHelperTrustLevelLabel,
   getHelperTypeLabel,
   getHelperUrgencySignals,
   isFastResponseText,
@@ -69,6 +70,7 @@ export default async function HomePage() {
         portfolioNote: helper.portfolioNote,
         specialties: helper.specialties,
         type: helper.type,
+        trustLevel: helper.trustLevel,
         teamSize: helper.teamSize,
         portfolioItemsCount: helper._count.portfolioItems,
         verificationStatus: helper.verification?.status ?? "NONE",
@@ -267,22 +269,26 @@ export default async function HomePage() {
                 type: helper.type,
                 teamSize: helper.teamSize,
                 isVerified: helper.isVerified,
+                trustLevel: helper.trustLevel,
                 projectsCompleted: helper.projectsCompleted,
               });
               const responseSpeed = getHelperResponseSpeed({
                 type: helper.type,
                 isVerified: helper.isVerified,
+                trustLevel: helper.trustLevel,
                 responseTime: helper.responseTime,
               });
               const deliveryTime = getHelperDeliveryTime({
                 type: helper.type,
                 isVerified: helper.isVerified,
+                trustLevel: helper.trustLevel,
                 deliveryTime: helper.deliveryTime,
               });
               const trustedByLabel = getHelperTrustedByLabel({
                 type: helper.type,
                 teamSize: helper.teamSize,
                 isVerified: helper.isVerified,
+                trustLevel: helper.trustLevel,
                 projectsCompleted: helper.projectsCompleted,
                 selectionCount: helper.selectionCount,
                 portfolioItems: helper.portfolioItems,
@@ -299,6 +305,7 @@ export default async function HomePage() {
               const demandLabel = helper.conversionTier === "TOP_PICK" ? "\uD83D\uDD25 High demand today" : null;
               const slotsLabel = helper.conversionTier === "TOP_PICK" ? "\u26A0\uFE0F Limited slots available" : null;
               const tierLabel = getHelperConversionTierLabel(helper.conversionTier);
+              const trustLabel = getHelperTrustLevelLabel(helper);
 
               return (
                 <Card
@@ -385,11 +392,20 @@ export default async function HomePage() {
                           >
                             {getHelperTypeLabel(helper.type)}
                           </span>
-                          {helper.isVerified ? (
-                            <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                              Verified Helper
-                            </span>
-                          ) : null}
+                          <span
+                            className={cn(
+                              "retro-pill px-3 py-1 text-xs font-black uppercase",
+                              helper.trustLevel === "TRUSTED_HELPER" && "bg-green text-white",
+                              helper.trustLevel === "VERIFIED_HELPER" && "bg-blue text-white",
+                              helper.trustLevel === "STANDARD_HELPER" && "bg-white text-ink",
+                            )}
+                          >
+                            {helper.trustLevel === "TRUSTED_HELPER"
+                              ? "Trusted Helper ★"
+                              : helper.trustLevel === "VERIFIED_HELPER"
+                                ? "Verified Helper ✓"
+                                : trustLabel}
+                          </span>
                           {fastResponse ? (
                             <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
                               Fast Response ⚡

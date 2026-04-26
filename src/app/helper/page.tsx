@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { requireApprovedHelper } from "@/lib/auth";
 import { getHelperAssignedLeadSummary, getHelperProfileCompletion } from "@/lib/helper-dashboard";
-import { getCategoryLabel, getHelperStatusLabel, getHelperTypeLabel } from "@/lib/helpers";
+import {
+  getCategoryLabel,
+  getHelperStatusLabel,
+  getHelperTrustLevelLabel,
+  getHelperTypeLabel,
+} from "@/lib/helpers";
 import { formatCurrency } from "@/lib/format";
 import { Card, MetricCard, SectionHeading } from "@/components/ui";
 
@@ -21,6 +26,13 @@ export default async function HelperOverviewPage() {
   const summary = getHelperAssignedLeadSummary(leads);
   const profileCompletion = getHelperProfileCompletion(helper);
   const completionHighlights = profileCompletion.checks.filter((check) => !check.complete).slice(0, 3);
+  const trustLabel = getHelperTrustLevelLabel(helper);
+  const trustUpgradeCopy =
+    helper.trustLevel === "STANDARD_HELPER"
+      ? "To become Verified: submit identity verification."
+      : helper.trustLevel === "VERIFIED_HELPER"
+        ? "To become Trusted: keep strong delivery performance and request an admin review."
+        : "You are already at the highest trust tier.";
 
   return (
     <div>
@@ -44,6 +56,7 @@ export default async function HelperOverviewPage() {
             <InfoRow label="Name" value={helper.name} />
             <InfoRow label="Type" value={getHelperTypeLabel(helper.type)} />
             <InfoRow label="Status" value={getHelperStatusLabel(helper.status)} />
+            <InfoRow label="Trust" value={trustLabel} />
             <InfoRow label="Category" value={getCategoryLabel(helper.category)} />
             <InfoRow label="Projects completed" value={`${helper.projectsCompleted}+`} />
             <InfoRow label="Team size" value={helper.type === "TEAM" ? String(helper.teamSize ?? "-") : "Individual"} />
@@ -66,6 +79,7 @@ export default async function HelperOverviewPage() {
             <p>No access to other helpers, admin metrics, or student-only selections.</p>
             <p>Profile editing is limited to your own helper record.</p>
             <p>Payments and payouts are intentionally not part of this phase.</p>
+            <p>{trustUpgradeCopy}</p>
           </div>
           {completionHighlights.length ? (
             <div className="mt-5 flex flex-wrap gap-2">

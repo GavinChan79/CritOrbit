@@ -41,6 +41,7 @@ export async function PATCH(
       data: {
         status: decision as HelperStatus,
         isActive: false,
+        trustLevel: "STANDARD_HELPER",
       },
       select: {
         id: true,

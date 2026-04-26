@@ -9,6 +9,7 @@ type VerificationHelperRecord = {
   id: string;
   name: string;
   isVerified: boolean;
+  trustLevel: string;
   verification: {
     status: "PENDING" | "VERIFIED" | "REJECTED" | null;
     adminNote: string | null;
@@ -56,6 +57,12 @@ export function AdminHelperVerificationManager(props: {
             ? {
                 ...helper,
                 isVerified: nextStatus === "VERIFIED",
+                trustLevel:
+                  nextStatus === "VERIFIED"
+                    ? helper.trustLevel === "TRUSTED_HELPER"
+                      ? "TRUSTED_HELPER"
+                      : "VERIFIED_HELPER"
+                    : "STANDARD_HELPER",
                 verification: helper.verification
                   ? { ...helper.verification, status: nextStatus }
                   : {
@@ -127,6 +134,9 @@ export function AdminHelperVerificationManager(props: {
                         Public badge on
                       </span>
                     ) : null}
+                    <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                      {helper.trustLevel.replaceAll("_", " ")}
+                    </span>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3">
                     {helper.verification?.icFrontUrl ? (

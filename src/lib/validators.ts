@@ -4,6 +4,7 @@ import {
   helperExperienceLevelValues,
   helperPriceAnchorValues,
   helperPriceTierValues,
+  helperTrustLevelValues,
   helperResponseTimeOptions,
   helperDeliveryTimeOptions,
   helperStatusValues,
@@ -105,6 +106,7 @@ export const helperSchema = z.object({
   isVerified: z.boolean(),
   projectsCompleted: z.coerce.number().int().min(0, "Projects completed must be 0 or more."),
   experienceLevel: z.enum(helperExperienceLevelValues),
+  trustLevel: z.enum(helperTrustLevelValues),
   responseTime: z.enum(helperResponseTimeOptions).optional(),
   deliveryTime: z.enum(helperDeliveryTimeOptions).optional(),
   repeatClients: z
@@ -141,6 +143,17 @@ export const helperSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["teamSize"],
       message: "Team size should only be used for Studio helpers.",
+    });
+  }
+
+  if (
+    (value.trustLevel === "VERIFIED_HELPER" || value.trustLevel === "TRUSTED_HELPER") &&
+    !value.isVerified
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["trustLevel"],
+      message: "Verified or trusted helpers must have identity verification approved.",
     });
   }
 

@@ -5,6 +5,7 @@ import {
   categoryTaskTypeMap,
   helperPriceTierLabelMap,
   helperStatusLabelMap,
+  helperTrustLevelLabelMap,
   helperTypeLabelMap,
   taskTypeLabelMap,
 } from "@/lib/constants";
@@ -65,6 +66,7 @@ type HelperConversionProfileInput = {
   type: string;
   teamSize?: number | null;
   isVerified?: boolean;
+  trustLevel?: string | null;
   projectsCompleted?: number | null;
   impressionCount?: number | null;
   clickCount?: number | null;
@@ -98,6 +100,30 @@ export function getHelperExperienceLevelLabel(level: string) {
     helperExperienceLevelLabelMap[level as keyof typeof helperExperienceLevelLabelMap] ??
     level.replaceAll("_", " ")
   );
+}
+
+export function getHelperTrustLevel(input: {
+  trustLevel?: string | null;
+  isVerified?: boolean;
+}) {
+  if (
+    input.trustLevel === "STANDARD_HELPER" ||
+    input.trustLevel === "VERIFIED_HELPER" ||
+    input.trustLevel === "TRUSTED_HELPER"
+  ) {
+    return input.trustLevel;
+  }
+
+  return input.isVerified ? "VERIFIED_HELPER" : "STANDARD_HELPER";
+}
+
+export function getHelperTrustLevelLabel(input: {
+  trustLevel?: string | null;
+  isVerified?: boolean;
+}) {
+  const trustLevel = getHelperTrustLevel(input);
+
+  return helperTrustLevelLabelMap[trustLevel as keyof typeof helperTrustLevelLabelMap];
 }
 
 export function parseSpecialties(value: unknown): HelperSpecialty[] {
@@ -319,6 +345,10 @@ export function getHelperPriceAnchor(input: HelperConversionProfileInput) {
 }
 
 export function getRecommendedPriceTier(input: HelperConversionProfileInput) {
+  if (getHelperTrustLevel(input) === "TRUSTED_HELPER") {
+    return "PREMIUM";
+  }
+
   if (input.type === "TEAM") {
     return "PREMIUM";
   }
@@ -360,6 +390,20 @@ function getPriceTierRank(priceTier: string | null | undefined) {
   }
 
   if (priceTier === "STANDARD") {
+    return 1;
+  }
+
+  return 2;
+}
+
+function getTrustLevelRank(input: HelperConversionProfileInput) {
+  const trustLevel = getHelperTrustLevel(input);
+
+  if (trustLevel === "TRUSTED_HELPER") {
+    return 0;
+  }
+
+  if (trustLevel === "VERIFIED_HELPER") {
     return 1;
   }
 
@@ -487,9 +531,15 @@ export function compareHelpersForConversion(
 ) {
   const leftPriceTier = left.priceTier ?? getRecommendedPriceTier(left);
   const rightPriceTier = right.priceTier ?? getRecommendedPriceTier(right);
+  const leftTrustRank = getTrustLevelRank(left);
+  const rightTrustRank = getTrustLevelRank(right);
 
   if (left.type !== right.type) {
     return left.type === "TEAM" ? -1 : 1;
+  }
+
+  if (leftTrustRank !== rightTrustRank) {
+    return leftTrustRank - rightTrustRank;
   }
 
   const leftTierRank = getPriceTierRank(leftPriceTier);

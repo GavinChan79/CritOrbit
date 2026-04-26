@@ -35,6 +35,11 @@ export const helperPriceAnchorValues = [
   "RM900",
   "RM1000_PLUS",
 ] as const;
+export const helperTrustLevelValues = [
+  "STANDARD_HELPER",
+  "VERIFIED_HELPER",
+  "TRUSTED_HELPER",
+] as const;
 
 export const helperTypeLabelMap: Record<(typeof helperTypeValues)[number], string> = {
   INDIVIDUAL: "Individual",
@@ -87,6 +92,14 @@ export const helperPriceAnchorLabelMap: Record<
   RM900: "RM900",
   RM1000_PLUS: "RM1000+",
 };
+export const helperTrustLevelLabelMap: Record<
+  (typeof helperTrustLevelValues)[number],
+  string
+> = {
+  STANDARD_HELPER: "Standard Helper",
+  VERIFIED_HELPER: "Verified Helper",
+  TRUSTED_HELPER: "Trusted Helper",
+};
 
 export const helperTypeOptions = helperTypeValues.map((value) => ({
   value,
@@ -112,6 +125,10 @@ export const helperPriceAnchorOptions = helperPriceAnchorValues.map((value) => (
   value,
   label: helperPriceAnchorLabelMap[value],
 })) as ReadonlyArray<{ value: (typeof helperPriceAnchorValues)[number]; label: string }>;
+export const helperTrustLevelOptions = helperTrustLevelValues.map((value) => ({
+  value,
+  label: helperTrustLevelLabelMap[value],
+})) as ReadonlyArray<{ value: (typeof helperTrustLevelValues)[number]; label: string }>;
 
 export const helperResponseTimeOptions = [
   "Within 15 minutes",

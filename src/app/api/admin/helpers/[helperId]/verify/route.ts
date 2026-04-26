@@ -44,6 +44,13 @@ export async function PATCH(
     const status = parsed.data.status;
 
     const updated = await prisma.$transaction(async (tx) => {
+      const currentHelper = await tx.helper.findUnique({
+        where: { id: helperId },
+        select: {
+          trustLevel: true,
+        },
+      });
+
       const nextVerification = await tx.helperVerification.update({
         where: { helperId },
         data: {
@@ -63,6 +70,12 @@ export async function PATCH(
         where: { id: helperId },
         data: {
           isVerified: status === "VERIFIED",
+          trustLevel:
+            status === "VERIFIED"
+              ? currentHelper?.trustLevel === "TRUSTED_HELPER"
+                ? "TRUSTED_HELPER"
+                : "VERIFIED_HELPER"
+              : "STANDARD_HELPER",
         },
       });
 

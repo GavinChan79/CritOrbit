@@ -7,6 +7,7 @@ export type HelperRankingInput = {
   id: string;
   type: string;
   isVerified?: boolean;
+  trustLevel?: string | null;
   responseTime?: string | null;
   projectsCompleted?: number | null;
   portfolioItemsCount?: number;
@@ -21,7 +22,9 @@ export type RankedHelper<T> = T & {
 export function getHelperConversionScore(input: HelperRankingInput) {
   let score = 0;
 
-  if (input.isVerified) {
+  if (input.trustLevel === "TRUSTED_HELPER") {
+    score += 90;
+  } else if (input.trustLevel === "VERIFIED_HELPER" || input.isVerified) {
     score += 50;
   }
 
@@ -49,6 +52,7 @@ export function getHelperConversionScore(input: HelperRankingInput) {
   const responseSpeed = getHelperResponseSpeed({
     type: input.type,
     isVerified: input.isVerified,
+    trustLevel: input.trustLevel,
     responseTime: input.responseTime,
   });
 
@@ -120,6 +124,7 @@ export function getHelperCompletionScore(input: {
   portfolioNote?: string | null;
   specialties: unknown;
   type: "INDIVIDUAL" | "TEAM";
+  trustLevel?: string | null;
   teamSize?: number | null;
   portfolioItemsCount?: number;
   verificationStatus?: "NONE" | "PENDING" | "VERIFIED" | "REJECTED";

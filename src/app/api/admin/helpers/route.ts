@@ -38,6 +38,9 @@ export async function POST(request: Request) {
     const helper = await prisma.helper.create({
       data: {
         ...parsed.data,
+        isVerified:
+          parsed.data.trustLevel === "VERIFIED_HELPER" ||
+          parsed.data.trustLevel === "TRUSTED_HELPER",
         submittedPriceAnchor: parsed.data.submittedPriceAnchor as HelperPriceAnchor,
         priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
         isActive: parsed.data.status === "ACTIVE" ? parsed.data.isActive : false,

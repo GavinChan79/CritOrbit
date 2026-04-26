@@ -14,6 +14,7 @@ type HelperProfileCompletionInput = {
   portfolioNote?: string | null;
   specialties: unknown;
   type: "INDIVIDUAL" | "TEAM";
+  trustLevel?: string | null;
   teamSize?: number | null;
   portfolioItemsCount?: number;
   verificationStatus?: "NONE" | "PENDING" | "VERIFIED" | "REJECTED";

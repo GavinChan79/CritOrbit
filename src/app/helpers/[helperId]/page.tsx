@@ -12,6 +12,7 @@ import {
   getHelperProjectsCompleted,
   getHelperResponseSpeed,
   getHelperTrustedByLabel,
+  getHelperTrustLevelLabel,
   getHelperTypeLabel,
   getHelperUrgencySignals,
   isFastResponseText,
@@ -68,6 +69,7 @@ export default async function HelperDetailPage({
     type: helper.type,
     teamSize: helper.teamSize,
     isVerified: helper.isVerified,
+    trustLevel: helper.trustLevel,
     projectsCompleted: helper.projectsCompleted,
   });
   const studioPitch = getHelperDetailPitch({
@@ -78,17 +80,20 @@ export default async function HelperDetailPage({
   const responseSpeed = getHelperResponseSpeed({
     type: helper.type,
     isVerified: helper.isVerified,
+    trustLevel: helper.trustLevel,
     responseTime: helper.responseTime,
   });
   const deliveryTime = getHelperDeliveryTime({
     type: helper.type,
     isVerified: helper.isVerified,
+    trustLevel: helper.trustLevel,
     deliveryTime: helper.deliveryTime,
   });
   const trustedByLabel = getHelperTrustedByLabel({
     type: helper.type,
     teamSize: helper.teamSize,
     isVerified: helper.isVerified,
+    trustLevel: helper.trustLevel,
     projectsCompleted: helper.projectsCompleted,
     portfolioItems: helper.portfolioItems,
     selectionCount: null,
@@ -106,6 +111,7 @@ export default async function HelperDetailPage({
       ? "Studio support for urgent, presentation-ready student work."
       : "Reliable assignment support with clear communication and fast turnaround.";
   const fastResponse = isFastResponseText(responseSpeed);
+  const trustLabel = getHelperTrustLevelLabel(helper);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -166,11 +172,20 @@ export default async function HelperDetailPage({
                     <span className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink">
                       {bookedTimeLabel}
                     </span>
-                    {helper.isVerified ? (
-                      <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                        Verified Helper
-                      </span>
-                    ) : null}
+                    <span
+                      className={cn(
+                        "retro-pill px-3 py-1 text-xs font-black uppercase",
+                        helper.trustLevel === "TRUSTED_HELPER" && "bg-green text-white",
+                        helper.trustLevel === "VERIFIED_HELPER" && "bg-blue text-white",
+                        helper.trustLevel === "STANDARD_HELPER" && "bg-white text-ink",
+                      )}
+                    >
+                      {helper.trustLevel === "TRUSTED_HELPER"
+                        ? "Trusted Helper ★"
+                        : helper.trustLevel === "VERIFIED_HELPER"
+                          ? "Verified Helper ✓"
+                          : trustLabel}
+                    </span>
                     {fastResponse ? (
                       <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
                         Fast Response ⚡
@@ -248,15 +263,20 @@ export default async function HelperDetailPage({
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                {helper.isVerified ? (
-                  <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                    Verified helper
-                  </span>
-                ) : (
-                  <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase">
-                    Internal review in progress
-                  </span>
-                )}
+                <span
+                  className={cn(
+                    "retro-pill px-3 py-1 text-xs font-black uppercase",
+                    helper.trustLevel === "TRUSTED_HELPER" && "bg-green text-white",
+                    helper.trustLevel === "VERIFIED_HELPER" && "bg-blue text-white",
+                    helper.trustLevel === "STANDARD_HELPER" && "bg-white text-ink",
+                  )}
+                >
+                  {helper.trustLevel === "TRUSTED_HELPER"
+                    ? "Trusted helper ★"
+                    : helper.trustLevel === "VERIFIED_HELPER"
+                      ? "Verified helper ✓"
+                      : trustLabel}
+                </span>
                 <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase">
                   {getHelperTypeLabel(helper.type)}
                 </span>

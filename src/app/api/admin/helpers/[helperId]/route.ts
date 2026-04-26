@@ -48,6 +48,9 @@ export async function PATCH(
       where: { id: helperId },
       data: {
         ...parsed.data,
+        isVerified:
+          parsed.data.trustLevel === "VERIFIED_HELPER" ||
+          parsed.data.trustLevel === "TRUSTED_HELPER",
         submittedPriceAnchor: parsed.data.submittedPriceAnchor as HelperPriceAnchor,
         priceAnchor: parsed.data.priceAnchor as HelperPriceAnchor,
         isActive: parsed.data.status === "ACTIVE" ? parsed.data.isActive : false,

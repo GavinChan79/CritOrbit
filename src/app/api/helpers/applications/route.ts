@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { HelperPriceAnchor, HelperStatus, HelperType, Prisma } from "@prisma/client";
+import {
+  HelperPriceAnchor,
+  HelperStatus,
+  HelperType,
+  Prisma,
+} from "@prisma/client";
 import { sendHelperOnboardingEmail } from "@/lib/email";
 import { getHelperExperienceLevelLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
@@ -56,15 +61,20 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!(identityFrontFile instanceof File) || identityFrontFile.size === 0) {
-      return NextResponse.json({ error: "IC Front is required." }, { status: 400 });
+    const hasIdentityFront = identityFrontFile instanceof File && identityFrontFile.size > 0;
+    const hasIdentityBack = identityBackFile instanceof File && identityBackFile.size > 0;
+
+    if (hasIdentityFront !== hasIdentityBack) {
+      return NextResponse.json(
+        { error: "Upload both IC Front and IC Back, or leave both blank." },
+        { status: 400 },
+      );
     }
 
-    if (!(identityBackFile instanceof File) || identityBackFile.size === 0) {
-      return NextResponse.json({ error: "IC Back is required." }, { status: 400 });
-    }
-
-    const allFiles = [...portfolioFiles, identityFrontFile, identityBackFile];
+    const identityFiles = hasIdentityFront && hasIdentityBack
+      ? [identityFrontFile, identityBackFile]
+      : [];
+    const allFiles = [...portfolioFiles, ...identityFiles];
     for (const file of allFiles) {
       if (file.size > maxApplicationFileSizeBytes) {
         return NextResponse.json(
@@ -99,6 +109,7 @@ export async function POST(request: Request) {
         agreedToTerms: true,
         agreedAt: new Date(),
         isVerified: false,
+        trustLevel: "STANDARD_HELPER",
         isActive: false,
         displayOrder: 0,
         specialties: [],
@@ -113,20 +124,26 @@ export async function POST(request: Request) {
                 content: Buffer.from(await file.arrayBuffer()),
                 createdAt: new Date(Date.now() + index),
               })),
-              {
-                kind: "IDENTITY_FRONT" as const,
-                fileName: sanitizeApplicationFileName(identityFrontFile.name),
-                mimeType: identityFrontFile.type,
-                sizeBytes: identityFrontFile.size,
-                content: Buffer.from(await identityFrontFile.arrayBuffer()),
-              },
-              {
-                kind: "IDENTITY_BACK" as const,
-                fileName: sanitizeApplicationFileName(identityBackFile.name),
-                mimeType: identityBackFile.type,
-                sizeBytes: identityBackFile.size,
-                content: Buffer.from(await identityBackFile.arrayBuffer()),
-              },
+              ...(
+                hasIdentityFront && hasIdentityBack
+                  ? [
+                      {
+                        kind: "IDENTITY_FRONT" as const,
+                        fileName: sanitizeApplicationFileName(identityFrontFile.name),
+                        mimeType: identityFrontFile.type,
+                        sizeBytes: identityFrontFile.size,
+                        content: Buffer.from(await identityFrontFile.arrayBuffer()),
+                      },
+                      {
+                        kind: "IDENTITY_BACK" as const,
+                        fileName: sanitizeApplicationFileName(identityBackFile.name),
+                        mimeType: identityBackFile.type,
+                        sizeBytes: identityBackFile.size,
+                        content: Buffer.from(await identityBackFile.arrayBuffer()),
+                      },
+                    ]
+                  : []
+              ),
             ],
           ),
         },

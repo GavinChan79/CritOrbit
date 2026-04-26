@@ -21,6 +21,7 @@ async function getAdminHelpers() {
       type: true,
       teamSize: true,
       isVerified: true,
+      trustLevel: true,
       projectsCompleted: true,
       experienceLevel: true,
       impressionCount: true,
@@ -127,6 +128,7 @@ export default async function AdminHelpersPage({
             type: helper.type,
             teamSize: helper.teamSize,
             isVerified: helper.isVerified,
+            trustLevel: helper.trustLevel,
             projectsCompleted: helper.projectsCompleted,
             experienceLevel: helper.experienceLevel,
             impressionCount: helper.impressionCount,
@@ -162,6 +164,7 @@ export default async function AdminHelpersPage({
             id: helper.id,
             name: helper.name,
             isVerified: helper.isVerified,
+            trustLevel: helper.trustLevel,
             verification: helper.verification
               ? {
                   status: helper.verification.status,

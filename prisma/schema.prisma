@@ -60,6 +60,12 @@ enum HelperPriceAnchor {
   RM1000_PLUS
 }
 
+enum HelperTrustLevel {
+  STANDARD_HELPER
+  VERIFIED_HELPER
+  TRUSTED_HELPER
+}
+
 enum HelperCategory {
   INTERIOR_DESIGN
   ARCHITECTURE
@@ -167,6 +173,7 @@ model Helper {
   type             HelperType     @default(INDIVIDUAL)
   teamSize         Int?
   isVerified       Boolean        @default(false)
+  trustLevel       HelperTrustLevel @default(STANDARD_HELPER)
   projectsCompleted Int           @default(0)
   experienceLevel  HelperExperienceLevel @default(NO_EXPERIENCE)
   responseTime     String?

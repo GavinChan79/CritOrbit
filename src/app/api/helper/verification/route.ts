@@ -134,7 +134,10 @@ export async function POST(request: Request) {
 
     await prisma.helper.update({
       where: { id: helper.id },
-      data: { isVerified: false },
+      data: {
+        isVerified: false,
+        trustLevel: "STANDARD_HELPER",
+      },
     });
 
     revalidatePath("/helper");

@@ -230,17 +230,19 @@ export function HelperApplicationForm() {
       return;
     }
 
-    if (!identityFrontFile || !identityBackFile) {
+    if (Boolean(identityFrontFile) !== Boolean(identityBackFile)) {
       setFieldErrors({
-        identityFrontFile: identityFrontFile ? "" : "IC Front is required.",
-        identityBackFile: identityBackFile ? "" : "IC Back is required.",
+        identityFrontFile: identityFrontFile ? "" : "Upload both IC files or leave both blank.",
+        identityBackFile: identityBackFile ? "" : "Upload both IC files or leave both blank.",
       });
-      setError("Identity certification files are required.");
+      setError("Upload both IC files or leave both blank.");
       setPending(false);
       return;
     }
 
-    const identityFiles = [identityFrontFile, identityBackFile];
+    const identityFiles = [identityFrontFile, identityBackFile].filter(
+      (file): file is File => Boolean(file),
+    );
     const oversizeIdentity = identityFiles.find(
       (file) => file.size > maxClientFileSizeBytes,
     );
@@ -294,8 +296,12 @@ export function HelperApplicationForm() {
         formData.append(`confirmations.${key}`, String(value));
       }
       portfolioFiles.forEach((file) => formData.append("portfolioFiles", file));
-      formData.append("identityFrontFile", identityFrontFile);
-      formData.append("identityBackFile", identityBackFile);
+      if (identityFrontFile) {
+        formData.append("identityFrontFile", identityFrontFile);
+      }
+      if (identityBackFile) {
+        formData.append("identityBackFile", identityBackFile);
+      }
 
       const response = await fetch("/api/helpers/applications", {
         method: "POST",
@@ -512,6 +518,9 @@ export function HelperApplicationForm() {
 
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
         <div className="display-font text-2xl font-black">Identity Certification</div>
+        <p className="mt-2 text-sm text-muted">
+          Optional for application review. Submit both files if you want to qualify for the verified helper badge later.
+        </p>
         <div className="mt-4 grid gap-5 md:grid-cols-2">
           <InputShell label="IC Front" error={fieldErrors.identityFrontFile}>
             <input

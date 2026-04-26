@@ -19,6 +19,7 @@ import {
   getHelperUrgencySignals,
   getHelperResponseSpeed,
   getHelperTrustedByLabel,
+  getHelperTrustLevelLabel,
   getHelperTypeLabel,
   helperMatchesRequest,
   isFastResponseText,
@@ -502,6 +503,7 @@ export function HelperSelectionClient({
     type: string;
     teamSize: number | null;
     isVerified: boolean;
+    trustLevel: string;
     projectsCompleted: number;
     impressionCount: number;
     responseTime: string | null;
@@ -571,6 +573,7 @@ export function HelperSelectionClient({
               getHelperDeliveryTime({
                 type: left.type,
                 isVerified: left.isVerified,
+                trustLevel: left.trustLevel,
                 deliveryTime: left.deliveryTime,
               }),
             );
@@ -578,6 +581,7 @@ export function HelperSelectionClient({
               getHelperDeliveryTime({
                 type: right.type,
                 isVerified: right.isVerified,
+                trustLevel: right.trustLevel,
                 deliveryTime: right.deliveryTime,
               }),
             );
@@ -707,11 +711,13 @@ export function HelperSelectionClient({
     const responseSpeed = getHelperResponseSpeed({
       type: helper.type,
       isVerified: helper.isVerified,
+      trustLevel: helper.trustLevel,
       responseTime: helper.responseTime,
     });
     const deliveryTime = getHelperDeliveryTime({
       type: helper.type,
       isVerified: helper.isVerified,
+      trustLevel: helper.trustLevel,
       deliveryTime: helper.deliveryTime,
     });
     const priceAnchor = getHelperPriceAnchor({
@@ -725,6 +731,7 @@ export function HelperSelectionClient({
       type: helper.type,
       teamSize: helper.teamSize,
       isVerified: helper.isVerified,
+      trustLevel: helper.trustLevel,
       projectsCompleted: helper.projectsCompleted,
       selectionCount: helper.selectionCount,
       portfolioItems: helper.portfolioItems,
@@ -740,8 +747,10 @@ export function HelperSelectionClient({
       type: helper.type,
       teamSize: helper.teamSize,
       isVerified: helper.isVerified,
+      trustLevel: helper.trustLevel,
       projectsCompleted: helper.projectsCompleted,
     });
+    const trustLabel = getHelperTrustLevelLabel(helper);
     const isPremium = helper.priceTier === "PREMIUM";
     const isBudget = helper.priceTier === "BUDGET";
     const popularityLabel =
@@ -865,11 +874,20 @@ export function HelperSelectionClient({
                   >
                     {getHelperTypeLabel(helper.type)}
                   </span>
-                  {helper.isVerified ? (
-                    <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                      Verified Helper
-                    </span>
-                  ) : null}
+                  <span
+                    className={cn(
+                      "retro-pill px-3 py-1 text-xs font-black uppercase",
+                      helper.trustLevel === "TRUSTED_HELPER" && "bg-green text-white",
+                      helper.trustLevel === "VERIFIED_HELPER" && "bg-blue text-white",
+                      helper.trustLevel === "STANDARD_HELPER" && "bg-white text-ink",
+                    )}
+                  >
+                    {helper.trustLevel === "TRUSTED_HELPER"
+                      ? `Trusted Helper ★`
+                      : helper.trustLevel === "VERIFIED_HELPER"
+                        ? `Verified Helper ✓`
+                        : trustLabel}
+                  </span>
                   {fastResponse ? (
                     <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
                       Fast Response ⚡

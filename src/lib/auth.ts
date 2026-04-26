@@ -116,6 +116,8 @@ export async function getAccessibleHelperByEmail(email?: string | null) {
       name: true,
       email: true,
       type: true,
+      isVerified: true,
+      trustLevel: true,
       status: true,
       category: true,
       shortBio: true,

@@ -14,6 +14,7 @@ import {
   helperResponseTimeOptions,
   helperSpecialtyPresetOptions,
   helperStatusOptions,
+  helperTrustLevelOptions,
   helperTypeOptions,
   getTaskTypeOptionsForCategory,
   normalizeHelperDeliveryTime,
@@ -22,6 +23,7 @@ import {
 import {
   getCategoryLabel,
   getHelperStatusLabel,
+  getHelperTrustLevelLabel,
   getHelperTypeLabel,
   slugifySpecialtyLabel,
   type HelperPortfolioItem,
@@ -36,6 +38,7 @@ type HelperRecord = {
   type: string;
   teamSize: number | null;
   isVerified: boolean;
+  trustLevel: string;
   projectsCompleted: number;
   experienceLevel: string;
   impressionCount: number;
@@ -67,6 +70,7 @@ type HelperFormState = {
   type: string;
   teamSize: string;
   isVerified: boolean;
+  trustLevel: string;
   projectsCompleted: string;
   experienceLevel: string;
   responseTime: string;
@@ -108,6 +112,7 @@ const emptyForm = (): HelperFormState => ({
   type: "INDIVIDUAL",
   teamSize: "",
   isVerified: false,
+  trustLevel: "STANDARD_HELPER",
   projectsCompleted: "0",
   experienceLevel: "NO_EXPERIENCE",
   responseTime: "Within 1 hour",
@@ -230,6 +235,7 @@ export function HelperAdminManager({
       type: helper.type,
       teamSize: helper.teamSize ? String(helper.teamSize) : "",
       isVerified: helper.isVerified,
+      trustLevel: helper.trustLevel,
       projectsCompleted: String(helper.projectsCompleted),
       experienceLevel: helper.experienceLevel,
       responseTime: normalizeHelperResponseTime(helper.responseTime),
@@ -449,6 +455,7 @@ export function HelperAdminManager({
       teamSize: form.type === "TEAM" && form.teamSize ? Number(form.teamSize) : null,
       projectsCompleted: Number(form.projectsCompleted || 0),
       experienceLevel: form.experienceLevel,
+      trustLevel: form.trustLevel,
       responseTime: form.responseTime || undefined,
       deliveryTime: form.deliveryTime || undefined,
       repeatClients: form.repeatClients ? Number(form.repeatClients) : null,
@@ -720,11 +727,9 @@ export function HelperAdminManager({
                         <span className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase">
                           {getHelperStatusLabel(helper.status)}
                         </span>
-                        {helper.isVerified ? (
-                          <span className="retro-pill bg-blue px-3 py-1 text-xs font-black uppercase text-white">
-                            Verified
-                          </span>
-                        ) : null}
+                        <span className="retro-pill bg-blue px-3 py-1 text-xs font-black uppercase text-white">
+                          {getHelperTrustLevelLabel(helper)}
+                        </span>
                         {isEditing ? (
                           <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
                             Editing
@@ -743,6 +748,9 @@ export function HelperAdminManager({
                       </p>
                       <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-muted">
                         Submitted {helper.submittedPriceAnchor.replace("_PLUS", "+").replace("_", " ")} · Public {helper.priceAnchor.replace("_PLUS", "+").replace("_", " ")} · {helper.priceLockedByAdmin ? "Admin locked" : "Helper-driven"}
+                      </p>
+                      <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-muted">
+                        Trust: {getHelperTrustLevelLabel(helper)} · Identity {helper.isVerified ? "approved" : "not approved"}
                       </p>
                       <p className="mt-2 text-sm leading-7 text-muted">{helper.shortBio}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -917,6 +925,30 @@ export function HelperAdminManager({
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+              <InputShell label="Trust Level" error={helperErrors.trustLevel}>
+                <div className="relative">
+                  <select
+                    value={form.trustLevel}
+                    onChange={(event) => {
+                      const nextTrustLevel = event.target.value;
+                      updateField("trustLevel", nextTrustLevel);
+                      updateField(
+                        "isVerified",
+                        nextTrustLevel === "VERIFIED_HELPER" || nextTrustLevel === "TRUSTED_HELPER",
+                      );
+                    }}
+                    className={selectClass(helperErrors.trustLevel)}
+                  >
+                    {helperTrustLevelOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <SelectArrow />
+                </div>
+              </InputShell>
+
               <InputShell label="Experience Level" error={helperErrors.experienceLevel}>
                 <div className="relative">
                   <select
@@ -1150,14 +1182,9 @@ export function HelperAdminManager({
                 {form.status === "ACTIVE" ? "Active helper" : "Only ACTIVE helpers can be public"}
               </label>
 
-              <label className="flex items-center gap-3 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
-                <input
-                  type="checkbox"
-                  checked={form.isVerified}
-                  onChange={(event) => updateField("isVerified", event.target.checked)}
-                />
-                Verified helper
-              </label>
+              <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 font-semibold">
+                Identity approval: {form.isVerified ? "Approved" : "Not approved"}
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">

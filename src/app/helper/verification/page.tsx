@@ -1,6 +1,7 @@
 import { requireApprovedHelper } from "@/lib/auth";
 import { getHelperVerificationFilePath, getHelperVerificationStatusLabel } from "@/lib/helper-verification";
 import { prisma } from "@/lib/prisma";
+import { getHelperTrustLevelLabel } from "@/lib/helpers";
 import { Card, SectionHeading } from "@/components/ui";
 import { HelperVerificationManager } from "@/components/helper-verification-manager";
 
@@ -49,6 +50,16 @@ export default async function HelperVerificationPage() {
         <div className="display-font text-2xl font-black">Current state</div>
         <p className="mt-3 text-sm font-semibold text-muted">
           {getHelperVerificationStatusLabel(verification?.status ?? "NONE")}
+        </p>
+        <p className="mt-3 text-sm font-semibold text-muted">
+          Trust status: {getHelperTrustLevelLabel(helper)}
+        </p>
+        <p className="mt-3 text-sm leading-7 text-muted">
+          {helper.trustLevel === "STANDARD_HELPER"
+            ? "Submit and pass identity verification to unlock the verified helper badge."
+            : helper.trustLevel === "VERIFIED_HELPER"
+              ? "Keep your performance strong. Trusted Helper is an admin-controlled upgrade."
+              : "You are already marked as a Trusted Helper."}
         </p>
       </Card>
     </div>
