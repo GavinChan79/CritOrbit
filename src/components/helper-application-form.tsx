@@ -10,7 +10,6 @@ import {
   helperTypeOptions,
 } from "@/lib/constants";
 import {
-  maxApplicationFileSizeBytes,
   maxPortfolioFiles,
 } from "@/lib/helper-applications";
 import { cn } from "@/lib/utils";
@@ -31,6 +30,9 @@ const defaultAgreements: AgreementState = {
   deadlinesCommunication: false,
   serviceTerms: false,
 };
+
+const maxClientFileSizeBytes = 2 * 1024 * 1024;
+const maxClientTotalUploadBytes = 5 * 1024 * 1024;
 
 export function HelperApplicationForm() {
   const [pending, setPending] = useState(false);
@@ -53,6 +55,9 @@ export function HelperApplicationForm() {
   const [identityFrontFile, setIdentityFrontFile] = useState<File | null>(null);
   const [identityBackFile, setIdentityBackFile] = useState<File | null>(null);
   const allAgreementsAccepted = Object.values(form.confirmations).every(Boolean);
+  const totalUploadMegabytes = formatMegabytes(
+    getTotalUploadBytes(portfolioFiles, identityFrontFile, identityBackFile),
+  );
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -65,6 +70,18 @@ export function HelperApplicationForm() {
     const incomingFiles = Array.from(nextFiles ?? []);
 
     if (incomingFiles.length === 0) {
+      return;
+    }
+
+    const oversizeFile = incomingFiles.find((file) => file.size > maxClientFileSizeBytes);
+
+    if (oversizeFile) {
+      setFieldErrors((current) => ({
+        ...current,
+        portfolioFiles: "Each file must be under 2MB",
+      }));
+      setError("Each file must be under 2MB");
+      setSuccess("");
       return;
     }
 
@@ -84,9 +101,71 @@ export function HelperApplicationForm() {
         }
       }
 
+      const totalBytes = getTotalUploadBytes(merged, identityFrontFile, identityBackFile);
+
+      if (totalBytes > maxClientTotalUploadBytes) {
+        setFieldErrors((currentErrors) => ({
+          ...currentErrors,
+          portfolioFiles: "Total upload size too large. Please reduce file size.",
+        }));
+        setError("Total upload size too large. Please reduce file size.");
+        setSuccess("");
+        return current;
+      }
+
       return merged;
     });
     setFieldErrors((current) => ({ ...current, portfolioFiles: "" }));
+    setError("");
+    setSuccess("");
+  }
+
+  function updateIdentityFile(side: "front" | "back", file: File | null) {
+    const fieldKey = side === "front" ? "identityFrontFile" : "identityBackFile";
+
+    if (!file) {
+      if (side === "front") {
+        setIdentityFrontFile(null);
+      } else {
+        setIdentityBackFile(null);
+      }
+      setFieldErrors((current) => ({ ...current, [fieldKey]: "" }));
+      setError("");
+      setSuccess("");
+      return;
+    }
+
+    if (file.size > maxClientFileSizeBytes) {
+      setFieldErrors((current) => ({
+        ...current,
+        [fieldKey]: "Each file must be under 2MB",
+      }));
+      setError("Each file must be under 2MB");
+      setSuccess("");
+      return;
+    }
+
+    const nextFrontFile = side === "front" ? file : identityFrontFile;
+    const nextBackFile = side === "back" ? file : identityBackFile;
+    const totalBytes = getTotalUploadBytes(portfolioFiles, nextFrontFile, nextBackFile);
+
+    if (totalBytes > maxClientTotalUploadBytes) {
+      setFieldErrors((current) => ({
+        ...current,
+        [fieldKey]: "Total upload size too large. Please reduce file size.",
+      }));
+      setError("Total upload size too large. Please reduce file size.");
+      setSuccess("");
+      return;
+    }
+
+    if (side === "front") {
+      setIdentityFrontFile(file);
+    } else {
+      setIdentityBackFile(file);
+    }
+
+    setFieldErrors((current) => ({ ...current, [fieldKey]: "" }));
     setError("");
     setSuccess("");
   }
@@ -142,11 +221,11 @@ export function HelperApplicationForm() {
     }
 
     const oversizePortfolio = portfolioFiles.find(
-      (file) => file.size > maxApplicationFileSizeBytes,
+      (file) => file.size > maxClientFileSizeBytes,
     );
     if (oversizePortfolio) {
-      setFieldErrors({ portfolioFiles: `${oversizePortfolio.name} exceeds 20MB.` });
-      setError(`${oversizePortfolio.name} exceeds 20MB.`);
+      setFieldErrors({ portfolioFiles: "Each file must be under 2MB" });
+      setError("Each file must be under 2MB");
       setPending(false);
       return;
     }
@@ -163,10 +242,37 @@ export function HelperApplicationForm() {
 
     const identityFiles = [identityFrontFile, identityBackFile];
     const oversizeIdentity = identityFiles.find(
-      (file) => file.size > maxApplicationFileSizeBytes,
+      (file) => file.size > maxClientFileSizeBytes,
     );
     if (oversizeIdentity) {
-      setError(`${oversizeIdentity.name} exceeds 20MB.`);
+      setError("Each file must be under 2MB");
+      setFieldErrors({
+        identityFrontFile:
+          identityFrontFile?.size && identityFrontFile.size > maxClientFileSizeBytes
+            ? "Each file must be under 2MB"
+            : "",
+        identityBackFile:
+          identityBackFile?.size && identityBackFile.size > maxClientFileSizeBytes
+            ? "Each file must be under 2MB"
+            : "",
+      });
+      setPending(false);
+      return;
+    }
+
+    const totalUploadBytes = getTotalUploadBytes(
+      portfolioFiles,
+      identityFrontFile,
+      identityBackFile,
+    );
+
+    if (totalUploadBytes > maxClientTotalUploadBytes) {
+      setFieldErrors({
+        portfolioFiles: "Total upload size too large. Please reduce file size.",
+        identityFrontFile: "Total upload size too large. Please reduce file size.",
+        identityBackFile: "Total upload size too large. Please reduce file size.",
+      });
+      setError("Total upload size too large. Please reduce file size.");
       setPending(false);
       return;
     }
@@ -360,7 +466,7 @@ export function HelperApplicationForm() {
       <div className="rounded-[24px] border-[3px] border-line bg-cream p-5">
         <div className="display-font text-2xl font-black">Portfolio Files</div>
         <p className="mt-2 text-sm text-muted">
-          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 20MB each.
+          Upload up to {maxPortfolioFiles} files. Supported: PNG, JPG, JPEG, PDF. Max 2MB per file. Recommended to compress images.
         </p>
         <div className="mt-4">
           <InputShell label="Portfolio Uploads" error={fieldErrors.portfolioFiles}>
@@ -393,6 +499,14 @@ export function HelperApplicationForm() {
               ))}
             </div>
           ) : null}
+          <p
+            className={cn(
+              "mt-3 text-xs font-semibold",
+              totalUploadMegabytes > 4 ? "text-red" : "text-muted",
+            )}
+          >
+            Uploaded: {totalUploadMegabytes.toFixed(1)} MB / 5 MB
+          </p>
         </div>
       </div>
 
@@ -403,7 +517,7 @@ export function HelperApplicationForm() {
             <input
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
-              onChange={(event) => setIdentityFrontFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => updateIdentityFile("front", event.target.files?.[0] ?? null)}
               className={inputClass(fieldErrors.identityFrontFile)}
             />
           </InputShell>
@@ -411,11 +525,14 @@ export function HelperApplicationForm() {
             <input
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
-              onChange={(event) => setIdentityBackFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => updateIdentityFile("back", event.target.files?.[0] ?? null)}
               className={inputClass(fieldErrors.identityBackFile)}
             />
           </InputShell>
         </div>
+        <p className="mt-4 text-sm text-muted">
+          Max 2MB per file. Recommended to compress images.
+        </p>
         <p className="mt-4 text-sm leading-7 text-muted">
           To protect both users and helpers and to maintain a reliable system, we will only use the information for internal verification purposes, and it will not be shared externally.
         </p>
@@ -514,4 +631,20 @@ function safeJsonParse(value: string): { error?: string; message?: string } {
   } catch {
     return {};
   }
+}
+
+function getTotalUploadBytes(
+  portfolioFiles: File[],
+  identityFrontFile: File | null,
+  identityBackFile: File | null,
+) {
+  return (
+    portfolioFiles.reduce((total, file) => total + file.size, 0) +
+    (identityFrontFile?.size ?? 0) +
+    (identityBackFile?.size ?? 0)
+  );
+}
+
+function formatMegabytes(bytes: number) {
+  return bytes / (1024 * 1024);
 }
