@@ -31,8 +31,9 @@ const defaultAgreements: AgreementState = {
   serviceTerms: false,
 };
 
-const maxClientFileSizeBytes = 2 * 1024 * 1024;
-const maxClientTotalUploadBytes = 5 * 1024 * 1024;
+const maxPortfolioFileSizeBytes = 2 * 1024 * 1024;
+const maxIdentityFileSizeBytes = 5 * 1024 * 1024;
+const maxClientTotalUploadBytes = 8 * 1024 * 1024;
 
 export function HelperApplicationForm() {
   const [pending, setPending] = useState(false);
@@ -73,14 +74,14 @@ export function HelperApplicationForm() {
       return;
     }
 
-    const oversizeFile = incomingFiles.find((file) => file.size > maxClientFileSizeBytes);
+    const oversizeFile = incomingFiles.find((file) => file.size > maxPortfolioFileSizeBytes);
 
     if (oversizeFile) {
       setFieldErrors((current) => ({
         ...current,
-        portfolioFiles: "Each file must be under 2MB",
+        portfolioFiles: "Each portfolio file must be under 2MB",
       }));
-      setError("Each file must be under 2MB");
+      setError("Each portfolio file must be under 2MB");
       setSuccess("");
       return;
     }
@@ -135,12 +136,12 @@ export function HelperApplicationForm() {
       return;
     }
 
-    if (file.size > maxClientFileSizeBytes) {
+    if (file.size > maxIdentityFileSizeBytes) {
       setFieldErrors((current) => ({
         ...current,
-        [fieldKey]: "Each file must be under 2MB",
+        [fieldKey]: "Each IC file must be under 5MB",
       }));
-      setError("Each file must be under 2MB");
+      setError("Each IC file must be under 5MB");
       setSuccess("");
       return;
     }
@@ -221,11 +222,11 @@ export function HelperApplicationForm() {
     }
 
     const oversizePortfolio = portfolioFiles.find(
-      (file) => file.size > maxClientFileSizeBytes,
+      (file) => file.size > maxPortfolioFileSizeBytes,
     );
     if (oversizePortfolio) {
-      setFieldErrors({ portfolioFiles: "Each file must be under 2MB" });
-      setError("Each file must be under 2MB");
+      setFieldErrors({ portfolioFiles: "Each portfolio file must be under 2MB" });
+      setError("Each portfolio file must be under 2MB");
       setPending(false);
       return;
     }
@@ -244,18 +245,18 @@ export function HelperApplicationForm() {
       (file): file is File => Boolean(file),
     );
     const oversizeIdentity = identityFiles.find(
-      (file) => file.size > maxClientFileSizeBytes,
+      (file) => file.size > maxIdentityFileSizeBytes,
     );
     if (oversizeIdentity) {
-      setError("Each file must be under 2MB");
+      setError("Each IC file must be under 5MB");
       setFieldErrors({
         identityFrontFile:
-          identityFrontFile?.size && identityFrontFile.size > maxClientFileSizeBytes
-            ? "Each file must be under 2MB"
+          identityFrontFile?.size && identityFrontFile.size > maxIdentityFileSizeBytes
+            ? "Each IC file must be under 5MB"
             : "",
         identityBackFile:
-          identityBackFile?.size && identityBackFile.size > maxClientFileSizeBytes
-            ? "Each file must be under 2MB"
+          identityBackFile?.size && identityBackFile.size > maxIdentityFileSizeBytes
+            ? "Each IC file must be under 5MB"
             : "",
       });
       setPending(false);
@@ -508,10 +509,10 @@ export function HelperApplicationForm() {
           <p
             className={cn(
               "mt-3 text-xs font-semibold",
-              totalUploadMegabytes > 4 ? "text-red" : "text-muted",
+              totalUploadMegabytes > 6.4 ? "text-red" : "text-muted",
             )}
           >
-            Uploaded: {totalUploadMegabytes.toFixed(1)} MB / 5 MB
+            Uploaded: {totalUploadMegabytes.toFixed(1)} MB / 8 MB
           </p>
         </div>
       </div>
@@ -540,7 +541,7 @@ export function HelperApplicationForm() {
           </InputShell>
         </div>
         <p className="mt-4 text-sm text-muted">
-          Max 2MB per file. Recommended to compress images.
+          Max 5MB per file. Recommended to compress images.
         </p>
         <p className="mt-4 text-sm leading-7 text-muted">
           To protect both users and helpers and to maintain a reliable system, we will only use the information for internal verification purposes, and it will not be shared externally.
