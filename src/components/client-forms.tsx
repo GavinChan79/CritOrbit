@@ -1149,6 +1149,7 @@ export function HelperSelectionClient({
                         variant="compact"
                         href={item.externalLink || item.imageUrl}
                         onClick={() => trackHelperClick(helper.id)}
+                        sequence={index + 1}
                         className={cn("rounded-[16px]", index > 1 && "hidden xl:block")}
                       />
                     ))}

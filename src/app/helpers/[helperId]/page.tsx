@@ -6,6 +6,7 @@ import {
   getHelperBookedTimeLabel,
   getHelperDeliveryTime,
   getHelperDetailPitch,
+  getHelperExperienceLevelLabel,
   getHelperPastWorksLabel,
   getHelperPriceAnchor,
   getHelperPriceTierLabel,
@@ -113,6 +114,13 @@ export default async function HelperDetailPage({
     profileViewCount: helper.clickCount ?? 0,
     limit: 4,
   });
+  const aboutHighlights = [
+    `${getHelperExperienceLevelLabel(helper.experienceLevel)} experience`,
+    studentsHelpedLabel,
+    `${getCategoryLabel(helper.category)} specialist`,
+    fastResponse ? "Fast and clear communication" : "Clear and dependable communication",
+    `${deliveryTime} delivery`,
+  ].slice(0, 5);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -267,11 +275,30 @@ export default async function HelperDetailPage({
               <div className="display-font text-2xl font-black">
                 {helper.type === "TEAM" ? "About the Studio" : "About the Helper"}
               </div>
-              <div className="mt-4 space-y-3 text-sm leading-7 text-muted">
-                {studioPitch.map((line) => (
-                  <p key={line}>{line}</p>
+              <div className="mt-4 space-y-3">
+                {aboutHighlights.slice(0, 5).map((line) => (
+                  <div
+                    key={line}
+                    className="rounded-[16px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink"
+                  >
+                    {line}
+                  </div>
                 ))}
               </div>
+
+              {(helper.shortBio || studioPitch.length > 0) ? (
+                <details className="mt-5 rounded-[18px] border-[3px] border-line bg-paper px-4 py-3">
+                  <summary className="cursor-pointer text-sm font-black uppercase tracking-[0.14em] text-ink">
+                    Read more
+                  </summary>
+                  <div className="mt-3 space-y-3 text-sm leading-7 text-muted">
+                    {helper.shortBio ? <p>{helper.shortBio}</p> : null}
+                    {studioPitch.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
 
               {helper.portfolioNote ? (
                 <div className="mt-5 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm leading-7 text-muted">
@@ -313,17 +340,20 @@ export default async function HelperDetailPage({
                       <HelperPortfolioPreview
                         item={item}
                         variant="detail"
+                        sequence={index + 1}
                         className="rounded-none border-0 shadow-none"
                       />
                       <div className="flex flex-1 flex-col space-y-3 p-5">
                         <div className="line-clamp-2 display-font text-2xl font-black leading-tight">
-                          {item.title.replace(/\.(pdf|png|jpe?g|webp)$/i, "")}
+                          {isPdfPortfolioItem(item)
+                            ? `Portfolio Sample ${index + 1}`
+                            : item.title.replace(/\.(pdf|png|jpe?g|webp)$/i, "")}
                         </div>
-                        {item.description ? (
+                        {item.description && !isPdfPortfolioItem(item) ? (
                           <p className="line-clamp-3 text-sm leading-7 text-muted">{item.description}</p>
                         ) : (
                           <p className="text-sm leading-7 text-muted">
-                            Portfolio sample
+                            {isPdfPortfolioItem(item) ? "PDF sample work" : "Portfolio sample"}
                           </p>
                         )}
                         {item.externalLink ? (

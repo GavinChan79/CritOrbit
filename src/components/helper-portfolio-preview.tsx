@@ -35,23 +35,29 @@ function getPortfolioDisplayTitle(item: PortfolioPreviewItem) {
   return rawTitle.replace(/\.(pdf|png|jpe?g|webp)$/i, "");
 }
 
+function getPortfolioSampleLabel(sequence?: number) {
+  return `Portfolio Sample ${sequence ?? 1}`;
+}
+
 export function HelperPortfolioPreview({
   item,
   variant = "compact",
   href,
   onClick,
+  sequence,
   className,
 }: {
   item: PortfolioPreviewItem;
   variant?: "compact" | "detail";
   href?: string;
   onClick?: () => void;
+  sequence?: number;
   className?: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const isDocument = isDocumentLikeItem(item) || imageFailed;
   const fileType = getFileTypeLabel(item);
-  const title = getPortfolioDisplayTitle(item);
+  const title = isDocument ? getPortfolioSampleLabel(sequence) : getPortfolioDisplayTitle(item);
   const Wrapper = href ? "a" : "div";
   const wrapperProps =
     href
@@ -99,11 +105,14 @@ export function HelperPortfolioPreview({
             <div className="retro-pill bg-red px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
               {fileType}
             </div>
-            {variant === "detail" ? (
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Sample Work
-              </div>
-            ) : null}
+            <div
+              className={cn(
+                "font-semibold uppercase tracking-[0.14em] text-muted",
+                variant === "detail" ? "text-[11px]" : "text-[10px]",
+              )}
+            >
+              {title}
+            </div>
           </div>
         </div>
       )}
@@ -114,7 +123,7 @@ export function HelperPortfolioPreview({
             {title}
           </div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Portfolio sample
+            PDF sample work
           </div>
         </div>
       ) : null}

@@ -521,14 +521,15 @@ export default async function HomePage() {
                         {helper.type === "TEAM" ? "Studio Portfolio" : "Portfolio"}
                       </div>
                         <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
-                        {helper.portfolioItems.map((item, index) => (
-                            <HelperPortfolioPreview
-                              key={item.id}
-                              item={item}
-                              variant="compact"
-                              className={cn(index > 1 && "hidden md:block")}
-                            />
-                          ))}
+                              {helper.portfolioItems.map((item, index) => (
+                                <HelperPortfolioPreview
+                                  key={item.id}
+                                  item={item}
+                                  variant="compact"
+                                  sequence={index + 1}
+                                  className={cn(index > 1 && "hidden md:block")}
+                                />
+                              ))}
                         </div>
                     </div>
                   ) : null}
