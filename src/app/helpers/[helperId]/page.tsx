@@ -286,7 +286,7 @@ export default async function HelperDetailPage({
                 ))}
               </div>
 
-              {(helper.shortBio || studioPitch.length > 0) ? (
+              {(helper.shortBio || studioPitch.length > 0 || helper.portfolioNote) ? (
                 <details className="mt-5 rounded-[18px] border-[3px] border-line bg-paper px-4 py-3">
                   <summary className="cursor-pointer text-sm font-black uppercase tracking-[0.14em] text-ink">
                     Read more
@@ -296,15 +296,9 @@ export default async function HelperDetailPage({
                     {studioPitch.map((line) => (
                       <p key={line}>{line}</p>
                     ))}
+                    {helper.portfolioNote ? <p>{helper.portfolioNote}</p> : null}
                   </div>
                 </details>
-              ) : null}
-
-              {helper.portfolioNote ? (
-                <div className="mt-5 rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm leading-7 text-muted">
-                  <span className="font-black uppercase tracking-[0.14em]">Portfolio Note</span>
-                  <p className="mt-2">{helper.portfolioNote}</p>
-                </div>
               ) : null}
 
               <div className="mt-5 flex flex-wrap gap-2">

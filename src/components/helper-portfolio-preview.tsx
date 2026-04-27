@@ -12,6 +12,10 @@ type PortfolioPreviewItem = {
 };
 
 function isDocumentLikeItem(item: PortfolioPreviewItem) {
+  if (item.imageUrl.startsWith("data:image/svg+xml")) {
+    return true;
+  }
+
   return [item.externalLink, item.imageUrl].some((value) =>
     typeof value === "string" && /\.(pdf|doc|docx|ppt|pptx)(?:[?#]|$)/i.test(value.toLowerCase()),
   );
@@ -111,7 +115,7 @@ export function HelperPortfolioPreview({
                 variant === "detail" ? "text-[11px]" : "text-[10px]",
               )}
             >
-              {title}
+              Sample Work
             </div>
           </div>
         </div>
