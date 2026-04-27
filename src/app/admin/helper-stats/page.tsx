@@ -2,9 +2,10 @@ import Link from "next/link";
 import { subDays } from "date-fns";
 import { getCategoryLabel } from "@/lib/helpers";
 import { prisma } from "@/lib/prisma";
+import { publicHelperWhere } from "@/lib/public-helpers";
 import { logServerDataLoadError } from "@/lib/server-load";
 import { formatCurrency } from "@/lib/format";
-import { Card, EmptyState, SectionHeading } from "@/components/ui";
+import { Badge, Card, EmptyState, SectionHeading } from "@/components/ui";
 
 export default async function HelperStatsPage({
   searchParams,
@@ -13,15 +14,18 @@ export default async function HelperStatsPage({
 }) {
   const params = await searchParams;
   const range = readQuery(params.range) ?? "all";
+  const showAllStatuses = readQuery(params.showAll) === "1";
   const fromDate =
     range === "week" ? subDays(new Date(), 7) : range === "month" ? subDays(new Date(), 30) : null;
 
   const [helpersResult, leadsResult] = await Promise.allSettled([
     prisma.helper.findMany({
+      where: showAllStatuses ? {} : publicHelperWhere,
       select: {
         id: true,
         name: true,
         category: true,
+        status: true,
         isActive: true,
         impressionCount: true,
         clickCount: true,
@@ -88,42 +92,69 @@ export default async function HelperStatsPage({
         ].map(([value, label]) => (
           <Link
             key={value}
-            href={`/admin/helper-stats?range=${value}`}
+            href={`/admin/helper-stats?range=${value}${showAllStatuses ? "&showAll=1" : ""}`}
             className={`retro-pill px-4 py-2 text-sm font-black uppercase ${range === value ? "bg-purple text-white" : "bg-white"}`}
           >
             {label}
           </Link>
         ))}
+        <Link
+          href={`/admin/helper-stats?range=${range}&showAll=${showAllStatuses ? "0" : "1"}`}
+          className={`retro-pill px-4 py-2 text-sm font-black uppercase ${showAllStatuses ? "bg-yellow text-ink" : "bg-white"}`}
+        >
+          {showAllStatuses ? "Hide Archived/Inactive" : "Show Archived/Inactive"}
+        </Link>
       </div>
+
       <div className="mt-8 space-y-4">
         {helpersResult.status === "rejected" || leadsResult.status === "rejected" ? (
           <div className="rounded-[20px] border-[3px] border-line bg-yellow px-5 py-4 text-sm font-semibold text-ink">
             Some helper performance data could not load. Available metrics below are shown with safe fallbacks.
           </div>
         ) : null}
+
         {rows.length === 0 ? (
           <EmptyState
-            title="No helpers to analyze yet"
-            description="Create at least one active helper to start tracking selections, assignments, closures, and revenue."
+            title={showAllStatuses ? "No helper stats yet" : "No active helper stats yet."}
+            description={
+              showAllStatuses
+                ? "Create at least one helper to start tracking selections, assignments, closures, and revenue."
+                : "Only currently active public helpers are shown here by default."
+            }
           />
-        ) : rows.map((row) => (
-          <Card key={row.helper.id} className="bg-white">
-            <div className="grid gap-4 lg:grid-cols-6 lg:items-center">
-              <div>
-                <div className="display-font text-2xl font-black">{row.helper.name}</div>
-                <p className="mt-2 text-sm text-muted">
-                  {getCategoryLabel(row.helper.category)}
-                  {!row.helper.isActive ? " · Inactive" : ""}
-                </p>
+        ) : (
+          rows.map((row) => (
+            <Card key={row.helper.id} className="bg-white">
+              <div className="grid gap-4 lg:grid-cols-6 lg:items-center">
+                <div>
+                  <div className="display-font text-2xl font-black">{row.helper.name}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="text-sm text-muted">{getCategoryLabel(row.helper.category)}</p>
+                    {showAllStatuses && row.helper.status !== "ACTIVE" ? (
+                      <Badge
+                        tone={
+                          row.helper.status === "ARCHIVED"
+                            ? "pink"
+                            : row.helper.status === "FROZEN"
+                              ? "yellow"
+                              : "ink"
+                        }
+                      >
+                        {row.helper.status}
+                      </Badge>
+                    ) : null}
+                    {showAllStatuses && !row.helper.isActive ? <Badge tone="ink">Inactive</Badge> : null}
+                  </div>
+                </div>
+                <Stat label="Impressions" value={String(row.impressions)} />
+                <Stat label="Total Clicks" value={String(row.clicks)} />
+                <Stat label="Total Selections" value={String(row.selections)} />
+                <Stat label="Conversion Rate" value={`${row.conversion}%`} />
+                <Stat label="Estimated Revenue" value={formatCurrency(row.revenue)} />
               </div>
-              <Stat label="Impressions" value={String(row.impressions)} />
-              <Stat label="Total Clicks" value={String(row.clicks)} />
-              <Stat label="Total Selections" value={String(row.selections)} />
-              <Stat label="Conversion Rate" value={`${row.conversion}%`} />
-              <Stat label="Estimated Revenue" value={formatCurrency(row.revenue)} />
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
