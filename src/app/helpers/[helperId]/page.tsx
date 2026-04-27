@@ -301,12 +301,12 @@ export default async function HelperDetailPage({
               </p>
 
               {helper.portfolioItems.length ? (
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   {helper.portfolioItems.map((item, index) => (
                     <div
                       key={item.id}
                       className={cn(
-                        "overflow-hidden rounded-[22px] border-[3px] border-line bg-cream",
+                        "flex h-full flex-col overflow-hidden rounded-[22px] border-[3px] border-line bg-cream",
                         index > 1 && "hidden md:block",
                       )}
                     >
@@ -315,13 +315,15 @@ export default async function HelperDetailPage({
                         variant="detail"
                         className="rounded-none border-0 shadow-none"
                       />
-                      <div className="space-y-3 p-4">
-                        <div className="line-clamp-2 display-font text-2xl font-black">{item.title}</div>
+                      <div className="flex flex-1 flex-col space-y-3 p-5">
+                        <div className="line-clamp-2 display-font text-2xl font-black leading-tight">
+                          {item.title.replace(/\.(pdf|png|jpe?g|webp)$/i, "")}
+                        </div>
                         {item.description ? (
                           <p className="line-clamp-3 text-sm leading-7 text-muted">{item.description}</p>
                         ) : (
                           <p className="text-sm leading-7 text-muted">
-                            Portfolio sample prepared for public viewing.
+                            Portfolio sample
                           </p>
                         )}
                         {item.externalLink ? (
@@ -329,9 +331,9 @@ export default async function HelperDetailPage({
                             href={item.externalLink}
                             target="_blank"
                             rel="noreferrer"
-                            className={buttonStyles({ tone: "yellow", size: "sm" })}
+                            className={cn(buttonStyles({ tone: "yellow", size: "sm", fullWidth: true }), "mt-auto md:w-auto")}
                           >
-                            {isPdfPortfolioItem(item) ? "Open Portfolio File" : "Open External Link"}
+                            View Sample {"\u2192"}
                           </a>
                         ) : null}
                       </div>

@@ -26,7 +26,13 @@ function getFileTypeLabel(item: PortfolioPreviewItem) {
 }
 
 function getPortfolioDisplayTitle(item: PortfolioPreviewItem) {
-  return item.title?.trim() || "Portfolio sample";
+  const rawTitle = item.title?.trim();
+
+  if (!rawTitle) {
+    return "Portfolio sample";
+  }
+
+  return rawTitle.replace(/\.(pdf|png|jpe?g|webp)$/i, "");
 }
 
 export function HelperPortfolioPreview({
@@ -83,38 +89,35 @@ export function HelperPortfolioPreview({
         <div
           className={cn(
             "relative overflow-hidden bg-gradient-to-br from-paper via-white to-[#efe7ff]",
-            variant === "detail" ? "h-52 px-6 py-6" : "h-24 px-3 py-3",
+            variant === "detail" ? "h-36 px-6 py-5" : "h-24 px-3 py-3",
           )}
         >
-          <div className="absolute right-4 top-4 h-10 w-8 rounded-[8px] border-[3px] border-line bg-white shadow-[3px_3px_0_var(--line)]" />
-          <div className="absolute right-[22px] top-4 h-3 w-3 rounded-bl-[6px] rounded-tr-[6px] border-b-[3px] border-l-[3px] border-line bg-yellow" />
-          <div className="relative z-10 flex h-full flex-col justify-between">
-            <div className="flex items-center justify-between gap-3">
-              <span className="retro-pill bg-purple px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                {fileType}
-              </span>
+          <div className="relative z-10 flex h-full flex-col items-center justify-center gap-3 text-center">
+            <div className="relative h-12 w-10 rounded-[8px] border-[3px] border-line bg-white shadow-[3px_3px_0_var(--line)]">
+              <div className="absolute right-0 top-0 h-3 w-3 rounded-bl-[6px] rounded-tr-[6px] border-b-[3px] border-l-[3px] border-line bg-yellow" />
             </div>
-            <div>
-              <div
-                className={cn(
-                  "display-font font-black text-ink",
-                  variant === "detail" ? "text-2xl leading-tight" : "line-clamp-2 text-sm leading-tight",
-                )}
-              >
-                {title}
-              </div>
-              <div
-                className={cn(
-                  "mt-2 font-semibold uppercase tracking-[0.14em] text-muted",
-                  variant === "detail" ? "text-xs" : "text-[10px]",
-                )}
-              >
-                Portfolio sample
-              </div>
+            <div className="retro-pill bg-red px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+              {fileType}
             </div>
+            {variant === "detail" ? (
+              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Sample Work
+              </div>
+            ) : null}
           </div>
         </div>
       )}
+
+      {variant !== "detail" && isDocument ? (
+        <div className="space-y-2 px-3 py-3">
+          <div className="line-clamp-2 display-font text-sm font-black leading-tight text-ink">
+            {title}
+          </div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+            Portfolio sample
+          </div>
+        </div>
+      ) : null}
     </Wrapper>
   );
 }
