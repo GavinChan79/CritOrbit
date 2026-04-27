@@ -5,12 +5,9 @@ import {
   getApplicationFileDownloadPath,
   getApplicationFileTitle,
   getPortfolioPreviewImageUrl,
-  isAllowedApplicationFile,
-  maxApplicationFileSizeBytes,
-  sanitizeApplicationFileName,
 } from "@/lib/helper-applications";
 import { prisma } from "@/lib/prisma";
-import { helperPortfolioUploadSchema } from "@/lib/validators";
+import { helperPortfolioSubmissionSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
   const session = await getAuthSession();
@@ -26,33 +23,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("file");
-    const payload = {
-      title: String(formData.get("title") ?? ""),
-      description: String(formData.get("description") ?? ""),
-      displayOrder: Number(formData.get("displayOrder") ?? 0),
-    };
-    const parsed = helperPortfolioUploadSchema.safeParse(payload);
+    const payload = await request.json();
+    const parsed = helperPortfolioSubmissionSchema.safeParse(payload);
 
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid portfolio payload." },
-        { status: 400 },
-      );
-    }
-
-    if (!(file instanceof File) || file.size === 0) {
-      return NextResponse.json({ error: "Portfolio file is required." }, { status: 400 });
-    }
-
-    if (file.size > maxApplicationFileSizeBytes) {
-      return NextResponse.json({ error: `${file.name} exceeds the 10MB limit.` }, { status: 400 });
-    }
-
-    if (!isAllowedApplicationFile(file.name, file.type || "")) {
-      return NextResponse.json(
-        { error: `${file.name} is not a supported file type.` },
         { status: 400 },
       );
     }
@@ -62,14 +38,17 @@ export async function POST(request: Request) {
     });
 
     const created = await prisma.$transaction(async (tx) => {
+      const uploadedFile = parsed.data.uploadedFile;
       const storedFile = await tx.helperApplicationFile.create({
         data: {
           helperId: helper.id,
           kind: "PORTFOLIO",
-          fileName: sanitizeApplicationFileName(file.name),
-          mimeType: file.type,
-          sizeBytes: file.size,
-          content: Buffer.from(await file.arrayBuffer()),
+          fileName: uploadedFile.filename,
+          mimeType: uploadedFile.contentType,
+          sizeBytes: uploadedFile.size,
+          content: Buffer.alloc(0),
+          blobUrl: uploadedFile.url,
+          blobPathname: uploadedFile.pathname,
         },
       });
 
@@ -78,8 +57,12 @@ export async function POST(request: Request) {
           helperId: helper.id,
           title:
             parsed.data.title?.trim() ||
-            getApplicationFileTitle(file.name, `Portfolio ${currentCount + 1}`),
-          imageUrl: getPortfolioPreviewImageUrl(storedFile.id, file.type, file.name),
+            getApplicationFileTitle(uploadedFile.filename, `Portfolio ${currentCount + 1}`),
+          imageUrl: getPortfolioPreviewImageUrl(
+            storedFile.id,
+            uploadedFile.contentType,
+            uploadedFile.filename,
+          ),
           description: parsed.data.description?.trim(),
           externalLink: getApplicationFileDownloadPath(storedFile.id),
           displayOrder: parsed.data.displayOrder ?? currentCount,

@@ -18,6 +18,7 @@ import {
   helperApplicationUploadKinds,
   isAllowedApplicationFile,
   isHelperApplicationBlobPathname,
+  isHelperPortfolioBlobPathname,
 } from "@/lib/helper-applications";
 import { eventTypeValues } from "@/lib/events";
 
@@ -370,6 +371,43 @@ export const helperPortfolioUploadSchema = z.object({
   displayOrder: z
     .union([z.coerce.number().int().min(0, "Display order must be 0 or more."), z.undefined()])
     .transform((value) => value ?? 0),
+});
+
+export const helperPortfolioUploadedFileSchema = z
+  .object({
+    url: z.url("Uploaded file URL is invalid."),
+    pathname: z
+      .string()
+      .min(1, "Uploaded file pathname is required.")
+      .refine(
+        (value) => isHelperPortfolioBlobPathname(value),
+        "Uploaded file pathname is invalid.",
+      ),
+    filename: z.string().min(1, "Uploaded file name is required."),
+    contentType: z.string().min(1, "Uploaded file type is required."),
+    size: z.coerce.number().int().positive("Uploaded file size must be greater than 0."),
+    kind: z.literal("PORTFOLIO"),
+  })
+  .superRefine((value, ctx) => {
+    if (!isAllowedApplicationFile(value.filename, value.contentType)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["filename"],
+        message: "Uploaded file type is not supported.",
+      });
+    }
+
+    if (value.size > getHelperApplicationFileSizeLimit("PORTFOLIO")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["size"],
+        message: "File is too large. Please upload a smaller PDF.",
+      });
+    }
+  });
+
+export const helperPortfolioSubmissionSchema = helperPortfolioUploadSchema.extend({
+  uploadedFile: helperPortfolioUploadedFileSchema,
 });
 
 export const forgotPasswordSchema = z.object({

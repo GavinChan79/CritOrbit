@@ -15,6 +15,7 @@ export const maxApplicationFileSizeBytes = 20 * 1024 * 1024;
 export const maxPortfolioApplicationFileSizeBytes = 20 * 1024 * 1024;
 export const maxIdentityApplicationFileSizeBytes = 10 * 1024 * 1024;
 export const helperApplicationUploadPrefix = "helper-applications/";
+export const helperPortfolioUploadPrefix = "helper-portfolio/";
 export const helperApplicationUploadKinds = [
   "PORTFOLIO",
   "IDENTITY_FRONT",
@@ -170,6 +171,18 @@ export function buildHelperApplicationUploadPathname(params: {
 
 export function isHelperApplicationBlobPathname(pathname: string) {
   return pathname.startsWith(helperApplicationUploadPrefix);
+}
+
+export function isHelperPortfolioBlobPathname(pathname: string) {
+  return pathname.startsWith(helperPortfolioUploadPrefix);
+}
+
+export function buildHelperPortfolioUploadPathname(params: {
+  uploadKey: string;
+  fileName: string;
+}) {
+  const safeFileName = sanitizeApplicationFileName(params.fileName);
+  return `${helperPortfolioUploadPrefix}${params.uploadKey}/portfolio/${Date.now()}-${safeFileName}`;
 }
 
 export function getApplicationFileTitle(fileName: string, fallback: string) {
