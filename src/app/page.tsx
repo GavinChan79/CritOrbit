@@ -5,7 +5,6 @@ import {
   getCategoryLabel,
   getHelperBookedTimeLabel,
   getHelperCardSpecialties,
-  getHelperDisplayTags,
   getHelperDeliveryTime,
   getHelperLastActiveLabel,
   getHelperPastWorksLabel,
@@ -16,7 +15,6 @@ import {
   getHelperResponseSpeed,
   getStudentsHelpedLabel,
   getHelperTrustLevelLabel,
-  getHelperTypeLabel,
   getHelperUrgencySignals,
   isFastResponseText,
   parseSpecialties,
@@ -315,16 +313,7 @@ export default async function HomePage() {
                 studentsHelpedCount: helper.studentsHelpedCount,
                 projectsCompleted: helper.projectsCompleted,
               });
-                const profileImage = helper.portfolioItems[0]?.imageUrl;
-              const fastResponse = isFastResponseText(responseSpeed);
-              const displayTags = getHelperDisplayTags({
-                type: helper.type,
-                trustLevel: helper.trustLevel,
-                isVerified: helper.isVerified,
-                responseTime: helper.responseTime,
-                deliveryTime: helper.deliveryTime,
-                priceTier: helper.priceTier,
-              });
+                const fastResponse = isFastResponseText(responseSpeed);
               const rankingReasons = getHelperRankingReasons({
                 type: helper.type,
                 trustLevel: helper.trustLevel,
@@ -366,7 +355,7 @@ export default async function HomePage() {
                         <div className="shrink-0">
                           <HelperAvatar
                             name={helper.name}
-                            imageUrl={profileImage}
+                            imageUrl={undefined}
                             sizeClass="h-[72px] w-[72px]"
                             roundedClass="rounded-[22px]"
                             textClass="text-2xl"
@@ -386,7 +375,7 @@ export default async function HomePage() {
                               {helper.name}
                             </Link>
                             <div className="flex flex-wrap gap-2">
-                              {specialties.map((specialty) => (
+                              {specialties.slice(0, 2).map((specialty) => (
                                 <span
                                   key={specialty.code}
                                   className="retro-pill bg-cream px-3 py-1 text-xs font-black uppercase"
@@ -444,14 +433,6 @@ export default async function HomePage() {
                           <span
                             className={cn(
                               "retro-pill px-3 py-1 text-xs font-black uppercase",
-                              helper.type === "TEAM" ? "bg-blue text-white" : "bg-cream text-ink",
-                            )}
-                          >
-                            {getHelperTypeLabel(helper.type)}
-                          </span>
-                          <span
-                            className={cn(
-                              "retro-pill px-3 py-1 text-xs font-black uppercase",
                               helper.trustLevel === "TRUSTED_HELPER" && "bg-green text-white",
                               helper.trustLevel === "VERIFIED_HELPER" && "bg-blue text-white",
                               helper.trustLevel === "STANDARD_HELPER" && "bg-white text-ink",
@@ -468,11 +449,6 @@ export default async function HomePage() {
                               Fast Response ⚡
                             </span>
                           ) : null}
-                          {helper.type === "TEAM" ? (
-                            <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
-                              Team
-                            </span>
-                          ) : null}
                           <span
                             className={cn(
                               "retro-pill px-3 py-1 text-xs font-black uppercase",
@@ -486,7 +462,7 @@ export default async function HomePage() {
                         </div>
                         {rankingReasons.length > 0 ? (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {rankingReasons.map((reason) => (
+                            {rankingReasons.slice(0, 3).map((reason) => (
                               <span
                                 key={`${helper.id}-${reason}`}
                                 className="retro-pill bg-paper px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-ink"
@@ -508,9 +484,6 @@ export default async function HomePage() {
                       </div>
                       <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
                         {portfolioLabel}
-                      </div>
-                      <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
-                        {bookedTimeLabel}
                       </div>
                     </div>
 
@@ -537,14 +510,6 @@ export default async function HomePage() {
                           className="retro-pill bg-pink px-3 py-1 text-xs font-black uppercase text-ink"
                         >
                           {signal}
-                        </span>
-                      ))}
-                      {displayTags.map((tag) => (
-                        <span
-                          key={`${helper.id}-${tag}`}
-                          className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase"
-                        >
-                          {tag}
                         </span>
                       ))}
                     </div>
@@ -576,7 +541,7 @@ export default async function HomePage() {
                             "md:w-auto",
                           )}
                         >
-                          Get Help with Your Assignment {"\u2192"}
+                          Get Help Now {"\u2192"}
                         </Link>
                         <Link
                           href={`/helpers/${helper.id}`}

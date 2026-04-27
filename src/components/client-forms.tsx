@@ -12,7 +12,6 @@ import {
   getHelperCardSpecialties,
   getCategoryLabel,
   getHelperBookedTimeLabel,
-  getHelperDisplayTags,
   getHelperDeliveryTime,
   getHelperPastWorksLabel,
   getHelperPriceAnchor,
@@ -771,7 +770,7 @@ export function HelperSelectionClient({
       specialties: helper.specialties,
       requestTaskType: request.taskType,
     });
-    const featuredSpecialties = getHelperCardSpecialties(helper.specialties);
+    const featuredSpecialties = getHelperCardSpecialties(helper.specialties).slice(0, 2);
     const responseSpeed = getHelperResponseSpeed({
       type: helper.type,
       isVerified: helper.isVerified,
@@ -803,14 +802,6 @@ export function HelperSelectionClient({
       lastBookedAt: helper.lastBookedAt,
     });
     const fastResponse = isFastResponseText(responseSpeed);
-    const displayTags = getHelperDisplayTags({
-      type: helper.type,
-      trustLevel: helper.trustLevel,
-      isVerified: helper.isVerified,
-      responseTime: helper.responseTime,
-      deliveryTime: helper.deliveryTime,
-      priceTier: helper.priceTier,
-    });
     const rankingReasons = getHelperRankingReasons({
       type: helper.type,
       trustLevel: helper.trustLevel,
@@ -863,7 +854,7 @@ export function HelperSelectionClient({
     const matchingLabels = helper.specialties
       .filter((specialty) => specialtyMatchesTaskType([specialty], request.taskType))
       .map((specialty) => specialty.label);
-    const profileImage = helper.portfolioItems[0]?.imageUrl;
+    const profileImage = undefined;
     const topTierUrgency = helper.conversionTier === "TOP_PICK";
     const mobilePrimaryTags = [
       helper.trustLevel === "TRUSTED_HELPER"
@@ -982,14 +973,6 @@ export function HelperSelectionClient({
                   <span
                     className={cn(
                       "retro-pill px-3 py-1 text-xs font-black uppercase",
-                      helper.type === "TEAM" ? "bg-blue text-white" : "bg-cream text-ink",
-                    )}
-                  >
-                    {getHelperTypeLabel(helper.type)}
-                  </span>
-                  <span
-                    className={cn(
-                      "retro-pill px-3 py-1 text-xs font-black uppercase",
                       helper.trustLevel === "TRUSTED_HELPER" && "bg-green text-white",
                       helper.trustLevel === "VERIFIED_HELPER" && "bg-blue text-white",
                       helper.trustLevel === "STANDARD_HELPER" && "bg-white text-ink",
@@ -1006,11 +989,6 @@ export function HelperSelectionClient({
                       Fast Response ⚡
                     </span>
                   ) : null}
-                  {helper.type === "TEAM" ? (
-                    <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
-                      Team
-                    </span>
-                  ) : null}
                   <span
                     className={cn(
                       "retro-pill px-3 py-1 text-xs font-black uppercase",
@@ -1021,20 +999,6 @@ export function HelperSelectionClient({
                   >
                     {tierLabel}
                   </span>
-                  {isPremium ? (
-                    <span className="retro-pill bg-red px-3 py-1 text-xs font-black uppercase text-white">
-                      Premium
-                    </span>
-                  ) : null}
-                  {bestMatch ? (
-                    <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
-                      Best Match
-                    </span>
-                  ) : isSecondaryRecommendation ? (
-                    <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
-                      Good alternative
-                    </span>
-                  ) : null}
                 </div>
 
                 {recommendationCopy ? (
@@ -1042,7 +1006,7 @@ export function HelperSelectionClient({
                 ) : null}
                 {rankingReasons.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {rankingReasons.map((reason) => (
+                    {rankingReasons.slice(0, 3).map((reason) => (
                       <span
                         key={`${helper.id}-${reason}`}
                         className="retro-pill bg-paper px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-ink"
@@ -1140,14 +1104,6 @@ export function HelperSelectionClient({
                         {signal}
                       </span>
                     ))}
-                  {displayTags.map((tag) => (
-                    <span
-                      key={`${helper.id}-${tag}`}
-                      className="retro-pill bg-white px-3 py-1 text-muted"
-                    >
-                      {tag}
-                    </span>
-                  ))}
                 </div>
 
                 {recommended ? (
@@ -1172,7 +1128,7 @@ export function HelperSelectionClient({
                 "w-full justify-center",
               )}
             >
-              {loadingId === helper.id ? "Saving..." : "Get Help with Your Assignment \u2192"}
+              {loadingId === helper.id ? "Saving..." : "Get Help Now \u2192"}
             </button>
             <Link
               href={`/helpers/${helper.id}?draftId=${request.draftId}`}
