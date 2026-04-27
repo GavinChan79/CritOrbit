@@ -398,7 +398,7 @@ export const helperVerificationStatusSchema = z.object({
 });
 
 export const adminLeadUpdateSchema = z.object({
-  status: z.enum(["NEW", "CONTACTED", "ASSIGNED", "COMPLETED"]),
+  status: z.enum(["NEW", "CONTACTED", "ASSIGNED", "COMPLETED", "CANCELLED"]),
   assignedHelperId: z.string().min(1).nullable(),
   dealClosed: z.boolean(),
   dealValue: z

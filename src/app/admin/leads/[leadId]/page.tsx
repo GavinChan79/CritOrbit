@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
+import {
+  getCategoryLabel,
+  getHelperPriceAnchor,
+  getHelperTrustLevelLabel,
+  getTaskTypeLabel,
+} from "@/lib/helpers";
 import { getPaymentStatusLabel } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { logServerDataLoadError } from "@/lib/server-load";
@@ -73,8 +78,24 @@ export default async function LeadDetailPage({
       urgency: titleizeEnum(lead.urgency),
       deadline: lead.deadline,
       budget: lead.budget,
-      helperName: lead.selectedHelper?.name ?? "No preference",
+      preferredHelperName: lead.selectedHelper?.name ?? "No preference",
+      preferredHelperTrustLevel: lead.selectedHelper
+        ? getHelperTrustLevelLabel({
+            trustLevel: lead.selectedHelper.trustLevel,
+            isVerified: lead.selectedHelper.isVerified,
+          })
+        : "Not specified",
+      preferredHelperStartingPrice: lead.selectedHelper
+        ? getHelperPriceAnchor({
+            type: lead.selectedHelper.type,
+            projectsCompleted: lead.selectedHelper.projectsCompleted,
+            priceTier: lead.selectedHelper.priceTier,
+            priceAnchor: lead.selectedHelper.priceAnchor,
+          })
+        : "Not specified",
       description: lead.description,
+      leadId: lead.id,
+      draftId: lead.clientRequestKey,
     }),
   );
 

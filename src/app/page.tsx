@@ -11,6 +11,7 @@ import {
   getHelperPastWorksLabel,
   getHelperPriceAnchor,
   getHelperPriceTierLabel,
+  getHelperRankingReasons,
   getHelperReplyLine,
   getHelperResponseSpeed,
   getStudentsHelpedLabel,
@@ -25,7 +26,7 @@ import {
   getHelperConversionTierLabel,
   rankHelpersByConversion,
 } from "@/lib/helper-ranking";
-import { getPublicHelpers } from "@/lib/public-helpers";
+import { getHelperEventPerformanceMap, getPublicHelpers } from "@/lib/public-helpers";
 import { TrackEventOnMount } from "@/components/event-tracker";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -59,26 +60,36 @@ export default async function HomePage() {
       },
     },
   });
+  const helperEventPerformance = await getHelperEventPerformanceMap(
+    helpers.map((helper) => helper.id),
+  );
   const sortedHelpers = rankHelpersByConversion(
-    helpers.map((helper) => ({
-      ...helper,
-      completionScore: getHelperCompletionScore({
-        name: helper.name,
-        shortBio: helper.shortBio,
-        email: helper.email,
-        whatsappNumber: helper.whatsappNumber,
-        responseTime: helper.responseTime,
-        deliveryTime: helper.deliveryTime,
-        portfolioNote: helper.portfolioNote,
-        specialties: helper.specialties,
-        type: helper.type,
-        trustLevel: helper.trustLevel,
-        teamSize: helper.teamSize,
+    helpers.map((helper) => {
+      const eventPerformance = helperEventPerformance.get(helper.id);
+
+      return {
+        ...helper,
+        completionScore: getHelperCompletionScore({
+          name: helper.name,
+          shortBio: helper.shortBio,
+          email: helper.email,
+          whatsappNumber: helper.whatsappNumber,
+          responseTime: helper.responseTime,
+          deliveryTime: helper.deliveryTime,
+          portfolioNote: helper.portfolioNote,
+          specialties: helper.specialties,
+          type: helper.type,
+          trustLevel: helper.trustLevel,
+          teamSize: helper.teamSize,
+          portfolioItemsCount: helper._count.portfolioItems,
+          verificationStatus: helper.verification?.status ?? "NONE",
+        }),
         portfolioItemsCount: helper._count.portfolioItems,
-        verificationStatus: helper.verification?.status ?? "NONE",
-      }),
-      portfolioItemsCount: helper._count.portfolioItems,
-    })),
+        profileViewCount: eventPerformance?.profileViewCount ?? 0,
+        getHelpClickCount: eventPerformance?.getHelpClickCount ?? 0,
+        whatsappRedirectCount: eventPerformance?.whatsappRedirectCount ?? 0,
+      };
+    }),
   )
     .slice(0, 3);
 
@@ -312,6 +323,17 @@ export default async function HomePage() {
                 deliveryTime: helper.deliveryTime,
                 priceTier: helper.priceTier,
               });
+              const rankingReasons = getHelperRankingReasons({
+                type: helper.type,
+                trustLevel: helper.trustLevel,
+                isVerified: helper.isVerified,
+                responseTime: helper.responseTime,
+                lastBookedAt: helper.lastBookedAt,
+                getHelpClickCount: helper.getHelpClickCount,
+                whatsappRedirectCount: helper.whatsappRedirectCount,
+                profileViewCount: helper.profileViewCount,
+                limit: 3,
+              });
               const demandLabel = helper.conversionTier === "TOP_PICK" ? "\uD83D\uDD25 High demand today" : null;
               const slotsLabel = helper.conversionTier === "TOP_PICK" ? "\u26A0\uFE0F Limited slots available" : null;
               const tierLabel = getHelperConversionTierLabel(helper.conversionTier);
@@ -437,6 +459,18 @@ export default async function HomePage() {
                             {tierLabel}
                           </span>
                         </div>
+                        {rankingReasons.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {rankingReasons.map((reason) => (
+                              <span
+                                key={`${helper.id}-${reason}`}
+                                className="retro-pill bg-paper px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-ink"
+                              >
+                                {reason}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 

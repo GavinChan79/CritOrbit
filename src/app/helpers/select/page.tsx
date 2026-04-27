@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth";
-import { parseSpecialties } from "@/lib/helpers";
+import { parseSpecialties, specialtyMatchesTaskType } from "@/lib/helpers";
 import { getHelperCompletionScore, rankHelpersByConversion } from "@/lib/helper-ranking";
 import { prisma } from "@/lib/prisma";
-import { getPublicHelpers } from "@/lib/public-helpers";
+import { getHelperEventPerformanceMap, getPublicHelpers } from "@/lib/public-helpers";
 import { calculateLeadScore } from "@/lib/scoring";
 import { HelperSelectionClient } from "@/components/client-forms";
 import { SectionHeading, SiteHeader } from "@/components/ui";
@@ -58,27 +58,40 @@ export default async function HelperSelectPage({
       },
     },
   });
+  const helperEventPerformance = await getHelperEventPerformanceMap(
+    helpers.map((helper) => helper.id),
+  );
 
   const sortedHelpers = rankHelpersByConversion(
-    helpers.map((helper) => ({
-      ...helper,
-      completionScore: getHelperCompletionScore({
-        name: helper.name,
-        shortBio: helper.shortBio,
-        email: helper.email,
-        whatsappNumber: helper.whatsappNumber,
-        responseTime: helper.responseTime,
-        deliveryTime: helper.deliveryTime,
-        portfolioNote: helper.portfolioNote,
-        specialties: helper.specialties,
-        type: helper.type,
-        trustLevel: helper.trustLevel,
-        teamSize: helper.teamSize,
+    helpers.map((helper) => {
+      const specialties = parseSpecialties(helper.specialties);
+      const eventPerformance = helperEventPerformance.get(helper.id);
+
+      return {
+        ...helper,
+        completionScore: getHelperCompletionScore({
+          name: helper.name,
+          shortBio: helper.shortBio,
+          email: helper.email,
+          whatsappNumber: helper.whatsappNumber,
+          responseTime: helper.responseTime,
+          deliveryTime: helper.deliveryTime,
+          portfolioNote: helper.portfolioNote,
+          specialties: helper.specialties,
+          type: helper.type,
+          trustLevel: helper.trustLevel,
+          teamSize: helper.teamSize,
+          portfolioItemsCount: helper._count.portfolioItems,
+          verificationStatus: helper.verification?.status ?? "NONE",
+        }),
         portfolioItemsCount: helper._count.portfolioItems,
-        verificationStatus: helper.verification?.status ?? "NONE",
-      }),
-      portfolioItemsCount: helper._count.portfolioItems,
-    })),
+        categoryMatch: helper.category === draft.category,
+        taskTypeMatch: specialtyMatchesTaskType(specialties, draft.taskType),
+        profileViewCount: eventPerformance?.profileViewCount ?? 0,
+        getHelpClickCount: eventPerformance?.getHelpClickCount ?? 0,
+        whatsappRedirectCount: eventPerformance?.whatsappRedirectCount ?? 0,
+      };
+    }),
   );
 
   const baseScore = calculateLeadScore({
@@ -116,6 +129,11 @@ export default async function HelperSelectPage({
               selectionCount: helper.selectionCount,
               studentsHelpedCount: helper.studentsHelpedCount,
               lastBookedAt: helper.lastBookedAt?.toISOString() ?? null,
+              categoryMatch: helper.categoryMatch,
+              taskTypeMatch: helper.taskTypeMatch,
+              profileViewCount: helper.profileViewCount,
+              getHelpClickCount: helper.getHelpClickCount,
+              whatsappRedirectCount: helper.whatsappRedirectCount,
               category: helper.category,
               displayOrder: helper.displayOrder,
               specialties: parseSpecialties(helper.specialties),

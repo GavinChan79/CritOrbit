@@ -5,7 +5,12 @@ import { getAuthSession } from "@/lib/auth";
 import { calculateLeadScore, getDerivedLeadMetrics } from "@/lib/scoring";
 import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
 import { leadMatchPayloadSchema } from "@/lib/validators";
-import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
+import {
+  getCategoryLabel,
+  getHelperPriceAnchor,
+  getHelperTrustLevelLabel,
+  getTaskTypeLabel,
+} from "@/lib/helpers";
 import { titleizeEnum } from "@/lib/format";
 import { getPublicHelperById } from "@/lib/public-helpers";
 
@@ -115,6 +120,16 @@ export async function POST(request: Request) {
     }
 
     const whatsappHelperName = lead.selectedHelper?.name ?? helper.name;
+    const preferredHelperTrustLevel = getHelperTrustLevelLabel({
+      trustLevel: helper.trustLevel,
+      isVerified: helper.isVerified,
+    });
+    const preferredHelperStartingPrice = getHelperPriceAnchor({
+      type: helper.type,
+      projectsCompleted: helper.projectsCompleted,
+      priceTier: helper.priceTier,
+      priceAnchor: helper.priceAnchor,
+    });
 
     const message = buildWhatsappMessage({
       category: getCategoryLabel(lead.category),
@@ -122,8 +137,12 @@ export async function POST(request: Request) {
       urgency: titleizeEnum(lead.urgency),
       deadline: lead.deadline,
       budget: lead.budget,
-      helperName: whatsappHelperName,
+      preferredHelperName: whatsappHelperName,
+      preferredHelperTrustLevel,
+      preferredHelperStartingPrice,
       description: lead.description,
+      leadId: lead.id,
+      draftId: draft.id,
     });
 
     revalidatePath("/helpers/select");

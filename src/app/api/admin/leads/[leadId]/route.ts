@@ -5,6 +5,8 @@ import { getAuthSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { adminLeadUpdateSchema } from "@/lib/validators";
 
+type AdminLeadStatus = "NEW" | "CONTACTED" | "ASSIGNED" | "COMPLETED" | "CANCELLED";
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ leadId: string }> },
@@ -31,20 +33,22 @@ export async function PATCH(
       );
     }
 
-    const status = parsed.data.status as LeadStatus;
+    const status = parsed.data.status as AdminLeadStatus;
     const lifecycleStage =
-      status === "COMPLETED"
+      status === "CANCELLED"
+        ? LeadLifecycleStage.CANCELLED
+        : status === "COMPLETED"
         ? LeadLifecycleStage.COMPLETED
         : status === "ASSIGNED"
           ? LeadLifecycleStage.ASSIGNED
           : status === "CONTACTED"
-            ? LeadLifecycleStage.CONTACTED
-            : LeadLifecycleStage.LEAD;
+        ? LeadLifecycleStage.CONTACTED
+        : LeadLifecycleStage.LEAD;
 
     const lead = await prisma.lead.update({
       where: { id: leadId },
       data: {
-        status,
+        status: status as LeadStatus,
         lifecycleStage,
         assignedHelperId: parsed.data.assignedHelperId,
         dealClosed: parsed.data.dealClosed,

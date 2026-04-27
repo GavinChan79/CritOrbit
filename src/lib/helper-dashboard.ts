@@ -1,5 +1,5 @@
 type HelperLeadSummaryInput = {
-  status: "NEW" | "CONTACTED" | "ASSIGNED" | "COMPLETED";
+  status: "NEW" | "CONTACTED" | "ASSIGNED" | "COMPLETED" | "CANCELLED";
   dealClosed: boolean;
   dealValue: number | null;
 };

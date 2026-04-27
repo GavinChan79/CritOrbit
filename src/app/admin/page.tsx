@@ -15,7 +15,14 @@ import {
 import { AdminTestEmailButton } from "@/components/admin-test-email-button";
 
 export default async function AdminOverviewPage() {
-  const [allLeadsResult, recentLeadsResult, eventSummaryResult, recentEventsResult] = await Promise.allSettled([
+  const [
+    allLeadsResult,
+    recentLeadsResult,
+    eventSummaryResult,
+    recentEventsResult,
+    helperEventCountsResult,
+    helperEventLastSeenResult,
+  ] = await Promise.allSettled([
     prisma.lead.findMany({
       select: {
         status: true,
@@ -68,6 +75,28 @@ export default async function AdminOverviewPage() {
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
+    prisma.eventLog.groupBy({
+      by: ["helperId", "eventType"],
+      where: {
+        helperId: {
+          not: null,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    }),
+    prisma.eventLog.groupBy({
+      by: ["helperId"],
+      where: {
+        helperId: {
+          not: null,
+        },
+      },
+      _max: {
+        createdAt: true,
+      },
+    }),
   ]);
 
   if (allLeadsResult.status === "rejected") {
@@ -86,6 +115,14 @@ export default async function AdminOverviewPage() {
     logServerDataLoadError("admin-overview-recent-events", recentEventsResult.reason);
   }
 
+  if (helperEventCountsResult.status === "rejected") {
+    logServerDataLoadError("admin-overview-helper-event-counts", helperEventCountsResult.reason);
+  }
+
+  if (helperEventLastSeenResult.status === "rejected") {
+    logServerDataLoadError("admin-overview-helper-event-last-seen", helperEventLastSeenResult.reason);
+  }
+
   const allLeads = allLeadsResult.status === "fulfilled" ? allLeadsResult.value : [];
   const recentLeads =
     recentLeadsResult.status === "fulfilled" ? recentLeadsResult.value : [];
@@ -98,12 +135,89 @@ export default async function AdminOverviewPage() {
     draftId: string | null;
     createdAt: Date;
   }> = recentEventsResult.status === "fulfilled" ? recentEventsResult.value : [];
+  const helperEventCounts: Array<{
+    helperId: string | null;
+    eventType: string;
+    _count: { _all: number };
+  }> = helperEventCountsResult.status === "fulfilled" ? helperEventCountsResult.value : [];
+  const helperEventLastSeen: Array<{
+    helperId: string | null;
+    _max: { createdAt: Date | null };
+  }> = helperEventLastSeenResult.status === "fulfilled" ? helperEventLastSeenResult.value : [];
   const funnelUnavailable = allLeadsResult.status === "rejected";
   const recentLeadsUnavailable = recentLeadsResult.status === "rejected";
   const eventsUnavailable =
     eventSummaryResult.status === "rejected" || recentEventsResult.status === "rejected";
+  const helperFunnelUnavailable =
+    helperEventCountsResult.status === "rejected" || helperEventLastSeenResult.status === "rejected";
 
   const funnel = calculateLeadFunnel(allLeads);
+  const helperIds = Array.from(
+    new Set(
+      helperEventCounts
+        .map((entry) => entry.helperId)
+        .filter((helperId): helperId is string => Boolean(helperId)),
+    ),
+  );
+  let helperNames: Array<{ id: string; name: string }> = [];
+
+  if (helperIds.length > 0) {
+    try {
+      helperNames = await prisma.helper.findMany({
+        where: {
+          id: {
+            in: helperIds,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    } catch (error) {
+      logServerDataLoadError("admin-overview-helper-names", error);
+    }
+  }
+  const helperNameMap = new Map(helperNames.map((helper) => [helper.id, helper.name]));
+  const helperLastSeenMap = new Map(
+    helperEventLastSeen
+      .filter((entry): entry is { helperId: string; _max: { createdAt: Date | null } } => Boolean(entry.helperId))
+      .map((entry) => [entry.helperId, entry._max.createdAt]),
+  );
+  const helperFunnelRows = helperIds
+    .map((helperId) => {
+      const counts = helperEventCounts.filter((entry) => entry.helperId === helperId);
+      const getCount = (eventType: string) =>
+        counts.find((entry) => entry.eventType === eventType)?._count._all ?? 0;
+
+      const profileViews = getCount("VIEW_HELPER_PROFILE");
+      const cardClicks = getCount("CLICK_HELPER_CARD");
+      const getHelpClicks = getCount("CLICK_GET_HELP");
+      const whatsappRedirects = getCount("WHATSAPP_REDIRECT");
+      const conversionRate = profileViews > 0 ? Math.round((whatsappRedirects / profileViews) * 100) : 0;
+
+      return {
+        helperId,
+        name: helperNameMap.get(helperId) ?? `Helper ${helperId.slice(0, 8)}`,
+        profileViews,
+        cardClicks,
+        getHelpClicks,
+        whatsappRedirects,
+        conversionRate,
+        lastEventAt: helperLastSeenMap.get(helperId) ?? null,
+      };
+    })
+    .sort((left, right) => {
+      if (right.whatsappRedirects !== left.whatsappRedirects) {
+        return right.whatsappRedirects - left.whatsappRedirects;
+      }
+
+      if (right.getHelpClicks !== left.getHelpClicks) {
+        return right.getHelpClicks - left.getHelpClicks;
+      }
+
+      return right.profileViews - left.profileViews;
+    });
 
   return (
     <div>
@@ -209,6 +323,69 @@ export default async function AdminOverviewPage() {
                 </p>
               </div>
             ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="mt-10">
+        <Card className="bg-white">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="display-font text-3xl font-black">Admin Funnel by Helper</div>
+              <p className="mt-2 text-sm text-muted">
+                Compact conversion view using helper profile views, card clicks, CTA clicks, and WhatsApp redirects.
+              </p>
+            </div>
+          </div>
+
+          {helperFunnelUnavailable ? (
+            <div className="mt-5 rounded-[20px] border-[3px] border-line bg-cream px-5 py-4 text-sm font-semibold text-ink">
+              Helper funnel data could not load right now. The rest of the dashboard remains available.
+            </div>
+          ) : null}
+
+          <div className="mt-6">
+            {helperFunnelRows.length === 0 ? (
+              <EmptyState
+                title="No helper funnel data yet"
+                description="Helper-level conversion rows will appear once profile views and CTA activity are logged."
+              />
+            ) : (
+              <div className="space-y-3">
+                {helperFunnelRows.map((row) => (
+                  <div
+                    key={row.helperId}
+                    className="rounded-[20px] border-[3px] border-line bg-cream px-4 py-4"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="display-font text-2xl font-black">{row.name}</div>
+                        <p className="mt-1 text-sm text-muted">
+                          Last event {row.lastEventAt ? formatDate(row.lastEventAt) : "-"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase text-ink">
+                          Views {row.profileViews}
+                        </span>
+                        <span className="retro-pill bg-white px-3 py-1 text-xs font-black uppercase text-ink">
+                          Card Clicks {row.cardClicks}
+                        </span>
+                        <span className="retro-pill bg-yellow px-3 py-1 text-xs font-black uppercase text-ink">
+                          Get Help {row.getHelpClicks}
+                        </span>
+                        <span className="retro-pill bg-green px-3 py-1 text-xs font-black uppercase text-white">
+                          WhatsApp {row.whatsappRedirects}
+                        </span>
+                        <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">
+                          {row.conversionRate}% Conversion
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       </div>

@@ -536,6 +536,56 @@ export function getHelperDisplayTags(input: HelperConversionProfileInput) {
   return tags;
 }
 
+export function getHelperRankingReasons(input: HelperConversionProfileInput & {
+  categoryMatch?: boolean;
+  taskTypeMatch?: boolean;
+  taskType?: string | null;
+  profileViewCount?: number | null;
+  getHelpClickCount?: number | null;
+  whatsappRedirectCount?: number | null;
+  limit?: number;
+}) {
+  const reasons: string[] = [];
+  const limit = input.limit ?? 3;
+
+  if (input.taskTypeMatch && input.taskType) {
+    reasons.push(`Best match for ${getTaskTypeLabel(input.taskType)}`);
+  }
+
+  if (input.categoryMatch) {
+    reasons.push("Matches your course/category");
+  }
+
+  const trustLevel = getHelperTrustLevel(input);
+  if (trustLevel === "TRUSTED_HELPER") {
+    reasons.push("Trusted helper");
+  } else if (trustLevel === "VERIFIED_HELPER") {
+    reasons.push("Verified helper");
+  }
+
+  if (input.lastBookedAt) {
+    const bookedAt = new Date(input.lastBookedAt);
+
+    if (!Number.isNaN(bookedAt.getTime())) {
+      const elapsedDays = (Date.now() - bookedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (elapsedDays <= 7) {
+        reasons.push("Chosen recently");
+      }
+    }
+  }
+
+  if ((input.whatsappRedirectCount ?? 0) >= 3 || (input.getHelpClickCount ?? 0) >= 5) {
+    reasons.push("Popular choice");
+  }
+
+  if (Boolean(input.responseTime?.trim())) {
+    reasons.push("Fast response");
+  }
+
+  return Array.from(new Set(reasons)).slice(0, limit);
+}
+
 export function getHelperReplyLine(responseSpeed: string) {
   const normalized = responseSpeed.trim();
 

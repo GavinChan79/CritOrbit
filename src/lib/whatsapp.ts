@@ -7,11 +7,23 @@ export function buildWhatsappMessage(input: {
   urgency: string;
   deadline: Date | string;
   budget?: number | null;
-  helperName: string;
+  preferredHelperName: string;
+  preferredHelperTrustLevel?: string | null;
+  preferredHelperStartingPrice?: string | null;
   description?: string | null;
+  leadId?: string | null;
+  draftId?: string | null;
 }) {
   const budgetLine = input.budget ? `RM${input.budget}` : "Not specified";
-  const preferredHelper = cleanLine(input.helperName, "Not specified");
+  const preferredHelper = cleanLine(input.preferredHelperName, "Not specified");
+  const preferredHelperTrustLevel = cleanLine(
+    input.preferredHelperTrustLevel,
+    "Not specified",
+  );
+  const preferredHelperStartingPrice = cleanLine(
+    input.preferredHelperStartingPrice,
+    "Not specified",
+  );
   const details = cleanLine(input.description, "Not provided");
 
   return [
@@ -23,8 +35,12 @@ export function buildWhatsappMessage(input: {
     `Deadline: ${formatDate(input.deadline)}`,
     `Budget: ${budgetLine}`,
     `Preferred Helper: ${preferredHelper}`,
+    `Preferred Helper Trust Level: ${preferredHelperTrustLevel}`,
+    `Helper Starting Price: ${preferredHelperStartingPrice}`,
+    `Lead ID: ${cleanLine(input.leadId, "Not available")}`,
+    `Draft ID: ${cleanLine(input.draftId, "Not available")}`,
     "",
-    "Details:",
+    "Brief:",
     details,
   ].join("\n");
 }

@@ -113,6 +113,8 @@ export function StatusBadge({ status }: { status: LeadStatus | string }) {
   const tone =
     status === "COMPLETED"
       ? "green"
+      : status === "CANCELLED"
+        ? "pink"
       : status === "ASSIGNED"
         ? "purple"
         : status === "CONTACTED"

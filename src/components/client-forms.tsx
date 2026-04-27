@@ -16,6 +16,7 @@ import {
   getHelperPriceAnchor,
   getHelperPriceTierLabel,
   getHelperPriceTierReason,
+  getHelperRankingReasons,
   getHelperReplyLine,
   getHelperUrgencySignals,
   getHelperResponseSpeed,
@@ -528,6 +529,11 @@ export function HelperSelectionClient({
     selectionCount: number;
     studentsHelpedCount: number;
     lastBookedAt: string | null;
+    categoryMatch?: boolean;
+    taskTypeMatch?: boolean;
+    profileViewCount?: number;
+    getHelpClickCount?: number;
+    whatsappRedirectCount?: number;
     category: string;
     displayOrder: number;
     specialties: HelperSpecialty[];
@@ -803,6 +809,20 @@ export function HelperSelectionClient({
       deliveryTime: helper.deliveryTime,
       priceTier: helper.priceTier,
     });
+    const rankingReasons = getHelperRankingReasons({
+      type: helper.type,
+      trustLevel: helper.trustLevel,
+      isVerified: helper.isVerified,
+      responseTime: helper.responseTime,
+      lastBookedAt: helper.lastBookedAt,
+      categoryMatch: helper.categoryMatch,
+      taskTypeMatch: helper.taskTypeMatch,
+      taskType: request.taskType,
+      getHelpClickCount: helper.getHelpClickCount,
+      whatsappRedirectCount: helper.whatsappRedirectCount,
+      profileViewCount: helper.profileViewCount,
+      limit: 3,
+    });
     const urgencySignals = getHelperUrgencySignals({
       type: helper.type,
       teamSize: helper.teamSize,
@@ -986,6 +1006,18 @@ export function HelperSelectionClient({
 
                 {recommendationCopy ? (
                   <p className="text-sm font-bold text-green">{recommendationCopy}</p>
+                ) : null}
+                {rankingReasons.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {rankingReasons.map((reason) => (
+                      <span
+                        key={`${helper.id}-${reason}`}
+                        className="retro-pill bg-paper px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-ink"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
                 {isPrimaryRecommendation ? (
                   <div className="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-muted">

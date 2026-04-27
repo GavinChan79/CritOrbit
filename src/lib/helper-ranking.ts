@@ -13,6 +13,12 @@ export type HelperRankingInput = {
   studentsHelpedCount?: number | null;
   portfolioItemsCount?: number;
   completionScore?: number;
+  categoryMatch?: boolean;
+  taskTypeMatch?: boolean;
+  profileViewCount?: number;
+  getHelpClickCount?: number;
+  whatsappRedirectCount?: number;
+  lastBookedAt?: Date | string | null;
 };
 
 export type RankedHelper<T> = T & {
@@ -20,13 +26,75 @@ export type RankedHelper<T> = T & {
   conversionTier: HelperConversionTier;
 };
 
-export function getHelperConversionScore(input: HelperRankingInput) {
+function getTrustPriority(input: HelperRankingInput) {
+  if (input.trustLevel === "TRUSTED_HELPER") {
+    return 0;
+  }
+
+  if (input.trustLevel === "VERIFIED_HELPER" || input.isVerified) {
+    return 1;
+  }
+
+  return 2;
+}
+
+function getMatchPriority(input: HelperRankingInput) {
+  if (input.categoryMatch && input.taskTypeMatch) {
+    return 0;
+  }
+
+  if (input.categoryMatch) {
+    return 1;
+  }
+
+  if (input.taskTypeMatch) {
+    return 2;
+  }
+
+  return 3;
+}
+
+export function getHelperPerformanceMultiplier(input: HelperRankingInput) {
+  const views = input.profileViewCount ?? 0;
+  const clicks = input.getHelpClickCount ?? 0;
+  const whatsapp = input.whatsappRedirectCount ?? 0;
+
+  if (views < 20) {
+    return 1;
+  }
+
+  const ctr = clicks / views;
+  const waRate = whatsapp / views;
+  let multiplier = 1;
+
+  if (waRate > 0.25) {
+    multiplier += 0.15;
+  } else if (waRate > 0.15) {
+    multiplier += 0.08;
+  }
+
+  if (views > 50 && ctr < 0.05) {
+    multiplier -= 0.1;
+  }
+
+  return Math.min(1.25, Math.max(0.85, multiplier));
+}
+
+export function getHelperBaseConversionScore(input: HelperRankingInput) {
   let score = 0;
 
   if (input.trustLevel === "TRUSTED_HELPER") {
     score += 90;
   } else if (input.trustLevel === "VERIFIED_HELPER" || input.isVerified) {
     score += 50;
+  }
+
+  if (input.categoryMatch) {
+    score += 25;
+  }
+
+  if (input.taskTypeMatch) {
+    score += 20;
   }
 
   const portfolioCount = input.portfolioItemsCount ?? 0;
@@ -65,7 +133,31 @@ export function getHelperConversionScore(input: HelperRankingInput) {
     score += 10;
   }
 
+  if (input.lastBookedAt) {
+    const bookedAt = new Date(input.lastBookedAt);
+
+    if (!Number.isNaN(bookedAt.getTime())) {
+      const elapsedMs = Date.now() - bookedAt.getTime();
+      const elapsedDays = elapsedMs / (1000 * 60 * 60 * 24);
+
+      if (elapsedDays <= 1) {
+        score += 15;
+      } else if (elapsedDays <= 7) {
+        score += 10;
+      } else if (elapsedDays <= 30) {
+        score += 5;
+      }
+    }
+  }
+
   return score;
+}
+
+export function getHelperConversionScore(input: HelperRankingInput) {
+  const baseScore = getHelperBaseConversionScore(input);
+  const multiplier = getHelperPerformanceMultiplier(input);
+
+  return Math.round(baseScore * multiplier);
 }
 
 export function getHelperConversionTier(index: number, total: number): HelperConversionTier {
@@ -94,8 +186,18 @@ export function rankHelpersByConversion<T extends HelperRankingInput>(
     .map((helper) => ({
       ...helper,
       conversionScore: getHelperConversionScore(helper),
+      trustPriority: getTrustPriority(helper),
+      matchPriority: getMatchPriority(helper),
     }))
     .sort((left, right) => {
+      if (left.trustPriority !== right.trustPriority) {
+        return left.trustPriority - right.trustPriority;
+      }
+
+      if (left.matchPriority !== right.matchPriority) {
+        return left.matchPriority - right.matchPriority;
+      }
+
       if (left.conversionScore !== right.conversionScore) {
         return right.conversionScore - left.conversionScore;
       }
@@ -104,6 +206,12 @@ export function rankHelpersByConversion<T extends HelperRankingInput>(
       const rightProjects = right.studentsHelpedCount ?? right.projectsCompleted ?? 0;
       if (leftProjects !== rightProjects) {
         return rightProjects - leftProjects;
+      }
+
+      const leftRedirects = left.whatsappRedirectCount ?? 0;
+      const rightRedirects = right.whatsappRedirectCount ?? 0;
+      if (leftRedirects !== rightRedirects) {
+        return rightRedirects - leftRedirects;
       }
 
       return left.id.localeCompare(right.id);

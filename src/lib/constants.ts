@@ -677,6 +677,7 @@ export const statusOptions = [
   { value: "CONTACTED", label: "Contacted" },
   { value: "ASSIGNED", label: "Assigned" },
   { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
 ] as const;
 
 export const helperAgreementItems = [
