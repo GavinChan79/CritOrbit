@@ -338,8 +338,17 @@ export default async function HomePage() {
               });
               const demandLabel = helper.conversionTier === "TOP_PICK" ? "\uD83D\uDD25 High demand today" : null;
               const slotsLabel = helper.conversionTier === "TOP_PICK" ? "\u26A0\uFE0F Limited slots available" : null;
-              const tierLabel = getHelperConversionTierLabel(helper.conversionTier);
-              const trustLabel = getHelperTrustLevelLabel(helper);
+                const tierLabel = getHelperConversionTierLabel(helper.conversionTier);
+                const trustLabel = getHelperTrustLevelLabel(helper);
+                const mobilePrimaryTags = [
+                  helper.trustLevel === "TRUSTED_HELPER"
+                    ? "Trusted Helper ★"
+                    : helper.trustLevel === "VERIFIED_HELPER"
+                      ? "Verified Helper ✓"
+                      : trustLabel,
+                  fastResponse ? "Fast Response ⚡" : null,
+                  tierLabel,
+                ].filter(Boolean) as string[];
 
               return (
                 <Card
@@ -408,7 +417,30 @@ export default async function HomePage() {
                           </div>
                         </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap gap-2 md:hidden">
+                          {mobilePrimaryTags.slice(0, 3).map((tag) => (
+                            <span
+                              key={`${helper.id}-mobile-tag-${tag}`}
+                              className={cn(
+                                "retro-pill px-3 py-1 text-xs font-black uppercase",
+                                tag === "Trusted Helper ★" && "bg-green text-white",
+                                tag === "Verified Helper ✓" && "bg-blue text-white",
+                                tag === trustLabel && "bg-white text-ink",
+                                tag === "Fast Response ⚡" && "bg-yellow text-ink",
+                                tag === tierLabel &&
+                                  cn(
+                                    helper.conversionTier === "TOP_PICK" && "bg-green text-white",
+                                    helper.conversionTier === "POPULAR" && "bg-purple text-white",
+                                    helper.conversionTier === "STANDARD" && "bg-white text-ink",
+                                  ),
+                              )}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+
+                        <div className="mt-3 hidden flex-wrap gap-2 md:flex">
                           <span
                             className={cn(
                               "retro-pill px-3 py-1 text-xs font-black uppercase",
@@ -523,25 +555,38 @@ export default async function HomePage() {
                       <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">
                         {helper.type === "TEAM" ? "Studio Portfolio" : "Portfolio"}
                       </div>
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        {helper.portfolioItems.map((item) => (
-                          <HelperPortfolioPreview
-                            key={item.id}
-                            item={item}
-                            variant="compact"
-                          />
-                        ))}
-                      </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
+                        {helper.portfolioItems.map((item, index) => (
+                            <HelperPortfolioPreview
+                              key={item.id}
+                              item={item}
+                              variant="compact"
+                              className={cn(index > 1 && "hidden md:block")}
+                            />
+                          ))}
+                        </div>
                     </div>
                   ) : null}
                   <div className="mt-5">
-                    <div className="flex flex-wrap gap-3">
-                      <Link href={`/helpers/${helper.id}`} className={buttonStyles({ tone: "green", size: "sm" })}>
-                        Get Help with Your Assignment {"\u2192"}
-                      </Link>
-                      <Link href={`/helpers/${helper.id}`} className={buttonStyles({ tone: "yellow", size: "sm" })}>
-                        View Profile
-                      </Link>
+                      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
+                        <Link
+                          href={`/helpers/${helper.id}`}
+                          className={cn(
+                            buttonStyles({ tone: "green", size: "sm", fullWidth: true }),
+                            "md:w-auto",
+                          )}
+                        >
+                          Get Help with Your Assignment {"\u2192"}
+                        </Link>
+                        <Link
+                          href={`/helpers/${helper.id}`}
+                          className={cn(
+                            buttonStyles({ tone: "yellow", size: "sm", fullWidth: true }),
+                            "md:w-auto",
+                          )}
+                        >
+                          View Profile
+                        </Link>
                     </div>
                   </div>
                 </Card>

@@ -865,6 +865,21 @@ export function HelperSelectionClient({
       .map((specialty) => specialty.label);
     const profileImage = helper.portfolioItems[0]?.imageUrl;
     const topTierUrgency = helper.conversionTier === "TOP_PICK";
+    const mobilePrimaryTags = [
+      helper.trustLevel === "TRUSTED_HELPER"
+        ? "Trusted Helper ★"
+        : helper.trustLevel === "VERIFIED_HELPER"
+          ? "Verified Helper ✓"
+          : trustLabel,
+      fastResponse ? "Fast Response ⚡" : null,
+      bestMatch ? "Best Match" : isSecondaryRecommendation ? "Good alternative" : tierLabel,
+    ].filter(Boolean) as string[];
+    const mobileSignals = [
+      getCategoryLabel(helper.category),
+      demandLabel ? (topTierUrgency ? "High demand today" : demandLabel) : null,
+      popularityLabel,
+      topTierUrgency ? "Limited slots available" : null,
+    ].filter(Boolean) as string[];
 
     return (
       <div
@@ -919,7 +934,7 @@ export function HelperSelectionClient({
                     </div>
                   </div>
 
-                  <div className="w-full rounded-[20px] border-[3px] border-line bg-yellow px-4 py-3 md:w-auto md:min-w-[180px]">
+                  <div className="hidden w-full rounded-[20px] border-[3px] border-line bg-yellow px-4 py-3 md:block md:w-auto md:min-w-[180px]">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">
                       Price
                     </div>
@@ -938,7 +953,32 @@ export function HelperSelectionClient({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 md:hidden">
+                  {mobilePrimaryTags.slice(0, 3).map((tag) => (
+                    <span
+                      key={`${helper.id}-mobile-tag-${tag}`}
+                      className={cn(
+                        "retro-pill px-3 py-1 text-xs font-black uppercase",
+                        tag === "Trusted Helper ★" && "bg-green text-white",
+                        tag === "Verified Helper ✓" && "bg-blue text-white",
+                        tag === trustLabel && "bg-white text-ink",
+                        tag === "Fast Response ⚡" && "bg-yellow text-ink",
+                        tag === "Best Match" && "bg-green text-white",
+                        tag === "Good alternative" && "bg-yellow text-ink",
+                        tag === tierLabel &&
+                          cn(
+                            helper.conversionTier === "TOP_PICK" && "bg-green text-white",
+                            helper.conversionTier === "POPULAR" && "bg-purple text-white",
+                            helper.conversionTier === "STANDARD" && "bg-white text-ink",
+                          ),
+                      )}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="hidden flex-wrap items-center gap-2 md:flex">
                   <span
                     className={cn(
                       "retro-pill px-3 py-1 text-xs font-black uppercase",
@@ -1019,7 +1059,17 @@ export function HelperSelectionClient({
                   </div>
                 ) : null}
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-[18px] border-[3px] border-line bg-yellow px-4 py-3 md:hidden">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">
+                    Price • Delivery
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <div className="display-font text-2xl font-black text-ink">{priceAnchor}</div>
+                    <div className="text-right text-sm font-black text-ink">{deliveryTime} delivery</div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
                   <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
                     {studentsHelpedLabel} {"\u2022"} {bookedTimeLabel}
                   </div>
@@ -1029,12 +1079,29 @@ export function HelperSelectionClient({
                   <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
                     {portfolioCountLabel}
                   </div>
-                  <div className="rounded-[18px] border-[3px] border-line bg-cream px-4 py-3 text-sm font-black text-ink">
-                    {bookedTimeLabel}
-                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em]">
+                <div className="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em] md:hidden">
+                  {mobileSignals.slice(0, 3).map((signal) => (
+                    <span
+                      key={`${helper.id}-mobile-signal-${signal}`}
+                      className={cn(
+                        "retro-pill px-3 py-1",
+                        signal === getCategoryLabel(helper.category) && "bg-white text-muted",
+                        signal === popularityLabel && "bg-green text-white",
+                        signal === "Limited slots available" && "bg-yellow text-ink",
+                        signal !== getCategoryLabel(helper.category) &&
+                          signal !== popularityLabel &&
+                          signal !== "Limited slots available" &&
+                          "bg-pink text-ink",
+                      )}
+                    >
+                      {signal}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="hidden flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em] md:flex">
                   <span className="retro-pill bg-white px-3 py-1 text-muted">
                     {getCategoryLabel(helper.category)}
                   </span>
@@ -1118,15 +1185,15 @@ export function HelperSelectionClient({
               <p className="text-[11px] font-semibold text-muted">{trustTrigger}</p>
             ) : null}
                 {helper.portfolioItems.length ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {helper.portfolioItems.slice(0, 3).map((item) => (
+                  <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+                    {helper.portfolioItems.slice(0, 3).map((item, index) => (
                       <HelperPortfolioPreview
                         key={item.id}
                         item={item}
                         variant="compact"
                         href={item.externalLink || item.imageUrl}
                         onClick={() => trackHelperClick(helper.id)}
-                        className="rounded-[16px]"
+                        className={cn("rounded-[16px]", index > 1 && "hidden xl:block")}
                       />
                     ))}
                   </div>
