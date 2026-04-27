@@ -28,6 +28,8 @@ import {
 } from "@/lib/helper-ranking";
 import { getHelperEventPerformanceMap, getPublicHelpers } from "@/lib/public-helpers";
 import { TrackEventOnMount } from "@/components/event-tracker";
+import { HelperAvatar } from "@/components/helper-avatar";
+import { HelperPortfolioPreview } from "@/components/helper-portfolio-preview";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
@@ -313,7 +315,7 @@ export default async function HomePage() {
                 studentsHelpedCount: helper.studentsHelpedCount,
                 projectsCompleted: helper.projectsCompleted,
               });
-              const profileImage = helper.portfolioItems[0]?.imageUrl;
+                const profileImage = helper.portfolioItems[0]?.imageUrl;
               const fastResponse = isFastResponseText(responseSpeed);
               const displayTags = getHelperDisplayTags({
                 type: helper.type,
@@ -352,24 +354,15 @@ export default async function HomePage() {
                 >
                   <div className="flex flex-col gap-5">
                     <div className="flex items-start gap-4">
-                      <div className="shrink-0">
-                        {profileImage ? (
-                          <img
-                            src={profileImage}
-                            alt={`${helper.name} profile preview`}
-                            className="h-[72px] w-[72px] rounded-[22px] border-[3px] border-line object-cover"
+                        <div className="shrink-0">
+                          <HelperAvatar
+                            name={helper.name}
+                            imageUrl={profileImage}
+                            sizeClass="h-[72px] w-[72px]"
+                            roundedClass="rounded-[22px]"
+                            textClass="text-2xl"
                           />
-                        ) : (
-                          <div
-                            className={cn(
-                              "flex h-[72px] w-[72px] items-center justify-center rounded-[22px] border-[3px] border-line display-font text-2xl font-black",
-                              helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
-                            )}
-                          >
-                            {helper.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
+                        </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
@@ -532,16 +525,11 @@ export default async function HomePage() {
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {helper.portfolioItems.map((item) => (
-                          <div
+                          <HelperPortfolioPreview
                             key={item.id}
-                            className="overflow-hidden rounded-[18px] border-[3px] border-line bg-cream"
-                          >
-                            <img
-                              src={item.imageUrl}
-                              alt={item.title}
-                              className="h-24 w-full object-cover"
-                            />
-                          </div>
+                            item={item}
+                            variant="compact"
+                          />
                         ))}
                       </div>
                     </div>

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LeadStatus } from "@prisma/client";
+import { HelperAvatar } from "@/components/helper-avatar";
+import { HelperPortfolioPreview } from "@/components/helper-portfolio-preview";
 import { buttonStyles, EmptyState, InputShell } from "@/components/ui-primitives";
 import {
   getHelperCardSpecialties,
@@ -882,22 +884,13 @@ export function HelperSelectionClient({
           <div className="min-w-0 flex-1 space-y-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-start">
               <div className="shrink-0">
-                {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt={`${helper.name} profile preview`}
-                    className="h-20 w-20 rounded-[22px] border-[3px] border-line object-cover"
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      "flex h-20 w-20 items-center justify-center rounded-[22px] border-[3px] border-line display-font text-2xl font-black",
-                      helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
-                    )}
-                  >
-                    {helper.name.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
+                <HelperAvatar
+                  name={helper.name}
+                  imageUrl={profileImage}
+                  sizeClass="h-20 w-20"
+                  roundedClass="rounded-[22px]"
+                  textClass="text-2xl"
+                />
               </div>
 
               <div className="min-w-0 flex-1 space-y-3">
@@ -1124,26 +1117,20 @@ export function HelperSelectionClient({
             {trustTrigger ? (
               <p className="text-[11px] font-semibold text-muted">{trustTrigger}</p>
             ) : null}
-            {helper.portfolioItems.length ? (
-              <div className="grid grid-cols-3 gap-2">
-                {helper.portfolioItems.slice(0, 3).map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.externalLink || item.imageUrl}
-                    onClick={() => trackHelperClick(helper.id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="overflow-hidden rounded-[16px] border-[3px] border-line bg-cream"
-                  >
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="h-20 w-full object-cover"
-                    />
-                  </a>
-                ))}
-              </div>
-            ) : null}
+                {helper.portfolioItems.length ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {helper.portfolioItems.slice(0, 3).map((item) => (
+                      <HelperPortfolioPreview
+                        key={item.id}
+                        item={item}
+                        variant="compact"
+                        href={item.externalLink || item.imageUrl}
+                        onClick={() => trackHelperClick(helper.id)}
+                        className="rounded-[16px]"
+                      />
+                    ))}
+                  </div>
+                ) : null}
           </div>
         </div>
       </div>

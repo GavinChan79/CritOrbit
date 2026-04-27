@@ -23,6 +23,8 @@ import { getPublicHelperById } from "@/lib/public-helpers";
 import { Card, SectionHeading, SiteHeader, buttonStyles } from "@/components/ui";
 import { TrackEventOnMount } from "@/components/event-tracker";
 import { HelperDetailActions } from "@/components/helper-detail-actions";
+import { HelperAvatar } from "@/components/helper-avatar";
+import { HelperPortfolioPreview } from "@/components/helper-portfolio-preview";
 import { cn } from "@/lib/utils";
 
 export default async function HelperDetailPage({
@@ -151,22 +153,13 @@ export default async function HelperDetailPage({
             <Card className="bg-white">
               <div className="flex flex-col gap-5 md:flex-row md:items-start">
                 <div className="shrink-0">
-                  {profilePreviewImage ? (
-                    <img
-                      src={profilePreviewImage}
-                      alt={`${helper.name} profile preview`}
-                      className="h-24 w-24 rounded-[24px] border-[3px] border-line object-cover"
-                    />
-                  ) : (
-                    <div
-                      className={cn(
-                        "flex h-24 w-24 items-center justify-center rounded-[24px] border-[3px] border-line display-font text-3xl font-black",
-                        helper.type === "TEAM" ? "bg-blue text-white" : "bg-yellow text-ink",
-                      )}
-                    >
-                      {helper.name.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
+                  <HelperAvatar
+                    name={helper.name}
+                    imageUrl={profilePreviewImage}
+                    sizeClass="h-24 w-24"
+                    roundedClass="rounded-[24px]"
+                    textClass="text-3xl"
+                  />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
@@ -386,48 +379,35 @@ export default async function HelperDetailPage({
             </p>
 
             {helper.portfolioItems.length ? (
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {helper.portfolioItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="overflow-hidden rounded-[22px] border-[3px] border-line bg-cream"
-                  >
-                    {isPdfPortfolioItem(item) ? (
-                      <div className="flex h-52 items-center justify-center bg-paper px-6 text-center">
-                        <div>
-                          <div className="display-font text-4xl font-black text-ink">PDF</div>
-                          <div className="mt-2 text-sm font-bold text-muted">Preview card</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="h-52 w-full object-cover"
-                      />
-                    )}
-                    <div className="space-y-3 p-4">
-                      <div className="display-font text-2xl font-black">{item.title}</div>
-                      {item.description ? (
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  {helper.portfolioItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="overflow-hidden rounded-[22px] border-[3px] border-line bg-cream"
+                    >
+                      <HelperPortfolioPreview item={item} variant="detail" className="rounded-none border-0 shadow-none" />
+                      <div className="space-y-3 p-4">
+                        <div className="display-font text-2xl font-black">{item.title}</div>
+                        {item.description ? (
                         <p className="text-sm leading-7 text-muted">{item.description}</p>
                       ) : (
                         <p className="text-sm leading-7 text-muted">
                           Portfolio sample prepared for public viewing.
                         </p>
                       )}
-                      {item.externalLink ? (
-                        <a
-                          href={item.externalLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={buttonStyles({ tone: "yellow", size: "sm" })}
-                        >
-                          {isPdfPortfolioItem(item) ? "Open PDF Preview" : "Open External Link"}
-                        </a>
-                      ) : null}
+                        {item.externalLink ? (
+                          <a
+                            href={item.externalLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={buttonStyles({ tone: "yellow", size: "sm" })}
+                          >
+                            {isPdfPortfolioItem(item) ? "Open Portfolio File" : "Open External Link"}
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             ) : (
               <div className="mt-6 rounded-[22px] border-[3px] border-line bg-cream p-5 text-sm text-muted">
@@ -459,6 +439,6 @@ function readQuery(value: string | string[] | undefined) {
 
 function isPdfPortfolioItem(item: { imageUrl: string; externalLink?: string | null }) {
   return [item.externalLink, item.imageUrl].some((value) =>
-    typeof value === "string" && value.toLowerCase().includes(".pdf"),
+    typeof value === "string" && /\.pdf(?:[?#]|$)/i.test(value.toLowerCase()),
   );
 }
