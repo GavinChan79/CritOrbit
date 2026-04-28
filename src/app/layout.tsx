@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   description: `${APP_TAGLINE} A platform that matches users with the right helper for their work.`,
   applicationName: APP_NAME,
   manifest: "/manifest.webmanifest",
+  verification: {
+    google: "kSSn7yVQPqwctfsQ1XxZ7h2waizhAXbj-xL7tejX87Y",
+  },
   openGraph: {
     title: APP_NAME,
     description: `${APP_TAGLINE} ${APP_POWERED_BY}`,
