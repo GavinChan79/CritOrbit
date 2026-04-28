@@ -95,7 +95,7 @@ export default function AssignmentHelpMalaysiaPage() {
                 easier to understand how CritOrbit helps students find the right kind of academic support faster.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
-                <Link href="/helpers" className={buttonStyles({ tone: "purple", size: "lg" })}>
+                <Link href="/" className={buttonStyles({ tone: "purple", size: "lg" })}>
                   Browse Helpers
                 </Link>
               </div>
@@ -218,7 +218,7 @@ export default function AssignmentHelpMalaysiaPage() {
                   deadlines.
                 </p>
               </div>
-              <Link href="/helpers" className={buttonStyles({ tone: "yellow", size: "lg" })}>
+              <Link href="/" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                 Browse Helpers
               </Link>
             </div>
