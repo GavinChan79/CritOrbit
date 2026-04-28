@@ -33,6 +33,13 @@ const steps = [
   ["03", "Keep the deadline alive", "Use the platform to regain momentum on writing, coding, or presentation work.", "bg-green text-white"],
 ] as const;
 
+const relatedPages = [
+  ["/last-minute-assignment-help-malaysia", "Last Minute Assignment Help Malaysia"],
+  ["/cheap-assignment-help-malaysia", "Cheap Assignment Help Malaysia"],
+  ["/coding-assignment-help-malaysia", "Coding Assignment Help Malaysia"],
+  ["/assignment-help-malaysia", "Assignment Help Malaysia"],
+] as const;
+
 export default function UrgentAssignmentHelpMalaysiaPage() {
   return (
     <div className="min-h-screen bg-cream">
@@ -136,6 +143,20 @@ export default function UrgentAssignmentHelpMalaysiaPage() {
                 <h2 className="mt-5 display-font text-2xl font-black">{title}</h2>
                 <p className="mt-3 text-sm leading-7 text-muted">{copy}</p>
               </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
+          <SectionHeading eyebrow="Internal Links" title="Related Assignment Help" description="Explore more CritOrbit pages for last minute, coding, and broader assignment support." />
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {relatedPages.map(([href, label], index) => (
+              <Link key={href} href={href} className="block">
+                <Card className={index === 0 ? "bg-yellow" : "bg-white"}>
+                  <h2 className="display-font text-2xl font-black">{label}</h2>
+                  <p className="mt-3 text-sm leading-7 text-muted">Browse {label.toLowerCase()} on CritOrbit.</p>
+                </Card>
+              </Link>
             ))}
           </div>
         </section>

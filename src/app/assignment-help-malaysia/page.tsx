@@ -72,6 +72,13 @@ const steps = [
   },
 ] as const;
 
+const relatedPages = [
+  ["/coding-assignment-help-malaysia", "Coding Assignment Help Malaysia"],
+  ["/business-assignment-help-malaysia", "Business Assignment Help Malaysia"],
+  ["/engineering-assignment-help-malaysia", "Engineering Assignment Help Malaysia"],
+  ["/urgent-assignment-help-malaysia", "Urgent Assignment Help Malaysia"],
+] as const;
+
 export default function AssignmentHelpMalaysiaPage() {
   return (
     <div className="min-h-screen bg-cream">
@@ -204,6 +211,26 @@ export default function AssignmentHelpMalaysiaPage() {
                 <h2 className="mt-5 display-font text-2xl font-black">{step.title}</h2>
                 <p className="mt-3 text-sm leading-7 text-muted">{step.description}</p>
               </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
+          <SectionHeading
+            eyebrow="Internal Links"
+            title="Related Assignment Help"
+            description="Explore more assignment help pages on CritOrbit based on the kind of support you need."
+          />
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {relatedPages.map(([href, label], index) => (
+              <Link key={href} href={href} className="block">
+                <Card className={index === 1 ? "bg-yellow" : "bg-white"}>
+                  <h2 className="display-font text-2xl font-black">{label}</h2>
+                  <p className="mt-3 text-sm leading-7 text-muted">
+                    Browse {label.toLowerCase()} on CritOrbit.
+                  </p>
+                </Card>
+              </Link>
             ))}
           </div>
         </section>
