@@ -95,6 +95,25 @@ export default function CodingAssignmentHelpMalaysiaPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
+          <SectionHeading eyebrow="Trust Signals" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            {[
+              "50+ students helped",
+              "Fast response within 1 hour",
+              "Trusted by Malaysian university students",
+              "Real helper portfolios with proven results",
+            ].map((item, index) => (
+              <Card key={item} className={index === 1 ? "bg-yellow" : "bg-white"}>
+                <div className="flex items-start gap-3">
+                  <span className="retro-pill bg-purple px-3 py-1 text-xs font-black uppercase text-white">{`0${index + 1}`}</span>
+                  <p className="text-sm font-black uppercase tracking-[0.14em] text-ink">{item}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <SectionHeading eyebrow="Help Areas" title="What kind of coding help" description="Browse support for the most common pressure points in student coding assignments." />
           <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {helpAreas.map(([title, copy]) => (
@@ -169,6 +188,7 @@ export default function CodingAssignmentHelpMalaysiaPage() {
                 <p className="mt-3 max-w-2xl text-sm leading-7 text-white/80">
                   Explore CritOrbit to find support for debugging, coding logic, and urgent programming coursework.
                 </p>
+                <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-yellow">Get help before your deadline hits.</p>
               </div>
               <Link href="/" className={buttonStyles({ tone: "yellow", size: "lg" })}>
                 Browse Helpers
