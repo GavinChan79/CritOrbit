@@ -10,5 +10,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: 'https://critorbit.com/helpers',
       lastModified: new Date(),
     },
+    {
+      url: 'https://critorbit.com/assignment-help-malaysia',
+      lastModified: new Date(),
+    },
   ]
 }
