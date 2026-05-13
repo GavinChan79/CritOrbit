@@ -28,6 +28,19 @@ export default async function LeadDetailPage({
         user: true,
         selectedHelper: true,
         assignedHelper: true,
+        invites: {
+          include: {
+            helper: {
+              select: {
+                id: true,
+                name: true,
+                status: true,
+                isActive: true,
+              },
+            },
+          },
+          orderBy: [{ round: "asc" }, { sentAt: "asc" }],
+        },
       },
     }),
     prisma.helper.findMany({
@@ -70,6 +83,8 @@ export default async function LeadDetailPage({
   }
 
   const helpersUnavailable = helpersResult.status === "rejected";
+  const preferredInvites = lead.invites.filter((invite) => invite.inviteGroup === "PREFERRED");
+  const backupInvites = lead.invites.filter((invite) => invite.inviteGroup === "BACKUP");
 
   const whatsappUrl = buildWhatsappUrl(
     buildWhatsappMessage({
@@ -186,6 +201,25 @@ export default async function LeadDetailPage({
             <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted">{lead.description}</p>
           </Card>
 
+          <Card className="bg-white">
+            <div className="display-font text-2xl font-black">Helper invite dispatch</div>
+            <p className="mt-3 text-sm leading-7 text-muted">
+              Preferred helper invites are sent first when the student picked an eligible helper. Backup helper invites only appear after fallback dispatch.
+            </p>
+            <div className="mt-5 grid gap-6 lg:grid-cols-2">
+              <InviteGroupSection
+                title="Preferred helper invite"
+                invites={preferredInvites}
+                emptyMessage="No preferred helper invite has been dispatched for this lead."
+              />
+              <InviteGroupSection
+                title="Backup helper invites"
+                invites={backupInvites}
+                emptyMessage="No backup helper invites have been dispatched for this lead."
+              />
+            </div>
+          </Card>
+
           <Card className="bg-blue text-white">
             <div className="display-font text-2xl font-black">Admin WhatsApp Launch</div>
             <p className="mt-3 text-sm leading-7 text-white/80">
@@ -252,4 +286,89 @@ function TraceRow({ label, value }: { label: string; value: string }) {
       <span className="text-sm font-semibold">{value}</span>
     </div>
   );
+}
+
+function InviteGroupSection({
+  title,
+  invites,
+  emptyMessage,
+}: {
+  title: string;
+  invites: Array<{
+    id: string;
+    round: number;
+    status: string;
+    sentAt: Date;
+    respondedAt: Date | null;
+    expiresAt: Date | null;
+    helper: {
+      id: string;
+      name: string;
+      status: string;
+      isActive: boolean;
+    };
+  }>;
+  emptyMessage: string;
+}) {
+  return (
+    <div className="rounded-[22px] border-[3px] border-line bg-cream p-4">
+      <div className="text-xs font-black uppercase tracking-[0.16em] text-muted">{title}</div>
+      {invites.length === 0 ? (
+        <p className="mt-3 text-sm font-semibold text-muted">{emptyMessage}</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {invites.map((invite) => {
+            const statusLabel = getInviteStatusLabel(invite.status, invite.expiresAt);
+
+            return (
+              <div
+                key={invite.id}
+                className="rounded-[18px] border-[3px] border-line bg-white p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-black">{invite.helper.name}</div>
+                  <span className="retro-pill bg-paper px-3 py-1 text-xs font-black uppercase text-ink">
+                    {statusLabel}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <InviteMeta label="Round" value={`Round ${invite.round}`} />
+                  <InviteMeta
+                    label="Helper status"
+                    value={`${titleizeEnum(invite.helper.status)}${invite.helper.isActive ? "" : " · Inactive"}`}
+                  />
+                  <InviteMeta label="Sent" value={formatDate(invite.sentAt)} />
+                  <InviteMeta
+                    label="Responded"
+                    value={invite.respondedAt ? formatDate(invite.respondedAt) : "-"}
+                  />
+                  <InviteMeta
+                    label="Expires"
+                    value={invite.expiresAt ? formatDate(invite.expiresAt) : "-"}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InviteMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[16px] border-[3px] border-line bg-paper px-3 py-3">
+      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-muted">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-ink">{value}</div>
+    </div>
+  );
+}
+
+function getInviteStatusLabel(status: string, expiresAt: Date | null) {
+  if (status === "PENDING" && expiresAt && expiresAt.getTime() < Date.now()) {
+    return "Expired";
+  }
+
+  return titleizeEnum(status);
 }

@@ -89,7 +89,7 @@ function getRuntimeDatabaseUrl() {
   throw new Error("No valid database URL is configured.");
 }
 
-export const prisma =
+export const prisma: PrismaClient =
   globalForPrisma.prisma ??
   new PrismaClient({
     datasources: {

@@ -145,6 +145,19 @@ enum LeadLifecycleStage {
   CANCELLED
 }
 
+enum LeadInviteGroup {
+  PREFERRED
+  BACKUP
+}
+
+enum LeadInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  UNAVAILABLE
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -208,6 +221,7 @@ model Helper {
   portfolioItems   HelperPortfolioItem[]
   selectedForLeads Lead[]         @relation("SelectedHelper")
   assignedLeads    Lead[]         @relation("AssignedHelper")
+  leadInvites      LeadInvite[]
 }
 
 model HelperApplicationFile {
@@ -299,9 +313,30 @@ model Lead {
   user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   selectedHelper   Helper?            @relation("SelectedHelper", fields: [selectedHelperId], references: [id], onDelete: SetNull)
   assignedHelper   Helper?            @relation("AssignedHelper", fields: [assignedHelperId], references: [id], onDelete: SetNull)
+  invites          LeadInvite[]
 
   @@index([status, createdAt])
   @@index([category, taskType])
+}
+
+model LeadInvite {
+  id          String          @id @default(cuid())
+  leadId       String
+  helperId     String
+  inviteGroup LeadInviteGroup
+  round       Int             @default(1)
+  status      LeadInviteStatus @default(PENDING)
+  sentAt      DateTime        @default(now())
+  respondedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  lead        Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  helper      Helper          @relation(fields: [helperId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, helperId])
+  @@index([leadId, inviteGroup, sentAt])
+  @@index([helperId, status, sentAt])
 }
 
 model LeadDraft {

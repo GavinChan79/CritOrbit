@@ -12,7 +12,9 @@ import {
   getTaskTypeLabel,
 } from "@/lib/helpers";
 import { titleizeEnum } from "@/lib/format";
+import { dispatchLeadInvites } from "@/lib/lead-invites";
 import { getPublicHelperById } from "@/lib/public-helpers";
+import { logServerDataLoadError } from "@/lib/server-load";
 
 export async function POST(request: Request) {
   try {
@@ -117,6 +119,19 @@ export async function POST(request: Request) {
           },
         },
       });
+    }
+
+    try {
+      await dispatchLeadInvites({
+        lead: {
+          id: lead.id,
+          category: lead.category,
+          taskType: lead.taskType,
+          selectedHelperId: lead.selectedHelperId,
+        },
+      });
+    } catch (error) {
+      logServerDataLoadError("lead-invite-dispatch", error);
     }
 
     const whatsappHelperName = lead.selectedHelper?.name ?? helper.name;
