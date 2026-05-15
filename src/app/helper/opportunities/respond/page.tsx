@@ -5,7 +5,6 @@ import { HelperInviteResponseFollowUp } from "@/components/helper-invite-respons
 import { getCategoryLabel, getTaskTypeLabel } from "@/lib/helpers";
 import { formatDate } from "@/lib/format";
 import { getLeadInviteByToken } from "@/lib/lead-invite-response";
-import { dispatchLeadInvites } from "@/lib/lead-invites";
 import { prisma } from "@/lib/prisma";
 import { helperInviteResponseDecisionSchema } from "@/lib/validators";
 
@@ -36,15 +35,6 @@ export default async function HelperInviteResponsePage({
       data: { status: "EXPIRED" },
     });
 
-    await dispatchLeadInvites({
-      lead: {
-        id: invite.lead.id,
-        category: invite.lead.category,
-        taskType: invite.lead.taskType,
-        selectedHelperId: invite.lead.selectedHelperId,
-      },
-    });
-
     return <InviteState title="Invite expired" description="This opportunity has expired. You can ignore the link or wait for a new invite." tone="warning" />;
   }
 
@@ -67,17 +57,6 @@ export default async function HelperInviteResponsePage({
       respondedAt: new Date(),
     },
   });
-
-  if (nextStatus !== "ACCEPTED") {
-    await dispatchLeadInvites({
-      lead: {
-        id: invite.lead.id,
-        category: invite.lead.category,
-        taskType: invite.lead.taskType,
-        selectedHelperId: invite.lead.selectedHelperId,
-      },
-    });
-  }
 
   const summary = `${getCategoryLabel(invite.lead.category)} · ${getTaskTypeLabel(invite.lead.taskType)} · Due ${formatDate(invite.lead.deadline)}`;
 

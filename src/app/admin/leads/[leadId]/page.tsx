@@ -9,7 +9,11 @@ import {
 import { getPaymentStatusLabel } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { logServerDataLoadError } from "@/lib/server-load";
-import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
+import {
+  buildHelperInviteWhatsappMessage,
+  buildWhatsappMessage,
+  buildWhatsappUrl,
+} from "@/lib/whatsapp";
 import {
   formatCurrency,
   formatCurrencyFromSen,
@@ -19,6 +23,7 @@ import {
 } from "@/lib/format";
 import { getLeadInviteResponseUrl } from "@/lib/lead-invite-response";
 import { DeleteLeadButton, LeadManagementForm } from "@/components/client-forms";
+import { HelperInviteAdminPanel } from "@/components/helper-invite-admin-panel";
 import { buttonStyles, Card, SectionHeading, StatusBadge } from "@/components/ui";
 
 export default async function LeadDetailPage({
@@ -44,6 +49,9 @@ export default async function LeadDetailPage({
         inviteGroup: true,
         round: true,
         status: true,
+        deliveryStatus: true,
+        deliveryAttemptedAt: true,
+        deliveryError: true,
         sentAt: true,
         respondedAt: true,
         expiresAt: true,
@@ -106,8 +114,31 @@ export default async function LeadDetailPage({
   }
 
   const helpersUnavailable = helpersResult.status === "rejected";
-  const preferredInvites = invites.filter((invite) => invite.inviteGroup === "PREFERRED");
+  const preferredInvite =
+    invites.find((invite) => invite.inviteGroup === "PREFERRED") ?? null;
   const backupInvites = invites.filter((invite) => invite.inviteGroup === "BACKUP");
+
+  const preferredInviteStatusLabel = getSimpleInviteStatusLabel(
+    preferredInvite?.status ?? null,
+    preferredInvite?.expiresAt ?? null,
+  );
+  const interestedLink = preferredInvite
+    ? getLeadInviteResponseUrl(preferredInvite.responseToken, "accepted")
+    : null;
+  const notAvailableLink = preferredInvite
+    ? getLeadInviteResponseUrl(preferredInvite.responseToken, "unavailable")
+    : null;
+  const helperInviteMessage = preferredInvite
+    ? buildHelperInviteWhatsappMessage({
+        category: getCategoryLabel(lead.category),
+        taskType: getTaskTypeLabel(lead.taskType),
+        deadline: lead.deadline,
+        budget: lead.budget,
+        briefSummary: lead.description,
+        acceptedToken: preferredInvite.responseToken,
+        unavailableToken: preferredInvite.responseToken,
+      })
+    : null;
 
   const whatsappUrl = buildWhatsappUrl(
     buildWhatsappMessage({
@@ -156,7 +187,7 @@ export default async function LeadDetailPage({
         <SectionHeading
           eyebrow="Lead Detail"
           title={`Lead ${lead.id.slice(0, 8)}`}
-          description="This page keeps the full brief, WhatsApp follow-up, admin assignment, closure, revenue, and helper invite responses in one place."
+          description="This page keeps the full brief, WhatsApp follow-up, admin assignment, and simple helper invite operations in one place."
         />
       </div>
 
@@ -246,23 +277,39 @@ export default async function LeadDetailPage({
           </Card>
 
           <Card className="bg-white">
-            <div className="display-font text-2xl font-black">Helper invite dispatch</div>
+            <div className="display-font text-2xl font-black">Helper invite</div>
             <p className="mt-3 text-sm leading-7 text-muted">
-              Preferred helper invites are sent first when the student picked an eligible helper. Backup helper invites only appear after fallback dispatch.
+              Simple Mode sends the preferred helper first. For soft launch, admin manually copies the helper WhatsApp message below.
             </p>
-            <div className="mt-5 grid gap-6 lg:grid-cols-2">
-              <InviteGroupSection
-                title="Preferred helper invite"
-                invites={preferredInvites}
-                emptyMessage="No preferred helper invite has been dispatched for this lead."
-              />
-              <InviteGroupSection
-                title="Backup helper invites"
-                invites={backupInvites}
-                emptyMessage="No backup helper invites have been dispatched for this lead."
+            <div className="mt-5">
+              <HelperInviteAdminPanel
+                preferredHelperName={lead.selectedHelper?.name ?? "No preferred helper selected"}
+                inviteStatus={preferredInviteStatusLabel}
+                deliveryStatus={getDeliveryStatusLabel(preferredInvite?.deliveryStatus ?? null)}
+                deliveryAttemptedAt={formatDateTime(preferredInvite?.deliveryAttemptedAt ?? null)}
+                deliveryError={preferredInvite?.deliveryError ?? null}
+                interestedLink={interestedLink}
+                notAvailableLink={notAvailableLink}
+                whatsappMessage={helperInviteMessage}
               />
             </div>
           </Card>
+
+          {backupInvites.length > 0 ? (
+            <Card className="bg-white">
+              <div className="display-font text-2xl font-black">Additional invites</div>
+              <p className="mt-3 text-sm leading-7 text-muted">
+                Backup invites already exist for this lead, but Simple Mode keeps them out of the main workflow by default.
+              </p>
+              <div className="mt-5">
+                <InviteGroupSection
+                  title="Backup helper invites"
+                  invites={backupInvites}
+                  emptyMessage="No backup helper invites have been dispatched for this lead."
+                />
+              </div>
+            </Card>
+          ) : null}
 
           <Card className="bg-blue text-white">
             <div className="display-font text-2xl font-black">Admin WhatsApp Launch</div>
@@ -340,9 +387,10 @@ function InviteGroupSection({
   title: string;
   invites: Array<{
     id: string;
-    inviteGroup: string;
-    round: number;
     status: string;
+    deliveryStatus: string;
+    deliveryAttemptedAt: Date | null;
+    deliveryError: string | null;
     sentAt: Date;
     respondedAt: Date | null;
     expiresAt: Date | null;
@@ -365,48 +413,44 @@ function InviteGroupSection({
         <p className="mt-3 text-sm font-semibold text-muted">{emptyMessage}</p>
       ) : (
         <div className="mt-4 space-y-3">
-          {invites.map((invite) => {
-            const statusLabel = getInviteStatusLabel(invite.status, invite.expiresAt);
-            const responseUrl = getLeadInviteResponseUrl(invite.responseToken, "accepted");
-
-            return (
-              <div
-                key={invite.id}
-                className="rounded-[18px] border-[3px] border-line bg-white p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-black">{invite.helper.name}</div>
-                  <span className="retro-pill bg-paper px-3 py-1 text-xs font-black uppercase text-ink">
-                    {statusLabel}
-                  </span>
-                </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <InviteMeta label="Invite Group" value={titleizeEnum(invite.inviteGroup)} />
-                  <InviteMeta label="Round" value={`Round ${invite.round}`} />
-                  <InviteMeta
-                    label="Helper Status"
-                    value={`${titleizeEnum(invite.helper.status)}${invite.helper.isActive ? "" : " · Inactive"}`}
-                  />
-                  <InviteMeta label="Sent At" value={formatDateTime(invite.sentAt)} />
-                  <InviteMeta label="Responded At" value={formatDateTime(invite.respondedAt)} />
-                  <InviteMeta label="Expires At" value={formatDateTime(invite.expiresAt)} />
-                  <InviteMeta
-                    label="Estimated Price"
-                    value={invite.estimatedPrice ? formatCurrency(invite.estimatedPrice) : "-"}
-                  />
-                  <InviteMeta label="Availability Note" value={invite.availabilityNote ?? "-"} />
-                </div>
-                <a
-                  href={responseUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`mt-3 ${buttonStyles({ tone: "yellow", size: "sm" })}`}
-                >
-                  Open Helper Response Link
-                </a>
+          {invites.map((invite) => (
+            <div
+              key={invite.id}
+              className="rounded-[18px] border-[3px] border-line bg-white p-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-black">{invite.helper.name}</div>
+                <span className="retro-pill bg-paper px-3 py-1 text-xs font-black uppercase text-ink">
+                  {getInviteStatusLabel(invite.status, invite.expiresAt)}
+                </span>
               </div>
-            );
-          })}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <InviteMeta
+                  label="Helper Status"
+                  value={`${titleizeEnum(invite.helper.status)}${invite.helper.isActive ? "" : " · Inactive"}`}
+                />
+                <InviteMeta label="Delivery Status" value={getDeliveryStatusLabel(invite.deliveryStatus)} />
+                <InviteMeta label="Delivery Attempted" value={formatDateTime(invite.deliveryAttemptedAt)} />
+                <InviteMeta label="Sent At" value={formatDateTime(invite.sentAt)} />
+                <InviteMeta label="Responded At" value={formatDateTime(invite.respondedAt)} />
+                <InviteMeta label="Expires At" value={formatDateTime(invite.expiresAt)} />
+                <InviteMeta
+                  label="Estimated Price"
+                  value={invite.estimatedPrice ? formatCurrency(invite.estimatedPrice) : "-"}
+                />
+                <InviteMeta label="Availability Note" value={invite.availabilityNote ?? "-"} />
+                <InviteMeta label="Delivery Error" value={invite.deliveryError ?? "-"} />
+              </div>
+              <a
+                href={getLeadInviteResponseUrl(invite.responseToken, "accepted")}
+                target="_blank"
+                rel="noreferrer"
+                className={`mt-3 ${buttonStyles({ tone: "yellow", size: "sm" })}`}
+              >
+                Open Helper Response Link
+              </a>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -427,5 +471,37 @@ function getInviteStatusLabel(status: string, expiresAt: Date | null) {
     return "Expired";
   }
 
+  if (status === "ACCEPTED") {
+    return "Interested";
+  }
+
+  if (status === "DECLINED" || status === "UNAVAILABLE") {
+    return "Not Available";
+  }
+
+  if (status === "PENDING") {
+    return "Pending";
+  }
+
   return titleizeEnum(status);
+}
+
+function getSimpleInviteStatusLabel(status: string | null, expiresAt: Date | null) {
+  if (!status) {
+    return "Not sent yet";
+  }
+
+  return getInviteStatusLabel(status, expiresAt);
+}
+
+function getDeliveryStatusLabel(status: string | null) {
+  if (status === "SENT") {
+    return "Sent";
+  }
+
+  if (status === "FAILED") {
+    return "Failed";
+  }
+
+  return "Pending";
 }

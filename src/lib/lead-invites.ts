@@ -2,6 +2,7 @@ import "server-only";
 
 import { addMinutes } from "date-fns";
 import type { Helper, Lead } from "@prisma/client";
+import { sendHelperInviteNotification } from "@/lib/helper-invite-notifications";
 import { prisma } from "@/lib/prisma";
 import { parseSpecialties, specialtyMatchesTaskType } from "@/lib/helpers";
 import { rankHelpersByConversion } from "@/lib/helper-ranking";
@@ -12,6 +13,8 @@ import { logServerDataLoadError } from "@/lib/server-load";
 
 const leadInviteExpiryMinutes = 15;
 const backupInviteLimit = 3;
+const simpleModeEnabled = true;
+const simpleModeFallbackInviteLimit = 1;
 
 type DispatchLead = Pick<Lead, "id" | "category" | "taskType" | "selectedHelperId">;
 
@@ -66,15 +69,21 @@ export async function dispatchLeadInvites(input: { lead: DispatchLead }) {
 
     if (selectedEligible) {
       if (!selectedInvite) {
-        await createLeadInvite({
+        const invite = await createLeadInvite({
           leadId: input.lead.id,
           helperId: selectedHelperId,
           inviteGroup: "PREFERRED",
           round: 1,
         });
+
+        try {
+          await sendHelperInviteNotification(invite.id);
+        } catch (error) {
+          logServerDataLoadError("preferred-helper-invite-delivery", error);
+        }
       }
 
-      if (!selectedInvite || !canDispatchBackupsAfterStatus(selectedInvite.status)) {
+      if (simpleModeEnabled || !selectedInvite || !canDispatchBackupsAfterStatus(selectedInvite.status)) {
         return;
       }
     }
@@ -99,7 +108,7 @@ async function dispatchBackupInvites(input: {
   const backupHelpers = helpers
     .filter((helper) => helper.id !== input.lead.selectedHelperId)
     .filter((helper) => !existingHelperIds.has(helper.id))
-    .slice(0, backupInviteLimit);
+    .slice(0, simpleModeEnabled ? simpleModeFallbackInviteLimit : backupInviteLimit);
 
   if (backupHelpers.length === 0) {
     return;
@@ -126,8 +135,11 @@ async function createLeadInvite(input: {
 }) {
   const inviteData = createLeadInviteData(input);
 
-  await prisma.leadInvite.create({
+  return prisma.leadInvite.create({
     data: inviteData,
+    select: {
+      id: true,
+    },
   });
 }
 

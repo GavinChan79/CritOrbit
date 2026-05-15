@@ -158,6 +158,12 @@ enum LeadInviteStatus {
   UNAVAILABLE
 }
 
+enum LeadInviteDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -327,6 +333,9 @@ model LeadInvite {
   inviteGroup LeadInviteGroup
   round       Int             @default(1)
   status      LeadInviteStatus @default(PENDING)
+  deliveryStatus LeadInviteDeliveryStatus @default(PENDING)
+  deliveryAttemptedAt DateTime?
+  deliveryError String?
   estimatedPrice Int?
   availabilityNote String?
   sentAt      DateTime        @default(now())
