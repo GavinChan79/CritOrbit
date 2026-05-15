@@ -10,7 +10,14 @@ import { getPaymentStatusLabel } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { logServerDataLoadError } from "@/lib/server-load";
 import { buildWhatsappMessage, buildWhatsappUrl } from "@/lib/whatsapp";
-import { formatCurrency, formatCurrencyFromSen, formatDate, titleizeEnum } from "@/lib/format";
+import {
+  formatCurrency,
+  formatCurrencyFromSen,
+  formatDate,
+  formatDateTime,
+  titleizeEnum,
+} from "@/lib/format";
+import { getLeadInviteResponseUrl } from "@/lib/lead-invite-response";
 import { DeleteLeadButton, LeadManagementForm } from "@/components/client-forms";
 import { buttonStyles, Card, SectionHeading, StatusBadge } from "@/components/ui";
 
@@ -21,27 +28,38 @@ export default async function LeadDetailPage({
 }) {
   const { leadId } = await params;
 
-  const [leadResult, helpersResult] = await Promise.allSettled([
+  const [leadResult, invitesResult, helpersResult] = await Promise.allSettled([
     prisma.lead.findUnique({
       where: { id: leadId },
       include: {
         user: true,
         selectedHelper: true,
         assignedHelper: true,
-        invites: {
-          include: {
-            helper: {
-              select: {
-                id: true,
-                name: true,
-                status: true,
-                isActive: true,
-              },
-            },
+      },
+    }),
+    prisma.leadInvite.findMany({
+      where: { leadId },
+      select: {
+        id: true,
+        inviteGroup: true,
+        round: true,
+        status: true,
+        sentAt: true,
+        respondedAt: true,
+        expiresAt: true,
+        estimatedPrice: true,
+        availabilityNote: true,
+        responseToken: true,
+        helper: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            isActive: true,
           },
-          orderBy: [{ round: "asc" }, { sentAt: "asc" }],
         },
       },
+      orderBy: [{ round: "asc" }, { sentAt: "asc" }],
     }),
     prisma.helper.findMany({
       orderBy: { displayOrder: "asc" },
@@ -52,11 +70,16 @@ export default async function LeadDetailPage({
     logServerDataLoadError("admin-lead-detail", leadResult.reason);
   }
 
+  if (invitesResult.status === "rejected") {
+    logServerDataLoadError("admin-lead-detail-invites", invitesResult.reason);
+  }
+
   if (helpersResult.status === "rejected") {
     logServerDataLoadError("admin-lead-detail-helpers", helpersResult.reason);
   }
 
   const lead = leadResult.status === "fulfilled" ? leadResult.value : null;
+  const invites = invitesResult.status === "fulfilled" ? invitesResult.value : [];
   const helpers = helpersResult.status === "fulfilled" ? helpersResult.value : [];
 
   if (!lead) {
@@ -83,8 +106,8 @@ export default async function LeadDetailPage({
   }
 
   const helpersUnavailable = helpersResult.status === "rejected";
-  const preferredInvites = lead.invites.filter((invite) => invite.inviteGroup === "PREFERRED");
-  const backupInvites = lead.invites.filter((invite) => invite.inviteGroup === "BACKUP");
+  const preferredInvites = invites.filter((invite) => invite.inviteGroup === "PREFERRED");
+  const backupInvites = invites.filter((invite) => invite.inviteGroup === "BACKUP");
 
   const whatsappUrl = buildWhatsappUrl(
     buildWhatsappMessage({
@@ -133,7 +156,7 @@ export default async function LeadDetailPage({
         <SectionHeading
           eyebrow="Lead Detail"
           title={`Lead ${lead.id.slice(0, 8)}`}
-          description="This page keeps the full brief, WhatsApp follow-up, admin assignment, closure, and revenue in one place."
+          description="This page keeps the full brief, WhatsApp follow-up, admin assignment, closure, revenue, and helper invite responses in one place."
         />
       </div>
 
@@ -160,10 +183,19 @@ export default async function LeadDetailPage({
           <Card className="bg-white">
             <div className="display-font text-2xl font-black">Pipeline trace</div>
             <div className="mt-5 grid gap-3">
-              <TraceRow label="User selected a helper" value={lead.selectedHelper ? lead.selectedHelper.name : "No"} />
-              <TraceRow label="Admin assigned a helper" value={lead.assignedHelper ? lead.assignedHelper.name : "Not yet"} />
+              <TraceRow
+                label="User selected a helper"
+                value={lead.selectedHelper ? lead.selectedHelper.name : "No"}
+              />
+              <TraceRow
+                label="Admin assigned a helper"
+                value={lead.assignedHelper ? lead.assignedHelper.name : "Not yet"}
+              />
               <TraceRow label="Deal closed" value={lead.dealClosed ? "Yes" : "No"} />
-              <TraceRow label="Revenue captured" value={lead.dealValue ? formatCurrency(lead.dealValue) : "Not yet"} />
+              <TraceRow
+                label="Revenue captured"
+                value={lead.dealValue ? formatCurrency(lead.dealValue) : "Not yet"}
+              />
               <TraceRow label="WhatsApp clicked" value={lead.whatsappClicked ? "Yes" : "No"} />
             </div>
           </Card>
@@ -177,12 +209,24 @@ export default async function LeadDetailPage({
               <Detail label="Currency" value={lead.paymentCurrency ?? "MYR"} />
               <Detail label="Payment Link Ref" value={lead.paymentLinkRef ?? "-"} />
               <Detail label="Payment Ref" value={lead.paymentRef ?? "-"} />
-              <Detail label="Requested" value={lead.paymentRequestedAt ? formatDate(lead.paymentRequestedAt) : "-"} />
+              <Detail
+                label="Requested"
+                value={lead.paymentRequestedAt ? formatDate(lead.paymentRequestedAt) : "-"}
+              />
               <Detail label="Paid" value={lead.paidAt ? formatDate(lead.paidAt) : "-"} />
-              <Detail label="Release Ready" value={lead.releaseReadyAt ? formatDate(lead.releaseReadyAt) : "-"} />
-              <Detail label="Released" value={lead.releasedAt ? formatDate(lead.releasedAt) : "-"} />
+              <Detail
+                label="Release Ready"
+                value={lead.releaseReadyAt ? formatDate(lead.releaseReadyAt) : "-"}
+              />
+              <Detail
+                label="Released"
+                value={lead.releasedAt ? formatDate(lead.releasedAt) : "-"}
+              />
               <Detail label="Release Ref" value={lead.releaseRef ?? "-"} />
-              <Detail label="Refunded" value={lead.refundedAt ? formatDate(lead.refundedAt) : "-"} />
+              <Detail
+                label="Refunded"
+                value={lead.refundedAt ? formatDate(lead.refundedAt) : "-"}
+              />
             </div>
             {lead.paymentLinkUrl ? (
               <a
@@ -296,11 +340,15 @@ function InviteGroupSection({
   title: string;
   invites: Array<{
     id: string;
+    inviteGroup: string;
     round: number;
     status: string;
     sentAt: Date;
     respondedAt: Date | null;
     expiresAt: Date | null;
+    estimatedPrice: number | null;
+    availabilityNote: string | null;
+    responseToken: string;
     helper: {
       id: string;
       name: string;
@@ -319,6 +367,7 @@ function InviteGroupSection({
         <div className="mt-4 space-y-3">
           {invites.map((invite) => {
             const statusLabel = getInviteStatusLabel(invite.status, invite.expiresAt);
+            const responseUrl = getLeadInviteResponseUrl(invite.responseToken, "accepted");
 
             return (
               <div
@@ -332,21 +381,29 @@ function InviteGroupSection({
                   </span>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <InviteMeta label="Invite Group" value={titleizeEnum(invite.inviteGroup)} />
                   <InviteMeta label="Round" value={`Round ${invite.round}`} />
                   <InviteMeta
-                    label="Helper status"
+                    label="Helper Status"
                     value={`${titleizeEnum(invite.helper.status)}${invite.helper.isActive ? "" : " · Inactive"}`}
                   />
-                  <InviteMeta label="Sent" value={formatDate(invite.sentAt)} />
+                  <InviteMeta label="Sent At" value={formatDateTime(invite.sentAt)} />
+                  <InviteMeta label="Responded At" value={formatDateTime(invite.respondedAt)} />
+                  <InviteMeta label="Expires At" value={formatDateTime(invite.expiresAt)} />
                   <InviteMeta
-                    label="Responded"
-                    value={invite.respondedAt ? formatDate(invite.respondedAt) : "-"}
+                    label="Estimated Price"
+                    value={invite.estimatedPrice ? formatCurrency(invite.estimatedPrice) : "-"}
                   />
-                  <InviteMeta
-                    label="Expires"
-                    value={invite.expiresAt ? formatDate(invite.expiresAt) : "-"}
-                  />
+                  <InviteMeta label="Availability Note" value={invite.availabilityNote ?? "-"} />
                 </div>
+                <a
+                  href={responseUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`mt-3 ${buttonStyles({ tone: "yellow", size: "sm" })}`}
+                >
+                  Open Helper Response Link
+                </a>
               </div>
             );
           })}
@@ -360,7 +417,7 @@ function InviteMeta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[16px] border-[3px] border-line bg-paper px-3 py-3">
       <div className="text-[11px] font-black uppercase tracking-[0.14em] text-muted">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-ink">{value}</div>
+      <div className="mt-1 whitespace-pre-wrap text-sm font-semibold text-ink">{value}</div>
     </div>
   );
 }

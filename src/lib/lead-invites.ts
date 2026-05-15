@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { parseSpecialties, specialtyMatchesTaskType } from "@/lib/helpers";
 import { rankHelpersByConversion } from "@/lib/helper-ranking";
 import { getHelperCompletionScore } from "@/lib/helper-ranking";
+import { createLeadInviteResponseToken } from "@/lib/lead-invite-response";
 import { getHelperEventPerformanceMap, getPublicHelpers, publicHelperWhere } from "@/lib/public-helpers";
 import { logServerDataLoadError } from "@/lib/server-load";
 
@@ -105,15 +106,14 @@ async function dispatchBackupInvites(input: {
   }
 
   await prisma.leadInvite.createMany({
-    data: backupHelpers.map((helper) => ({
-      leadId: input.lead.id,
-      helperId: helper.id,
-      inviteGroup: "BACKUP",
-      round: input.lead.selectedHelperId ? 2 : 1,
-      status: "PENDING",
-      sentAt: new Date(),
-      expiresAt: addMinutes(new Date(), leadInviteExpiryMinutes),
-    })),
+    data: backupHelpers.map((helper) =>
+      createLeadInviteData({
+        leadId: input.lead.id,
+        helperId: helper.id,
+        inviteGroup: "BACKUP",
+        round: input.lead.selectedHelperId ? 2 : 1,
+      }),
+    ),
     skipDuplicates: true,
   });
 }
@@ -124,17 +124,31 @@ async function createLeadInvite(input: {
   inviteGroup: "PREFERRED" | "BACKUP";
   round: number;
 }) {
+  const inviteData = createLeadInviteData(input);
+
   await prisma.leadInvite.create({
-    data: {
-      leadId: input.leadId,
-      helperId: input.helperId,
-      inviteGroup: input.inviteGroup,
-      round: input.round,
-      status: "PENDING",
-      sentAt: new Date(),
-      expiresAt: addMinutes(new Date(), leadInviteExpiryMinutes),
-    },
+    data: inviteData,
   });
+}
+
+function createLeadInviteData(input: {
+  leadId: string;
+  helperId: string;
+  inviteGroup: "PREFERRED" | "BACKUP";
+  round: number;
+}) {
+  const token = createLeadInviteResponseToken();
+
+  return {
+    leadId: input.leadId,
+    helperId: input.helperId,
+    responseToken: token,
+    inviteGroup: input.inviteGroup,
+    round: input.round,
+    status: "PENDING" as const,
+    sentAt: new Date(),
+    expiresAt: addMinutes(new Date(), leadInviteExpiryMinutes),
+  };
 }
 
 function canDispatchBackupsAfterStatus(status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "UNAVAILABLE") {

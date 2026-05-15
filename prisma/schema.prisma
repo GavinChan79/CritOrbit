@@ -323,9 +323,12 @@ model LeadInvite {
   id          String          @id @default(cuid())
   leadId       String
   helperId     String
+  responseToken String        @unique
   inviteGroup LeadInviteGroup
   round       Int             @default(1)
   status      LeadInviteStatus @default(PENDING)
+  estimatedPrice Int?
+  availabilityNote String?
   sentAt      DateTime        @default(now())
   respondedAt DateTime?
   expiresAt   DateTime?

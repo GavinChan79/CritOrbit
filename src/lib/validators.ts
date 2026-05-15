@@ -474,3 +474,23 @@ export const eventLogSchema = z.object({
   draftId: z.string().trim().optional().transform((value) => value || undefined),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
+
+export const helperInviteResponseDecisionSchema = z.enum([
+  "accepted",
+  "declined",
+  "unavailable",
+]);
+
+export const helperInviteFollowUpSchema = z.object({
+  token: z.string().min(1, "Invite token is required."),
+  estimatedPrice: z
+    .union([z.coerce.number().int().positive("Enter a valid estimated price."), z.null(), z.undefined(), z.literal("")])
+    .transform((value) => {
+      if (value === "" || value === undefined || value === null) {
+        return undefined;
+      }
+
+      return value;
+    }),
+  availabilityNote: z.string().trim().max(300, "Keep the note under 300 characters.").optional().transform((value) => value || undefined),
+});
