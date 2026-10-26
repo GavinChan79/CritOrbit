@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "University Assignment Help KL | CritOrbit",
-  description:
-    "Get university assignment help in KL. Find reliable helpers for reports, coding, slides, and coursework deadlines on CritOrbit.",
-};
+export const metadata = publicPageMetadata(
+  "/university-assignment-help-kl",
+  "University Assignment Help KL | CritOrbit",
+  "Get university assignment help in KL. Find reliable helpers for reports, coding, slides, and coursework deadlines on CritOrbit.",
+);
 
 const helpAreas = [
   ["Reports and research", "Get support for university coursework that needs clearer writing, structure, and organization."],
@@ -45,6 +46,7 @@ export default function UniversityAssignmentHelpKLPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/university-assignment-help-kl" label="University Assignment Help KL" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.08fr_0.92fr] md:px-6 md:py-24">
             <div>
@@ -95,7 +97,7 @@ export default function UniversityAssignmentHelpKLPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
-          <SectionHeading eyebrow="Trust Signals" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
+          <SectionHeading eyebrow="How we help" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
               "50+ students helped",

@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Interior Design Assignment Help Malaysia | CritOrbit",
-  description:
-    "Get interior design assignment help in Malaysia. From concept to presentation boards, find reliable helpers on CritOrbit.",
-};
+export const metadata = publicPageMetadata(
+  "/interior-design-assignment-help-malaysia",
+  "Interior Design Assignment Help Malaysia | CritOrbit",
+  "Get interior design assignment help in Malaysia. From concept to presentation boards, find reliable helpers on CritOrbit.",
+);
 
 const helpTypes = [
   {
@@ -103,6 +104,7 @@ export default function InteriorDesignAssignmentHelpMalaysiaPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/interior-design-assignment-help-malaysia" label="Interior Design Assignment Help Malaysia" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.08fr_0.92fr] md:px-6 md:py-24">
             <div>
@@ -165,7 +167,7 @@ export default function InteriorDesignAssignmentHelpMalaysiaPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <SectionHeading
-            eyebrow="Trust Signals"
+            eyebrow="How we help"
             title="Why Students Choose CritOrbit"
             description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds."
           />
@@ -298,6 +300,24 @@ export default function InteriorDesignAssignmentHelpMalaysiaPage() {
               </Link>
             </div>
           </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+          <SectionHeading eyebrow="Before you request help" title="Prepare an interior design brief for review" />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Explain the studio requirements</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Include the project brief, site constraints, required drawing scales and marking criteria. Identify whether the review should focus on concept development, spatial planning or presentation.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Share work at the right stage</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Provide your current plans, sketches or model screenshots and explain the design decision you want feedback on. Add the software and version if editable files are needed.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Specify the handover format</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">State the sheet size, drawing list, file formats and presentation date. Allow time to check dimensions, labels and exports, and retain responsibility for your own design decisions.</p>
+            </Card>
+          </div>
+          <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" }) + " mt-6"}>Submit Your Brief</Link>
         </section>
       </main>
       <SiteFooter />

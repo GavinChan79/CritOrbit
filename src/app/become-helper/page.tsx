@@ -1,3 +1,7 @@
+import { publicPageMetadata } from "@/lib/seo";
+
+export const metadata = publicPageMetadata("/become-helper", "Become a Student Assignment Helper | CritOrbit", "Apply to join CritOrbit in Malaysia. Share your specialties and portfolio for admin review, and connect with students looking for assignment support.");
+
 import { SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 import { HelperApplicationForm } from "@/components/helper-application-form";
 
@@ -50,7 +54,7 @@ export default function BecomeHelperPage() {
               </p>
               <div className="rounded-[22px] border-[3px] border-line bg-yellow px-5 py-4 text-ink">
                 <div className="text-xs font-black uppercase tracking-[0.16em]">
-                  Why it converts
+                  How matching works
                 </div>
                 <p className="mt-2 text-sm font-semibold leading-7">
                   CritOrbit brings qualified student requests to you so you can

@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Do Assignment For Me Malaysia | CritOrbit",
-  description:
-    "Looking for do assignment for me help in Malaysia? Browse reliable assignment helpers for reports, coding, slides, and deadlines on CritOrbit.",
-};
+export const metadata = publicPageMetadata(
+  "/do-assignment-for-me-malaysia",
+  "Do Assignment For Me Malaysia | CritOrbit",
+  "Looking for do assignment for me help in Malaysia? Browse reliable assignment helpers for reports, coding, slides, and deadlines on CritOrbit.",
+);
 
 const helpAreas = [
   ["Reports and writing", "Get support when written coursework still feels unfinished, unclear, or too heavy to handle alone."],
@@ -45,6 +46,7 @@ export default function DoAssignmentForMeMalaysiaPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/do-assignment-for-me-malaysia" label="Do Assignment For Me Malaysia" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.08fr_0.92fr] md:px-6 md:py-24">
             <div>
@@ -96,7 +98,7 @@ export default function DoAssignmentForMeMalaysiaPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <SectionHeading
-            eyebrow="Trust Signals"
+            eyebrow="How we help"
             title="Why Students Choose CritOrbit"
             description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds."
           />

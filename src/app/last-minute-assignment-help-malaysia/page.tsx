@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Last Minute Assignment Help Malaysia | CritOrbit",
-  description:
-    "Get last minute assignment help in Malaysia. Find helpers for urgent reports, coding, slides, and fast deadline support on CritOrbit.",
-};
+export const metadata = publicPageMetadata(
+  "/last-minute-assignment-help-malaysia",
+  "Last Minute Assignment Help Malaysia | CritOrbit",
+  "Get last minute assignment help in Malaysia. Find helpers for urgent reports, coding, slides, and fast deadline support on CritOrbit.",
+);
 
 const helpAreas = [
   ["Assignments due soon", "Useful when the deadline is almost here and you need to regain control quickly."],
@@ -45,6 +46,7 @@ export default function LastMinuteAssignmentHelpMalaysiaPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/last-minute-assignment-help-malaysia" label="Last Minute Assignment Help Malaysia" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.08fr_0.92fr] md:px-6 md:py-24">
             <div>
@@ -95,7 +97,7 @@ export default function LastMinuteAssignmentHelpMalaysiaPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
-          <SectionHeading eyebrow="Trust Signals" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
+          <SectionHeading eyebrow="How we help" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
               "50+ students helped",
@@ -195,6 +197,24 @@ export default function LastMinuteAssignmentHelpMalaysiaPage() {
               </Link>
             </div>
           </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+          <SectionHeading eyebrow="Before you request help" title="A practical final review before submission" />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Check the submission requirements</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Read the rubric and submission instructions again. Confirm the file type, naming rules, word limit and whether references or appendices are required.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Test the final files</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Open exported PDFs and slides, check that images and fonts display correctly, and run code using the required environment. Keep a backup of the version you intend to submit.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Ask for a focused review</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">If time is limited, identify a specific review task such as checking structure, citations or a reproducible bug. Share the remaining time and leave room to understand and apply any feedback.</p>
+            </Card>
+          </div>
+          <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" }) + " mt-6"}>Submit Your Brief</Link>
         </section>
       </main>
       <SiteFooter />

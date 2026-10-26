@@ -1,3 +1,7 @@
+import { noIndexMetadata } from "@/lib/seo";
+
+export const metadata = noIndexMetadata;
+
 import { ReactNode } from "react";
 import { requireApprovedHelper } from "@/lib/auth";
 import { getHelperStatusLabel } from "@/lib/helpers";

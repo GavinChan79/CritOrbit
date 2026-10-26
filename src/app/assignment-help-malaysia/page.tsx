@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Assignment Help Malaysia – Fast & Reliable | CritOrbit",
-  description:
-    "Get assignment help in Malaysia with CritOrbit. Find reliable helpers for reports, coding tasks, presentations, and urgent deadlines.",
-};
+export const metadata = publicPageMetadata(
+  "/assignment-help-malaysia",
+  "Assignment Help Malaysia – Fast & Reliable | CritOrbit",
+  "Get assignment help in Malaysia with CritOrbit. Find reliable helpers for reports, coding tasks, presentations, and urgent deadlines.",
+);
 
 const reasons = [
   {
@@ -84,11 +85,12 @@ export default function AssignmentHelpMalaysiaPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/assignment-help-malaysia" label="Assignment Help Malaysia" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.1fr_0.9fr] md:px-6 md:py-24">
             <div>
               <div className="retro-pill inline-flex bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.2em]">
-                SEO Landing Page
+                Student Assignment Support
               </div>
               <h1 className="mt-6 max-w-3xl display-font text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
                 Assignment Help Malaysia
@@ -156,7 +158,7 @@ export default function AssignmentHelpMalaysiaPage() {
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <SectionHeading
-            eyebrow="Trust Signals"
+            eyebrow="How we help"
             title="Why Students Choose CritOrbit"
             description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds."
           />
@@ -278,6 +280,24 @@ export default function AssignmentHelpMalaysiaPage() {
               </Link>
             </div>
           </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+          <SectionHeading eyebrow="Before you request help" title="What to include in your assignment brief" />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Your task and marking criteria</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Share the assignment question, rubric and course level. Explain whether you need help understanding the task, feedback on a draft, debugging or presentation design.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Your progress and the specific problem</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Attach the work you have already attempted and point out where you are stuck. A focused question is easier to match than a request to handle an entire subject.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Deadline, budget and permitted support</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Give the submission date and time, your budget in RM and the file format required. Check your institution’s rules and state what outside support is permitted before agreeing on the scope.</p>
+            </Card>
+          </div>
+          <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" }) + " mt-6"}>Submit Your Brief</Link>
         </section>
       </main>
       <SiteFooter />

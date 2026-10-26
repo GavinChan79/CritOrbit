@@ -1,18 +1,9 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from "next";
+import { SITE_URL, servicePages } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    {
-      url: 'https://critorbit.com',
-      lastModified: new Date(),
-    },
-    {
-      url: 'https://critorbit.com/helpers',
-      lastModified: new Date(),
-    },
-    {
-      url: 'https://critorbit.com/assignment-help-malaysia',
-      lastModified: new Date(),
-    },
-  ]
+  // Omit lastModified until an actual content modification date is available.
+  return ["/", "/become-helper", ...servicePages.map((page) => page.path)].map((path) => ({
+    url: new URL(path, SITE_URL).toString(),
+  }));
 }

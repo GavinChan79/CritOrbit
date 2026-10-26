@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
-import { APP_NAME, APP_POWERED_BY, APP_TAGLINE } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
+import { HOME_TITLE, HOME_DESCRIPTION, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -14,23 +15,24 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: APP_NAME,
-  description: `${APP_TAGLINE} A platform that matches users with the right helper for their work.`,
+  metadataBase: new URL(SITE_URL),
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
   applicationName: APP_NAME,
   manifest: "/manifest.webmanifest",
   verification: {
     google: "kSSn7yVQPqwctfsQ1XxZ7h2waizhAXbj-xL7tejX87Y",
   },
   openGraph: {
-    title: APP_NAME,
-    description: `${APP_TAGLINE} ${APP_POWERED_BY}`,
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
     siteName: APP_NAME,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: APP_NAME,
-    description: `${APP_TAGLINE} ${APP_POWERED_BY}`,
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
   },
 };
 
