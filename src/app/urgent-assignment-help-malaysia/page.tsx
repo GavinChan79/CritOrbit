@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Urgent Assignment Help Malaysia | CritOrbit",
-  description:
-    "Get urgent assignment help in Malaysia. Find helpers for reports, coding, slides, and fast deadline support on CritOrbit.",
-};
+export const metadata = publicPageMetadata(
+  "/urgent-assignment-help-malaysia",
+  "Urgent Assignment Help Malaysia | CritOrbit",
+  "Get urgent assignment help in Malaysia. Find helpers for reports, coding, slides, and fast deadline support on CritOrbit.",
+);
 
 const helpAreas = [
   ["Fast deadline support", "Useful when your assignment deadline is close and you need to act quickly."],
@@ -45,6 +46,7 @@ export default function UrgentAssignmentHelpMalaysiaPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/urgent-assignment-help-malaysia" label="Urgent Assignment Help Malaysia" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.08fr_0.92fr] md:px-6 md:py-24">
             <div>
@@ -95,7 +97,7 @@ export default function UrgentAssignmentHelpMalaysiaPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
-          <SectionHeading eyebrow="Trust Signals" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
+          <SectionHeading eyebrow="How we help" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
               "50+ students helped",
@@ -195,6 +197,24 @@ export default function UrgentAssignmentHelpMalaysiaPage() {
               </Link>
             </div>
           </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+          <SectionHeading eyebrow="Before you request help" title="How to scope help when the deadline is close" />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Give an exact deadline</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Include the date, local time and time zone rather than “tonight”. Allow time to review feedback, make your own changes and upload the final files.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Prioritise the blocking task</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">List what is complete and what remains. Identify the highest priority issue, such as a failing program, an unclear report section or missing presentation visuals.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Confirm feasibility before proceeding</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Ask the admin to confirm helper availability, the agreed scope and the expected handover time. Availability and turnaround depend on the task; a tight deadline is not a guarantee of completion.</p>
+            </Card>
+          </div>
+          <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" }) + " mt-6"}>Submit Your Brief</Link>
         </section>
       </main>
       <SiteFooter />

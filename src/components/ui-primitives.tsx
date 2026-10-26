@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { servicePages } from "@/lib/seo";
 import { ReactNode } from "react";
 import { LeadStatus } from "@prisma/client";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
@@ -12,13 +13,18 @@ export function SiteFooter() {
           <div className="display-font text-2xl font-black uppercase">{APP_NAME}</div>
           <p className="mt-3 max-w-sm text-sm text-muted">{APP_TAGLINE}</p>
         </div>
-        <div className="space-y-2 text-sm font-semibold">
+        <div className="flex flex-col gap-2 text-sm font-semibold">
           <Link href="/requirements">Submit a Brief</Link>
           <Link href="/become-helper">Become a Helper</Link>
           <Link href="/login">Login</Link>
           <Link href="/register">Register</Link>
         </div>
-        <p className="text-sm font-semibold text-muted">Made for Malaysian students.</p>
+        <nav aria-label="Assignment support" className="text-sm font-semibold">
+          <p className="mb-3 font-black">Assignment support in Malaysia</p>
+          <ul className="grid gap-2">
+            {servicePages.map((page) => <li key={page.path}><Link className="underline-offset-4 hover:underline" href={page.path}>{page.label}</Link></li>)}
+          </ul>
+        </nav>
       </div>
     </footer>
   );

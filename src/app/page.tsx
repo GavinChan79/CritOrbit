@@ -1,6 +1,8 @@
+import { HOME_TITLE, HOME_DESCRIPTION, SITE_URL, publicPageMetadata } from "@/lib/seo";
+import { StructuredData } from "@/components/structured-data";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
-import { APP_NAME, APP_POWERED_BY, APP_TAGLINE } from "@/lib/constants";
+import { APP_NAME, APP_POWERED_BY } from "@/lib/constants";
 import {
   getCategoryLabel,
   getHelperBookedTimeLabel,
@@ -30,6 +32,8 @@ import { HelperAvatar } from "@/components/helper-avatar";
 import { HelperPortfolioPreview } from "@/components/helper-portfolio-preview";
 import { buttonStyles, Card, SectionHeading, SiteFooter, SiteHeader } from "@/components/ui";
 import { cn } from "@/lib/utils";
+
+export const metadata = publicPageMetadata("/", HOME_TITLE, HOME_DESCRIPTION);
 
 export default async function HomePage() {
   noStore();
@@ -100,6 +104,13 @@ export default async function HomePage() {
         eventType="VIEW_HELPER_LIST"
         metadata={{ surface: "homepage", helperIds: sortedHelpers.map((helper) => helper.id) }}
       />
+      <StructuredData data={{
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: "CritOrbit", url: `${SITE_URL}/`, inLanguage: "en", publisher: { "@id": `${SITE_URL}/#organization` } },
+          { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "CritOrbit", url: `${SITE_URL}/` },
+        ],
+      }} />
       <main>
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
@@ -108,10 +119,10 @@ export default async function HomePage() {
                 Malaysia Student Help Platform
               </div>
               <h1 className="mt-6 max-w-xl display-font text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
-                Get Your Assignment Done. Fast.
+                Assignment Help for Malaysian Students.
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-ink/80">
-                {APP_TAGLINE} Malaysia&apos;s helper platform for students who need the right support fast.
+                Find the right support for coding, reports, presentations and design coursework. Compare helpers, share your brief and let CritOrbit coordinate the next step.
               </p>
               <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-ink/70">
                 {APP_POWERED_BY}
@@ -587,7 +598,7 @@ export default async function HomePage() {
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {[
               ["Can I contact helpers directly?", `No. All communication is routed through ${APP_NAME} admin WhatsApp.`],
-              ["Do you support payments?", "Not in Phase 1. Admin handles matching and deal tracking manually."],
+              ["How are scope and payment agreed?", "Discuss your brief, deadline and budget with the CritOrbit admin before proceeding. Follow the payment instructions provided for your request."],
               ["Can I use this for architecture and interior work?", "Yes. Both categories are supported in the current helper roster."],
               ["Will I see my request status later?", "Yes, logged-in users can track requests from the dashboard."],
             ].map(([question, answer]) => (

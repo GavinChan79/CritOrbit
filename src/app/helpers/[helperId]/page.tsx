@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
@@ -25,6 +27,17 @@ import { HelperDetailActions } from "@/components/helper-detail-actions";
 import { HelperAvatar } from "@/components/helper-avatar";
 import { HelperPortfolioPreview } from "@/components/helper-portfolio-preview";
 import { cn } from "@/lib/utils";
+
+export async function generateMetadata({ params }: { params: Promise<{ helperId: string }> }): Promise<Metadata> {
+  const { helperId } = await params;
+  const helper = await getPublicHelperById(helperId, { select: { name: true, category: true } });
+  if (!helper) notFound();
+  return publicPageMetadata(
+    `/helpers/${encodeURIComponent(helperId)}`,
+    `${helper.name} | ${getCategoryLabel(helper.category)} Helper | CritOrbit`,
+    `View ${helper.name}'s ${getCategoryLabel(helper.category).toLowerCase()} profile on CritOrbit. Review specialties and portfolio, then submit a brief to discuss your requirements.`,
+  );
+}
 
 export default async function HelperDetailPage({
   params,

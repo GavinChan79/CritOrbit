@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { publicPageMetadata } from "@/lib/seo";
+import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 import { Card, SectionHeading, SiteFooter, SiteHeader, buttonStyles } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Coding Assignment Help Malaysia | CritOrbit",
-  description:
-    "Get coding assignment help in Malaysia. Find helpers for debugging, logic, coursework, and urgent programming deadlines on CritOrbit.",
-};
+export const metadata = publicPageMetadata(
+  "/coding-assignment-help-malaysia",
+  "Coding Assignment Help Malaysia | CritOrbit",
+  "Get coding assignment help in Malaysia. Find helpers for debugging, logic, coursework, and urgent programming deadlines on CritOrbit.",
+);
 
 const helpAreas = [
   ["Debugging help", "Get support when your code is breaking, returning errors, or failing test cases."],
@@ -45,6 +46,7 @@ export default function CodingAssignmentHelpMalaysiaPage() {
     <div className="min-h-screen bg-cream">
       <SiteHeader />
       <main>
+        <ServiceBreadcrumbs path="/coding-assignment-help-malaysia" label="Coding Assignment Help Malaysia" />
         <section className="surface-grid overflow-hidden bg-yellow">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.08fr_0.92fr] md:px-6 md:py-24">
             <div>
@@ -95,7 +97,7 @@ export default function CodingAssignmentHelpMalaysiaPage() {
         </section>
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
-          <SectionHeading eyebrow="Trust Signals" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
+          <SectionHeading eyebrow="How we help" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
               "50+ students helped",
@@ -195,6 +197,24 @@ export default function CodingAssignmentHelpMalaysiaPage() {
               </Link>
             </div>
           </div>
+        </section>
+        <section className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+          <SectionHeading eyebrow="Before you request help" title="Prepare your code for a useful review" />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Make the problem reproducible</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Include the language, framework and version, the command you run, and the complete error message. Describe the expected result and what actually happens.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Share the smallest relevant example</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Send the code and sample input needed to reproduce the issue. Remove passwords, API keys and personal data before sharing files or repository access.</p>
+            </Card>
+            <Card className="bg-white">
+              <h3 className="display-font text-2xl font-black">Agree on what you want to learn</h3>
+              <p className="mt-3 text-sm leading-7 text-muted">Identify whether you need debugging guidance, a code review or help understanding an algorithm. Ask for an explanation and test the changes yourself against your assignment requirements.</p>
+            </Card>
+          </div>
+          <Link href="/requirements" className={buttonStyles({ tone: "purple", size: "lg" }) + " mt-6"}>Submit Your Brief</Link>
         </section>
       </main>
       <SiteFooter />

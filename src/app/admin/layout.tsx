@@ -1,3 +1,7 @@
+import { noIndexMetadata } from "@/lib/seo";
+
+export const metadata = noIndexMetadata;
+
 import { ReactNode } from "react";
 import { requireAdmin } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin-sidebar";
