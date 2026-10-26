@@ -1,3 +1,4 @@
+import { ServiceAnswers } from "@/components/service-answers";
 import { publicPageMetadata } from "@/lib/seo";
 import { ServiceBreadcrumbs } from "@/components/service-breadcrumbs";
 import Link from "next/link";
@@ -95,15 +96,16 @@ export default function EngineeringAssignmentHelpMalaysiaPage() {
             </div>
           </div>
         </section>
+        <ServiceAnswers slug="engineering-assignment-help-malaysia" />
 
         <section className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <SectionHeading eyebrow="How we help" title="Why Students Choose CritOrbit" description="Students use CritOrbit because it feels faster, clearer, and more reliable when assignment pressure builds." />
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {[
-              "50+ students helped",
-              "Fast response within 1 hour",
-              "Trusted by Malaysian university students",
-              "Real helper portfolios with proven results",
+              "Compare helper specialties",
+              "Confirm availability with admin",
+              "Share your course requirements",
+              "Review available helper portfolios",
             ].map((item, index) => (
               <Card key={item} className={index === 3 ? "bg-yellow" : "bg-white"}>
                 <div className="flex items-start gap-3">
