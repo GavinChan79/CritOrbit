@@ -14,6 +14,7 @@ export function SiteFooter() {
           <p className="mt-3 max-w-sm text-sm text-muted">{APP_TAGLINE}</p>
         </div>
         <div className="flex flex-col gap-2 text-sm font-semibold">
+          <Link href="/about">About CritOrbit</Link>
           <Link href="/requirements">Submit a Brief</Link>
           <Link href="/become-helper">Become a Helper</Link>
           <Link href="/login">Login</Link>

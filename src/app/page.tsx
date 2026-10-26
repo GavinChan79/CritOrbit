@@ -1,3 +1,4 @@
+import { platformDescription, platformQuestions } from "@/lib/answer-content";
 import { HOME_TITLE, HOME_DESCRIPTION, SITE_URL, publicPageMetadata } from "@/lib/seo";
 import { StructuredData } from "@/components/structured-data";
 import Link from "next/link";
@@ -108,7 +109,7 @@ export default async function HomePage() {
         "@context": "https://schema.org",
         "@graph": [
           { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: "CritOrbit", url: `${SITE_URL}/`, inLanguage: "en", publisher: { "@id": `${SITE_URL}/#organization` } },
-          { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "CritOrbit", url: `${SITE_URL}/` },
+          { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "CritOrbit", url: `${SITE_URL}/`, description: platformDescription },
         ],
       }} />
       <main>
@@ -122,7 +123,7 @@ export default async function HomePage() {
                 Assignment Help for Malaysian Students.
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-8 text-ink/80">
-                Find the right support for coding, reports, presentations and design coursework. Compare helpers, share your brief and let CritOrbit coordinate the next step.
+                {platformDescription}
               </p>
               <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-ink/70">
                 {APP_POWERED_BY}
@@ -177,7 +178,7 @@ export default async function HomePage() {
                     <div className="rounded-[24px] border-[3px] border-line bg-pink p-5 text-ink shadow-[5px_5px_0_rgba(31,27,24,0.28)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black uppercase tracking-[0.18em]">Rendering</div>
-                        <span className="retro-pill bg-white px-3 py-1 text-[10px] font-black uppercase">24h Slot</span>
+                        <span className="retro-pill bg-white px-3 py-1 text-[10px] font-black uppercase">Check Availability</span>
                       </div>
                       <div className="mt-3 display-font text-[1.7rem] font-black leading-tight">Fast turnarounds</div>
                       <div className="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em]">
@@ -189,7 +190,7 @@ export default async function HomePage() {
                     <div className="rounded-[24px] border-[3px] border-line bg-green p-5 text-white shadow-[5px_5px_0_rgba(31,27,24,0.28)]">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black uppercase tracking-[0.18em]">Interior + Arch</div>
-                        <span className="retro-pill bg-white px-3 py-1 text-[10px] font-black uppercase text-ink">50+ Roster</span>
+                        <span className="retro-pill bg-white px-3 py-1 text-[10px] font-black uppercase text-ink">Helper Profiles</span>
                       </div>
                       <div className="mt-3 display-font text-[1.7rem] font-black leading-tight">Curated helpers</div>
                       <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.18em]">
@@ -263,7 +264,7 @@ export default async function HomePage() {
             <SectionHeading eyebrow={`Why ${APP_NAME}`} title="Built for students under pressure" />
             <div className="mt-10 grid gap-6 md:grid-cols-4">
               {[
-                ["50+", "Helpers"],
+                ["Profiles", "Compare specialties"],
                 ["Fast", "Reply"],
                 ["RM100–RM2000", "Budget Range"],
                 ["Interior + Architecture", "Coverage"],
@@ -594,14 +595,9 @@ export default async function HomePage() {
         </section>
 
         <section id="faqs" className="mx-auto max-w-7xl px-4 pb-8 md:px-6">
-          <SectionHeading eyebrow="FAQs" title="A few important rules" />
+          <SectionHeading eyebrow="FAQs" title="Questions about CritOrbit" />
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {[
-              ["Can I contact helpers directly?", `No. All communication is routed through ${APP_NAME} admin WhatsApp.`],
-              ["How are scope and payment agreed?", "Discuss your brief, deadline and budget with the CritOrbit admin before proceeding. Follow the payment instructions provided for your request."],
-              ["Can I use this for architecture and interior work?", "Yes. Both categories are supported in the current helper roster."],
-              ["Will I see my request status later?", "Yes, logged-in users can track requests from the dashboard."],
-            ].map(([question, answer]) => (
+            {platformQuestions.map(([question, answer]) => (
               <Card key={question} className="bg-white">
                 <h3 className="display-font text-2xl font-black">{question}</h3>
                 <p className="mt-3 text-sm leading-7 text-muted">{answer}</p>
